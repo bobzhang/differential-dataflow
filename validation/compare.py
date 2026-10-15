@@ -14,6 +14,8 @@ run(['cargo','build','--release','--locked','--manifest-path','validation/rust/C
 run(['moon','build','--release','--target','js'])
 from examples_compare import compare as compare_examples
 compare_examples(build=False)
+from pointstamp_compare import compare as compare_pointstamp
+compare_pointstamp(build=False)
 cancel_inputs = ''.join(f'{seed}\n' for seed in range(1,65))
 rust = run(['validation/rust/target/release/differential-reference-check', 'cancellation'], input=cancel_inputs, capture_output=True).stdout.splitlines()
 moon = run(['node', 'validation/run.cjs', 'cancellation'], input=cancel_inputs, capture_output=True).stdout.splitlines()
@@ -560,6 +562,8 @@ summary = {
     'search_checks': ['shared forward and reversed indexes', 'bidirectional shortest paths', 'goal multiplicities', 'sequential neighbor updates', 'edge and goal retractions', 'independent BFS and ordered node evaluation'],
     'cancelled_nested_dataflows': 1024,
     'example_epochs': 384,
+    'pointstamp_summary_cases': 4096,
+    'runtime_depth_iteration_epochs': 512,
     'example_checks': ['integer PageRank with 1-5 iterations', 'degree histograms', 'item recommendations with exact Jaccard fractions', 'empty graphs and retractions', 'independent full recomputation'],
     'status': 'passed',
 }

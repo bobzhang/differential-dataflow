@@ -172,6 +172,8 @@
   ],
   "cancelled_nested_dataflows": 1024,
   "example_epochs": 384,
+  "pointstamp_summary_cases": 4096,
+  "runtime_depth_iteration_epochs": 512,
   "example_checks": [
     "integer PageRank with 1-5 iterations",
     "degree histograms",

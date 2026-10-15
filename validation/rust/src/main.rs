@@ -1,3 +1,4 @@
+mod pointstamp;
 mod cancellation;
 mod examples;
 mod replay_distributed;
@@ -62,6 +63,8 @@ fn main() {
             match mode.as_str() {
                 "examples" => examples::evaluate(seed),
                 "cancellation" => cancellation::evaluate(seed),
+                "pointstamp" => pointstamp::evaluate(seed),
+                "dynamic_iteration" => pointstamp::iterate(seed),
                 "spilled_spines" => columnar::spilled(seed),
                 "columnar_spines" => columnar::evaluate(seed),
                 "eager_replay" => capture_async::eager(seed),

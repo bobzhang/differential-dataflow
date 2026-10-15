@@ -255,6 +255,7 @@ pub fn[D, T : Lattice, R] Collection::concat(Self[D, T, R], Self[D, T, R]) -> Se
 pub fn[D : Compare, T : Lattice, R : Semigroup] Collection::consolidate(Self[D, T, R]) -> Self[D, T, R]
 pub fn[D : Compare + Hash, T : Lattice, R : Semigroup + Compare] Collection::count(Self[D, T, R]) -> Self[(D, R), T, Int64]
 pub fn[D : Compare + Hash, T : Lattice, R : Semigroup] Collection::distinct(Self[D, T, R]) -> Self[D, T, Int64]
+pub fn[D, A, B, R] Collection::enter_dynamic(Self[D, Product[A, PointStamp[B]], R], Int) -> Self[D, Product[A, PointStamp[B]], R]
 pub fn[D, E, T : Lattice, R, S] Collection::explode(Self[D, T, R], (D) -> Array[(E, (R) -> S)]) -> Self[E, T, S]
 pub fn[D, T : Lattice, R] Collection::filter(Self[D, T, R], (D) -> Bool) -> Self[D, T, R]
 pub fn[D, E, T : Lattice, R] Collection::flat_map(Self[D, T, R], (D) -> Array[E]) -> Self[E, T, R]
@@ -330,6 +331,7 @@ pub fn Duration::hash_combine(Self, Hasher) -> Unit
 pub fn Duration::join(Self, Self) -> Self
 pub fn Duration::less_equal(Self, Self) -> Bool
 pub fn Duration::meet(Self, Self) -> Self
+pub fn Duration::minimum() -> Self
 pub fn Duration::nanoseconds(Self) -> UInt
 pub fn Duration::not_equal(Self, Self) -> Bool
 pub fn Duration::op_ge(Self, Self) -> Bool
@@ -339,6 +341,7 @@ pub fn Duration::op_lt(Self, Self) -> Bool
 pub fn Duration::seconds(Self) -> UInt64
 pub fn Duration::to_repr(Self) -> @debug.Repr
 pub impl Lattice for Duration
+pub impl Timestamp for Duration
 pub impl TotalOrder for Duration
 
 pub struct Feedback[D, T, R, S] {
@@ -391,6 +394,7 @@ pub fn Int128::is_zero(Self) -> Bool
 pub fn Int128::join(Self, Self) -> Self
 pub fn Int128::less_equal(Self, Self) -> Bool
 pub fn Int128::meet(Self, Self) -> Self
+pub fn Int128::minimum() -> Self
 pub fn Int128::multiply(Self, Self) -> Self
 pub fn Int128::negate(Self) -> Self
 pub fn Int128::not_equal(Self, Self) -> Bool
@@ -411,6 +415,7 @@ pub impl Monoid for Int128
 pub impl Ring for Int128
 pub impl RustHash for Int128
 pub impl Semigroup for Int128
+pub impl Timestamp for Int128
 pub impl TotalOrder for Int128
 
 pub struct Int8 {
@@ -427,6 +432,7 @@ pub fn Int8::is_zero(Self) -> Bool
 pub fn Int8::join(Self, Self) -> Self
 pub fn Int8::less_equal(Self, Self) -> Bool
 pub fn Int8::meet(Self, Self) -> Self
+pub fn Int8::minimum() -> Self
 pub fn Int8::multiply(Self, Self) -> Self
 pub fn Int8::negate(Self) -> Self
 pub fn Int8::not_equal(Self, Self) -> Bool
@@ -445,6 +451,7 @@ pub impl Monoid for Int8
 pub impl Ring for Int8
 pub impl RustHash for Int8
 pub impl Semigroup for Int8
+pub impl Timestamp for Int8
 pub impl TotalOrder for Int8
 
 pub struct MutableAntichain[T] {
@@ -508,6 +515,43 @@ pub fn[D, T, R, S] Output::accepts(Self[D, T, R, S], Capability[T, S]) -> Bool
 pub fn[D, T : Lattice, R, S] Output::send(Self[D, T, R, S], Capability[T, S], Array[(D, R)]) -> Unit
 pub fn[D, T : Lattice, R, S] Output::send_at(Self[D, T, R, S], Capability[T, S], Array[(D, T, R)]) -> Unit
 
+pub struct PointStamp[T] {
+  // private fields
+} derive(Eq, @debug.Debug)
+pub fn[T : Timestamp] PointStamp::PointStamp(Array[T]) -> Self[T]
+pub fn[T : Compare] PointStamp::compare(Self[T], Self[T]) -> Int
+pub fn[T : Eq] PointStamp::equal(Self[T], Self[T]) -> Bool
+pub fn[T : Timestamp] PointStamp::join(Self[T], Self[T]) -> Self[T]
+pub fn[T : Timestamp] PointStamp::less_equal(Self[T], Self[T]) -> Bool
+pub fn[T : Timestamp] PointStamp::meet(Self[T], Self[T]) -> Self[T]
+pub fn[T : Timestamp] PointStamp::minimum() -> Self[T]
+pub fn[T : Eq] PointStamp::not_equal(Self[T], Self[T]) -> Bool
+pub fn[T : Compare] PointStamp::op_ge(Self[T], Self[T]) -> Bool
+pub fn[T : Compare] PointStamp::op_gt(Self[T], Self[T]) -> Bool
+pub fn[T : Compare] PointStamp::op_le(Self[T], Self[T]) -> Bool
+pub fn[T : Compare] PointStamp::op_lt(Self[T], Self[T]) -> Bool
+pub fn[T] PointStamp::to_array(Self[T]) -> Array[T]
+pub fn[T : @debug.Debug] PointStamp::to_repr(Self[T]) -> @debug.Repr
+pub impl[T : Timestamp] Lattice for PointStamp[T]
+pub impl[T : Timestamp] Timestamp for PointStamp[T]
+pub impl[T : Compare] Compare for PointStamp[T]
+
+pub struct PointStampSummary[S] {
+  // private fields
+} derive(Eq, @debug.Debug)
+pub fn[S] PointStampSummary::PointStampSummary(Array[S], retain? : Int) -> Self[S]
+pub fn[S] PointStampSummary::actions(Self[S]) -> Array[S]
+pub fn[S : Compare] PointStampSummary::compare(Self[S], Self[S]) -> Int
+pub fn[S : Eq] PointStampSummary::equal(Self[S], Self[S]) -> Bool
+pub fn[S : Eq] PointStampSummary::not_equal(Self[S], Self[S]) -> Bool
+pub fn[S : Compare] PointStampSummary::op_ge(Self[S], Self[S]) -> Bool
+pub fn[S : Compare] PointStampSummary::op_gt(Self[S], Self[S]) -> Bool
+pub fn[S : Compare] PointStampSummary::op_le(Self[S], Self[S]) -> Bool
+pub fn[S : Compare] PointStampSummary::op_lt(Self[S], Self[S]) -> Bool
+pub fn[S] PointStampSummary::retain(Self[S]) -> Int?
+pub fn[S : @debug.Debug] PointStampSummary::to_repr(Self[S]) -> @debug.Repr
+pub impl[S : Compare] Compare for PointStampSummary[S]
+
 pub(all) enum Present {
   Present
 } derive(Eq, @debug.Debug)
@@ -537,6 +581,7 @@ pub fn[A : Eq, B : Eq] Product::equal(Self[A, B], Self[A, B]) -> Bool
 pub fn[A : Lattice, B : Lattice] Product::join(Self[A, B], Self[A, B]) -> Self[A, B]
 pub fn[A : Lattice, B : Lattice] Product::less_equal(Self[A, B], Self[A, B]) -> Bool
 pub fn[A : Lattice, B : Lattice] Product::meet(Self[A, B], Self[A, B]) -> Self[A, B]
+pub fn[A : Timestamp, B : Timestamp] Product::minimum() -> Self[A, B]
 pub fn[A : Eq, B : Eq] Product::not_equal(Self[A, B], Self[A, B]) -> Bool
 pub fn[A : Compare, B : Compare] Product::op_ge(Self[A, B], Self[A, B]) -> Bool
 pub fn[A : Compare, B : Compare] Product::op_gt(Self[A, B], Self[A, B]) -> Bool
@@ -544,6 +589,7 @@ pub fn[A : Compare, B : Compare] Product::op_le(Self[A, B], Self[A, B]) -> Bool
 pub fn[A : Compare, B : Compare] Product::op_lt(Self[A, B], Self[A, B]) -> Bool
 pub fn[A : @debug.Debug, B : @debug.Debug] Product::to_repr(Self[A, B]) -> @debug.Repr
 pub impl[A : Lattice, B : Lattice] Lattice for Product[A, B]
+pub impl[A : Timestamp, B : Timestamp] Timestamp for Product[A, B]
 
 pub struct ProgressGraph[T, S] {
   // private fields
@@ -623,6 +669,7 @@ pub fn[D : Compare + RustHash, T : Lattice, R : Abelian, S : Compare] Scope::ide
 pub fn[D : Compare, T : Lattice, R : Abelian, S : Compare] Scope::identifiers_with(Self[T, S], Collection[D, T, R], (Int, D) -> UInt64) -> Collection[(D, UInt64), T, R]
 pub fn[D, T : Lattice, R, S] Scope::input(Self[T, S]) -> (InputSession[D, T, R], Collection[D, T, R])
 pub fn[D, T : Lattice, R : Abelian, S : Compare] Scope::iterate(Self[T, S], Collection[D, T, R], (Self[Product[T, Int64], Product[S, Int64]], Collection[D, Product[T, Int64], R]) -> Collection[D, Product[T, Int64], R]) -> Collection[D, T, R]
+pub fn[D, A : Lattice, B : Timestamp, R, S, U] Scope::leave_dynamic(Self[Product[A, PointStamp[B]], Product[S, PointStampSummary[U]]], Collection[D, Product[A, PointStamp[B]], R], Int) -> Collection[D, Product[A, PointStamp[B]], R]
 pub fn[A : Lattice, B : Lattice, S : Compare, U : Compare] Scope::nested(Self[A, S], B, SummaryDomain[B, U]) -> NestedScope[A, B, S, U]
 pub fn[T, S] Scope::operator(Self[T, S]) -> OperatorBuilder[T, S]
 pub fn[K : Compare + Hash, D : Compare + Hash, T : Lattice, S : Compare] Scope::prefix_sum(Self[T, S], Collection[((UInt64, K), D), T, Int64], D, (K, D, D) -> D) -> Collection[((UInt64, K), D), T, Int64]
@@ -722,6 +769,7 @@ pub struct SummaryDomain[T, S] {
 pub fn[T, S] SummaryDomain::SummaryDomain(S, apply~ : (S, T) -> T?, compose~ : (S, S) -> S?, less_equal~ : (S, S) -> Bool) -> Self[T, S]
 pub fn SummaryDomain::byte() -> Self[Byte, Byte]
 pub fn SummaryDomain::duration() -> Self[Duration, Duration]
+pub fn[T, S] SummaryDomain::feedback_summary(Self[T, S], Int, S) -> PointStampSummary[S]
 pub fn[T, S] SummaryDomain::followed_by(Self[T, S], S, S) -> S?
 pub fn[T, S] SummaryDomain::identity(Self[T, S]) -> S
 pub fn SummaryDomain::int128() -> Self[Int128, Int128]
@@ -729,6 +777,7 @@ pub fn SummaryDomain::int16() -> Self[Int16, Int16]
 pub fn SummaryDomain::int32() -> Self[Int, Int]
 pub fn SummaryDomain::int64() -> Self[Int64, Int64]
 pub fn SummaryDomain::int8() -> Self[Int8, Int8]
+pub fn[T : Timestamp, S] SummaryDomain::pointstamp(Self[T, S]) -> Self[PointStamp[T], PointStampSummary[S]]
 pub fn[A, B, S, U] SummaryDomain::product(Self[A, S], Self[B, U]) -> Self[Product[A, B], Product[S, U]]
 pub fn[T, S] SummaryDomain::results_in(Self[T, S], S, T) -> T?
 pub fn SummaryDomain::uint128() -> Self[UInt128, UInt128]
@@ -823,6 +872,7 @@ pub fn UInt128::is_zero(Self) -> Bool
 pub fn UInt128::join(Self, Self) -> Self
 pub fn UInt128::less_equal(Self, Self) -> Bool
 pub fn UInt128::meet(Self, Self) -> Self
+pub fn UInt128::minimum() -> Self
 pub fn UInt128::multiply(Self, Self) -> Self
 pub fn UInt128::not_equal(Self, Self) -> Bool
 pub fn UInt128::op_ge(Self, Self) -> Bool
@@ -839,6 +889,7 @@ pub impl Lattice for UInt128
 pub impl Monoid for UInt128
 pub impl RustHash for UInt128
 pub impl Semigroup for UInt128
+pub impl Timestamp for UInt128
 pub impl TotalOrder for UInt128
 
 pub struct Variable[D, T, R, S] {
@@ -874,6 +925,8 @@ pub struct WireCodec[T] {
 pub fn[T] WireCodec::WireCodec(encode~ : (T) -> Json, decode~ : (Json) -> T?) -> Self[T]
 pub fn[T] WireCodec::from_json(Self[T], Json) -> T?
 pub fn[T : ToJson + @json.FromJson] WireCodec::json() -> Self[T]
+pub fn[T : Timestamp] WireCodec::pointstamp(Self[T]) -> Self[PointStamp[T]]
+pub fn[S] WireCodec::pointstamp_summary(Self[S]) -> Self[PointStampSummary[S]]
 pub fn[A, B] WireCodec::product(Self[A], Self[B]) -> Self[Product[A, B]]
 pub fn[T] WireCodec::to_json(Self[T], T) -> Json
 
@@ -1018,6 +1071,18 @@ pub impl Semigroup for UInt64
 pub impl[A : Semigroup, B : Semigroup] Semigroup for (A, B)
 pub impl[A : Semigroup, B : Semigroup, C : Semigroup] Semigroup for (A, B, C)
 pub impl[A : Semigroup, B : Semigroup, C : Semigroup, D : Semigroup] Semigroup for (A, B, C, D)
+
+pub(open) trait Timestamp : Lattice {
+  fn minimum() -> Self
+}
+pub impl Timestamp for Unit
+pub impl Timestamp for Byte
+pub impl Timestamp for Int
+pub impl Timestamp for Int16
+pub impl Timestamp for Int64
+pub impl Timestamp for UInt
+pub impl Timestamp for UInt16
+pub impl Timestamp for UInt64
 
 pub(open) trait TotalOrder : Lattice {
 }

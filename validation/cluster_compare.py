@@ -12,7 +12,7 @@ BIN = ROOT / '_build/native/release/build/validation/cluster/cluster.exe'
 
 def run_peers(seed, peers, mode="join"):
     logical_mode = mode.removeprefix("async_")
-    epochs = 24 if logical_mode == "dynamic_iteration" else 8 if logical_mode in ("iteration", "deep_iteration") else 16
+    epochs = 24 if logical_mode == "dynamic_iteration" else 8 if logical_mode in ("iteration", "deep_iteration", "pointstamp") else 16
     with socket.socket() as reserved:
         reserved.bind(('127.0.0.1', 0))
         port = reserved.getsockname()[1]
@@ -146,6 +146,15 @@ def main():
         for seed in seeds:
             for mode in ('cancellation', 'async_cancellation'):
                 assert run_peers(seed, peer_count, mode) == cancellation_expected(seed, peer_count)
+    from pointstamp_compare import iteration_expected
+    dynamic_rust = subprocess.run(['validation/rust/target/release/differential-reference-check', 'dynamic_iteration'],
+                                 cwd=ROOT, input=''.join(f'{seed}\n' for seed in seeds), text=True,
+                                 capture_output=True, check=True, timeout=90).stdout.splitlines()
+    assert len(dynamic_rust) == len(seeds)
+    for peer_count in (2, 3):
+        for seed, expected in zip(seeds, dynamic_rust):
+            for mode in ('pointstamp', 'async_pointstamp'):
+                assert run_peers(seed, peer_count, mode) == expected == iteration_expected(seed), (seed, peer_count, mode)
     result = {'process_counts': [2, 3], 'seeds': seeds, 'epochs_per_seed': 16,
               'oracles': ['pinned Rust two-worker join', 'independent full weighted join', 'pinned Rust three-worker replay', 'independent replay totals'],
               'checks': ['TCP startup retry', 'keyed exchange', 'shared arrangement joins',
@@ -153,7 +162,7 @@ def main():
                          'cyclic fixed points', 'two nested feedback loops', 'root retractions', 'independent BFS',
                          'capture duplicates across peers', 'progress before replay data',
                          'unanimous completed-scope reclamation', 'any-peer nested dataflow cancellation with live siblings', 'nonblocking host polling for every distributed workload'],
-              'async_host_polling_epochs': 784, 'collective_cancellation_epochs': 128, 'distributed_replay_epochs': 128, 'dynamic_dataflow_epochs': 144, 'iteration_epochs_per_seed': 8, 'status': 'passed'}
+              'runtime_depth_iteration_epochs': 128, 'async_host_polling_epochs': 848, 'collective_cancellation_epochs': 128, 'distributed_replay_epochs': 128, 'dynamic_dataflow_epochs': 144, 'iteration_epochs_per_seed': 8, 'status': 'passed'}
     (ROOT / 'validation/cluster_results.json').write_text(json.dumps(result, indent=2) + '\n')
     print(json.dumps(result))
 

@@ -58,6 +58,7 @@ fn main raise {
     | "async_deep_iteration"
     | "async_dynamic_iteration"
     | "async_replay"
+    | "async_pointstamp"
     | "async_cancellation" => true
     _ => false
   }
@@ -82,9 +83,14 @@ fn main raise {
     "async_dynamic_iteration" => "dynamic_iteration"
     "async_replay" => "replay"
     "async_cancellation" => "cancellation"
+    "async_pointstamp" => "pointstamp"
     mode => mode
   }
   defer cluster.dispose()
+  if mode == "pointstamp" {
+    println(pointstamp_iteration(cluster, seed))
+    return
+  }
   if mode == "cancellation" {
     println(cancellation(cluster, seed))
     return

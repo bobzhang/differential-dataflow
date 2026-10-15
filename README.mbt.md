@@ -352,6 +352,21 @@ completion. Complete corrupt frames raise `JournalError` and poison the reader.
 Call `close` explicitly to report close errors. Automatic writer recovery is not
 provided. The versioned JSON/frame encoding is independent of Rust serde.
 
+## Runtime-defined iteration depths
+
+`PointStamp` stores a runtime-sized vector of timestamp coordinates. It uses
+product order, so independent inner iterations can remain incomparable. Trailing
+minimum coordinates are canonicalized away. `SummaryDomain::pointstamp` lifts a
+scalar summary domain; `feedback_summary(level, step)` advances one coordinate,
+and `Scope.leave_dynamic(collection, level)` discards coordinates at and below
+that one-based level. `enter_dynamic` is an identity operation, as upstream.
+
+Use these types inside a normal product scope when the number of nested loops is
+known only at runtime. `WireCodec::pointstamp` and `pointstamp_summary` support the
+same scopes across process workers. The `validation/bridge/pointstamp.mbt` and
+`validation/cluster/pointstamp.mbt` fixtures demonstrate local and distributed
+fixed points with runtime-selected depths and input retractions.
+
 ## Validation
 
 ```sh
