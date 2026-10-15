@@ -2,6 +2,7 @@
 package "bobzhang/differential"
 
 import {
+  "moonbitlang/core/bigint",
   "moonbitlang/core/debug",
   "moonbitlang/core/json",
 }
@@ -178,6 +179,29 @@ pub fn[D, T : Lattice, R : Abelian, S : Compare] DistributedScope::iterate(Self[
 pub fn[A : Lattice, B : Lattice, S : Compare, U : Compare] DistributedScope::nested(Self[A, S], B, SummaryDomain[B, U], time_codec~ : WireCodec[B], summary_codec~ : WireCodec[U]) -> DistributedNestedScope[A, B, S, U]
 pub fn[T, S] DistributedScope::scope(Self[T, S]) -> Scope[T, S]
 
+pub struct Duration {
+  // private fields
+} derive(Compare, Eq, Hash, @debug.Debug)
+pub fn Duration::Duration(UInt64, nanoseconds? : UInt) -> Self
+pub fn Duration::checked_add(Self, Self) -> Self?
+pub fn Duration::compare(Self, Self) -> Int
+pub fn Duration::equal(Self, Self) -> Bool
+pub fn Duration::hash(Self) -> Int
+pub fn Duration::hash_combine(Self, Hasher) -> Unit
+pub fn Duration::join(Self, Self) -> Self
+pub fn Duration::less_equal(Self, Self) -> Bool
+pub fn Duration::meet(Self, Self) -> Self
+pub fn Duration::nanoseconds(Self) -> UInt
+pub fn Duration::not_equal(Self, Self) -> Bool
+pub fn Duration::op_ge(Self, Self) -> Bool
+pub fn Duration::op_gt(Self, Self) -> Bool
+pub fn Duration::op_le(Self, Self) -> Bool
+pub fn Duration::op_lt(Self, Self) -> Bool
+pub fn Duration::seconds(Self) -> UInt64
+pub fn Duration::to_repr(Self) -> @debug.Repr
+pub impl Lattice for Duration
+pub impl TotalOrder for Duration
+
 pub struct Feedback[D, T, R, S] {
   // private fields
 }
@@ -203,6 +227,39 @@ pub fn[D, T : Lattice] InputSession::remove(Self[D, T, Int64], D) -> Unit
 pub fn[D, T, R] InputSession::time(Self[D, T, R]) -> T
 pub fn[D, T : Lattice, R] InputSession::update(Self[D, T, R], D, R) -> Unit
 pub fn[D, T : Lattice, R] InputSession::update_at(Self[D, T, R], D, T, R) -> Unit
+
+pub struct Int128 {
+  // private fields
+} derive(Compare, Eq, Hash, @debug.Debug)
+pub fn Int128::Int128(Int64) -> Self
+pub fn Int128::checked_add(Self, Self) -> Self?
+pub fn Int128::compare(Self, Self) -> Int
+pub fn Int128::equal(Self, Self) -> Bool
+pub fn Int128::from_words(Int64, UInt64) -> Self
+pub fn Int128::hash(Self) -> Int
+pub fn Int128::hash_combine(Self, Hasher) -> Unit
+pub fn Int128::is_zero(Self) -> Bool
+pub fn Int128::join(Self, Self) -> Self
+pub fn Int128::less_equal(Self, Self) -> Bool
+pub fn Int128::meet(Self, Self) -> Self
+pub fn Int128::multiply(Self, Self) -> Self
+pub fn Int128::negate(Self) -> Self
+pub fn Int128::not_equal(Self, Self) -> Bool
+pub fn Int128::op_ge(Self, Self) -> Bool
+pub fn Int128::op_gt(Self, Self) -> Bool
+pub fn Int128::op_le(Self, Self) -> Bool
+pub fn Int128::op_lt(Self, Self) -> Bool
+pub fn Int128::plus(Self, Self) -> Self
+pub fn Int128::to_repr(Self) -> @debug.Repr
+pub fn Int128::to_string(Self) -> String
+pub fn Int128::to_words(Self) -> (Int64, UInt64)
+pub fn Int128::try_from_bigint(@bigint.BigInt) -> Self?
+pub fn Int128::zero() -> Self
+pub impl Abelian for Int128
+pub impl Lattice for Int128
+pub impl Monoid for Int128
+pub impl Semigroup for Int128
+pub impl TotalOrder for Int128
 
 pub struct MutableAntichain[T] {
   // private fields
@@ -392,13 +449,16 @@ pub struct SummaryDomain[T, S] {
 }
 pub fn[T, S] SummaryDomain::SummaryDomain(S, apply~ : (S, T) -> T?, compose~ : (S, S) -> S?, less_equal~ : (S, S) -> Bool) -> Self[T, S]
 pub fn SummaryDomain::byte() -> Self[Byte, Byte]
+pub fn SummaryDomain::duration() -> Self[Duration, Duration]
 pub fn[T, S] SummaryDomain::followed_by(Self[T, S], S, S) -> S?
 pub fn[T, S] SummaryDomain::identity(Self[T, S]) -> S
+pub fn SummaryDomain::int128() -> Self[Int128, Int128]
 pub fn SummaryDomain::int16() -> Self[Int16, Int16]
 pub fn SummaryDomain::int32() -> Self[Int, Int]
 pub fn SummaryDomain::int64() -> Self[Int64, Int64]
 pub fn[A, B, S, U] SummaryDomain::product(Self[A, S], Self[B, U]) -> Self[Product[A, B], Product[S, U]]
 pub fn[T, S] SummaryDomain::results_in(Self[T, S], S, T) -> T?
+pub fn SummaryDomain::uint128() -> Self[UInt128, UInt128]
 pub fn SummaryDomain::uint16() -> Self[UInt16, UInt16]
 pub fn SummaryDomain::uint32() -> Self[UInt, UInt]
 pub fn SummaryDomain::uint64() -> Self[UInt64, UInt64]
@@ -441,6 +501,37 @@ pub struct TraceWriter[D, T, R] {
 }
 pub fn[D : Compare, T : Lattice, R : Semigroup] TraceWriter::insert(Self[D, T, R], Batch[D, T, R]) -> Unit
 pub fn[D, T : Lattice, R] TraceWriter::upper(Self[D, T, R]) -> Antichain[T]
+
+pub struct UInt128 {
+  // private fields
+} derive(Compare, Eq, Hash, @debug.Debug)
+pub fn UInt128::UInt128(UInt64) -> Self
+pub fn UInt128::checked_add(Self, Self) -> Self?
+pub fn UInt128::compare(Self, Self) -> Int
+pub fn UInt128::equal(Self, Self) -> Bool
+pub fn UInt128::from_words(UInt64, UInt64) -> Self
+pub fn UInt128::hash(Self) -> Int
+pub fn UInt128::hash_combine(Self, Hasher) -> Unit
+pub fn UInt128::is_zero(Self) -> Bool
+pub fn UInt128::join(Self, Self) -> Self
+pub fn UInt128::less_equal(Self, Self) -> Bool
+pub fn UInt128::meet(Self, Self) -> Self
+pub fn UInt128::multiply(Self, Self) -> Self
+pub fn UInt128::not_equal(Self, Self) -> Bool
+pub fn UInt128::op_ge(Self, Self) -> Bool
+pub fn UInt128::op_gt(Self, Self) -> Bool
+pub fn UInt128::op_le(Self, Self) -> Bool
+pub fn UInt128::op_lt(Self, Self) -> Bool
+pub fn UInt128::plus(Self, Self) -> Self
+pub fn UInt128::to_repr(Self) -> @debug.Repr
+pub fn UInt128::to_string(Self) -> String
+pub fn UInt128::to_words(Self) -> (UInt64, UInt64)
+pub fn UInt128::try_from_bigint(@bigint.BigInt) -> Self?
+pub fn UInt128::zero() -> Self
+pub impl Lattice for UInt128
+pub impl Monoid for UInt128
+pub impl Semigroup for UInt128
+pub impl TotalOrder for UInt128
 
 pub struct Variable[D, T, R, S] {
   // private fields

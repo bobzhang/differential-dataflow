@@ -220,6 +220,13 @@ for seed,r,m in zip(stream_reduce_seeds,rust,moon):
     assert r == m, f'streamed incomparable reduction failure seed={seed}'
 arranged_reduce = run(['node','validation/run.cjs','arranged_reduce'],input=inputs,capture_output=True).stdout.splitlines()
 assert arranged_reduce == moon, 'shared arranged reduction differs'
+numeric_seeds = range(1,33)
+inputs = ''.join(f'{s}\n' for s in numeric_seeds)
+rust = run(['validation/rust/target/release/differential-reference-check','numeric'],input=inputs,capture_output=True).stdout.splitlines()
+moon = run(['node','validation/run.cjs','numeric'],input=inputs,capture_output=True).stdout.splitlines()
+assert len(rust) == len(moon) == len(numeric_seeds)
+for seed,r,m in zip(numeric_seeds,rust,moon):
+    assert r == m, f'wide arithmetic or duration failure seed={seed}'
 summary = {
     'references': pins,
     'frontier_seeds': len(seeds),
@@ -251,6 +258,8 @@ summary = {
     'group_join_seeds': len(group_join_seeds),
     'group_join_epochs_per_seed': 16,
     'group_join_peers': 2,
+    'numeric_cases': len(numeric_seeds) * 64,
+    'numeric_checks': ['signed and unsigned 128-bit wrapping arithmetic', 'checked overflow', 'duration nanosecond carry'],
     'status': 'passed',
 }
 (ROOT/'validation/results.json').write_text(json.dumps(summary,indent=2)+'\n')

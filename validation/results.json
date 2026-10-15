@@ -71,5 +71,11 @@
   "group_join_seeds": 32,
   "group_join_epochs_per_seed": 16,
   "group_join_peers": 2,
+  "numeric_cases": 2048,
+  "numeric_checks": [
+    "signed and unsigned 128-bit wrapping arithmetic",
+    "checked overflow",
+    "duration nanosecond carry"
+  ],
   "status": "passed"
 }

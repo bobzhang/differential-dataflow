@@ -46,6 +46,7 @@ fn main() {
         println!(
             "{}",
             match mode.as_str() {
+                "numeric" => evaluate_numeric(seed),
                 "join" => evaluate_join(seed),
                 "reduce" => evaluate_reduce(seed),
                 "stream_reduce" => evaluate_stream_reduce(seed),
@@ -641,4 +642,51 @@ fn evaluate_stream_reduce(seed: u32) -> String {
         }
         results.join("/")
     })
+}
+
+fn evaluate_numeric(seed: u32) -> String {
+    fn next(state: &mut u32) -> u64 {
+        *state = state.wrapping_mul(1664525).wrapping_add(1013904223);
+        let high = *state as u64;
+        *state = state.wrapping_mul(1664525).wrapping_add(1013904223);
+        (high << 32) | *state as u64
+    }
+    let mut random = seed;
+    (0..64)
+        .map(|_| {
+            let ah = next(&mut random);
+            let al = next(&mut random);
+            let bh = next(&mut random);
+            let bl = next(&mut random);
+            let u = ((ah as u128) << 64) | al as u128;
+            let v = ((bh as u128) << 64) | bl as u128;
+            let a = u as i128;
+            let b = v as i128;
+            let checked = a
+                .checked_add(b)
+                .map(|x| x.to_string())
+                .unwrap_or("_".to_owned());
+            let checked_u = u
+                .checked_add(v)
+                .map(|x| x.to_string())
+                .unwrap_or("_".to_owned());
+            let da = std::time::Duration::new(ah, (al % 1000000000) as u32);
+            let db = std::time::Duration::new(bh, (bl % 1000000000) as u32);
+            let duration = da
+                .checked_add(db)
+                .map(|x| format!("{},{}", x.as_secs(), x.subsec_nanos()))
+                .unwrap_or("_".to_owned());
+            format!(
+                "{},{},{},{},{},{},{}",
+                a.wrapping_add(b),
+                a.wrapping_mul(b),
+                checked,
+                u.wrapping_add(v),
+                u.wrapping_mul(v),
+                checked_u,
+                duration
+            )
+        })
+        .collect::<Vec<_>>()
+        .join(";")
 }
