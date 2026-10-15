@@ -223,3 +223,40 @@ pub fn[K : Compare, V : Compare, T : Lattice, R : Semigroup] TraceAgent::cursor(
   self.check()
   self.shared.trace.cursor()
 }
+
+///|
+pub fn[D : Compare, T : Lattice, R : Semigroup] TraceWriter::close(
+  self : TraceWriter[D, T, R],
+) -> Unit {
+  if !self.upper().is_empty() {
+    self.insert(Batch::empty(lower=self.upper(), upper=Antichain([])))
+  }
+}
+
+///|
+pub fn[D, T, R] TraceAgent::map_batches(
+  self : TraceAgent[D, T, R],
+  visit : (Batch[D, T, R]) -> Unit,
+) -> Unit {
+  self.check()
+  self.shared.trace.map_batches(visit)
+}
+
+///|
+pub fn[D, T : Lattice, R] TraceAgent::advance_upper(
+  self : TraceAgent[D, T, R],
+  upper : Antichain[T],
+) -> Antichain[T] {
+  self.check()
+  self.shared.trace.advance_upper(upper)
+}
+
+///|
+pub fn[K : Compare, V : Compare, T : Lattice, R : Semigroup] TraceAgent::cursor_through(
+  self : TraceAgent[(K, V), T, R],
+  upper : Antichain[T],
+) -> Cursor[K, V, T, R]? {
+  self.check()
+  guard self.physical_compaction().precedes(upper) else { return None }
+  self.shared.trace.cursor_through(upper)
+}

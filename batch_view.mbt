@@ -111,3 +111,8 @@ pub fn[K : Compare, V : Compare, T : Compare, R : Semigroup] BatchView::cursor(
 ) -> Cursor[K, V, T, R] {
   Cursor(self.to_array())
 }
+
+///|
+pub fn[D, T, R] BatchView::is_empty(self : BatchView[D, T, R]) -> Bool {
+  self.size == 0
+}

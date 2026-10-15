@@ -70,7 +70,10 @@ pub struct Batch[D, T, R] {
 pub fn[D : Compare, T : Lattice, R : Semigroup] Batch::Batch(Array[(D, T, R)], lower~ : Antichain[T], upper~ : Antichain[T]) -> Self[D, T, R]
 pub fn[D : Compare, T : Lattice, R : Semigroup] Batch::compact(Self[D, T, R], Antichain[T]) -> Self[D, T, R]
 pub fn[D, T, R] Batch::description(Self[D, T, R]) -> Description[T]
+pub fn[D, T : Lattice, R] Batch::empty(lower~ : Antichain[T], upper~ : Antichain[T]) -> Self[D, T, R]
 pub fn[K : Compare, V, T, R] Batch::for_key(Self[(K, V), T, R], K, (V, T, R) -> Unit) -> Unit
+pub fn[D, T, R] Batch::is_empty(Self[D, T, R]) -> Bool
+pub fn[D, T, R] Batch::length(Self[D, T, R]) -> Int
 pub fn[D, T, R] Batch::to_array(Self[D, T, R]) -> Array[(D, T, R)]
 pub fn[D, T, R] Batch::view(Self[D, T, R]) -> BatchView[D, T, R]
 
@@ -82,6 +85,7 @@ pub fn[D, T, R] BatchView::description(Self[D, T, R]) -> Description[T]
 pub fn[D, T, R] BatchView::for_each(Self[D, T, R], (D, T, R) -> Unit) -> Unit
 pub fn[K : Compare, V, T, R] BatchView::for_key(Self[(K, V), T, R], K, (V, T, R) -> Unit) -> Unit
 pub fn[D, T, R] BatchView::get(Self[D, T, R], Int) -> (D, T, R)?
+pub fn[D, T, R] BatchView::is_empty(Self[D, T, R]) -> Bool
 pub fn[D, T, R] BatchView::length(Self[D, T, R]) -> Int
 pub fn[D, T, U : Lattice, R] BatchView::map_times(Self[D, T, R], (T) -> U) -> Self[D, U, R]
 pub fn[D, T, R] BatchView::to_array(Self[D, T, R]) -> Array[(D, T, R)]
@@ -586,11 +590,14 @@ pub struct Trace[D, T, R] {
   // private fields
 }
 pub fn[D, T : Lattice, R] Trace::Trace(T) -> Self[D, T, R]
+pub fn[D, T : Lattice, R] Trace::advance_upper(Self[D, T, R], Antichain[T]) -> Antichain[T]
 pub fn[D, T : Lattice, R] Trace::batches_through(Self[D, T, R], Antichain[T]) -> Array[Batch[D, T, R]]?
+pub fn[D, T : Lattice, R] Trace::close(Self[D, T, R]) -> Unit
 pub fn[K : Compare, V : Compare, T : Lattice, R : Semigroup] Trace::cursor(Self[(K, V), T, R]) -> Cursor[K, V, T, R]
 pub fn[K : Compare, V : Compare, T : Lattice, R : Semigroup] Trace::cursor_through(Self[(K, V), T, R], Antichain[T]) -> Cursor[K, V, T, R]?
 pub fn[D, T : Lattice, R] Trace::insert(Self[D, T, R], Batch[D, T, R]) -> Unit
 pub fn[D, T : Lattice, R] Trace::logical_compaction(Self[D, T, R]) -> Antichain[T]
+pub fn[D, T, R] Trace::map_batches(Self[D, T, R], (Batch[D, T, R]) -> Unit) -> Unit
 pub fn[D, T : Lattice, R] Trace::physical_compaction(Self[D, T, R]) -> Antichain[T]
 pub fn[D : Compare, T : Lattice, R : Semigroup] Trace::set_logical_compaction(Self[D, T, R], Antichain[T]) -> Unit
 pub fn[D : Compare, T : Lattice, R : Semigroup] Trace::set_physical_compaction(Self[D, T, R], Antichain[T]) -> Unit
@@ -600,13 +607,16 @@ pub fn[D, T : Lattice, R] Trace::upper(Self[D, T, R]) -> Antichain[T]
 pub struct TraceAgent[D, T, R] {
   // private fields
 }
+pub fn[D, T : Lattice, R] TraceAgent::advance_upper(Self[D, T, R], Antichain[T]) -> Antichain[T]
 pub fn[D, T : Lattice, R] TraceAgent::batches_through(Self[D, T, R], Antichain[T]) -> Array[Batch[D, T, R]]?
 pub fn[D, T : Lattice, R] TraceAgent::clone(Self[D, T, R]) -> Self[D, T, R]
 pub fn[K : Compare, V : Compare, T : Lattice, R : Semigroup] TraceAgent::cursor(Self[(K, V), T, R]) -> Cursor[K, V, T, R]
+pub fn[K : Compare, V : Compare, T : Lattice, R : Semigroup] TraceAgent::cursor_through(Self[(K, V), T, R], Antichain[T]) -> Cursor[K, V, T, R]?
 pub fn[D : Compare, T : Lattice, R : Semigroup, S] TraceAgent::import_into(Self[D, T, R], Scope[T, S]) -> Collection[D, T, R]
 pub fn[D, T : Lattice, R] TraceAgent::logical_compaction(Self[D, T, R]) -> Antichain[T]
 pub fn[K : Compare, V : Compare, T : Lattice, R : Semigroup, Q, O] TraceAgent::lookup(Self[(K, V), T, R], Collection[(K, T), T, Q], multiply~ : (R, Q) -> O) -> Collection[(K, V), T, O]
 pub fn[K : Compare, V : Compare, T : Lattice, R : Semigroup] TraceAgent::lookup_at(Self[(K, V), T, R], K, T) -> Array[(V, R)]
+pub fn[D, T, R] TraceAgent::map_batches(Self[D, T, R], (Batch[D, T, R]) -> Unit) -> Unit
 pub fn[D, T : Lattice, R] TraceAgent::physical_compaction(Self[D, T, R]) -> Antichain[T]
 pub fn[D : Compare, T : Lattice, R : Semigroup] TraceAgent::reader(Self[D, T, R]) -> TraceReader[D, T, R]
 pub fn[D : Compare, T : Lattice, R : Semigroup] TraceAgent::release(Self[D, T, R]) -> Unit
@@ -618,11 +628,14 @@ pub fn[D, T : Lattice, R] TraceAgent::upper(Self[D, T, R]) -> Antichain[T]
 pub struct TraceReader[D, T, R] {
   // private fields
 }
+pub fn[D, T : Lattice, R] TraceReader::advance_upper(Self[D, T, R], Antichain[T]) -> Antichain[T]
 pub fn[D, T, R] TraceReader::batches_through(Self[D, T, R], Antichain[T]) -> Array[BatchView[D, T, R]]?
 pub fn[D, T, R] TraceReader::clone(Self[D, T, R]) -> Self[D, T, R]
 pub fn[K : Compare, V : Compare, T : Lattice, R : Semigroup] TraceReader::cursor(Self[(K, V), T, R]) -> Cursor[K, V, T, R]
+pub fn[K : Compare, V : Compare, T : Lattice, R : Semigroup] TraceReader::cursor_through(Self[(K, V), T, R], Antichain[T]) -> Cursor[K, V, T, R]?
 pub fn[D, T : Lattice, U : Lattice, R] TraceReader::enter(Self[D, T, R], U) -> Self[D, Product[T, U], R]
 pub fn[D, T, R] TraceReader::logical_compaction(Self[D, T, R]) -> Antichain[T]
+pub fn[D, T : Lattice, R] TraceReader::map_batches(Self[D, T, R], (BatchView[D, T, R]) -> Unit) -> Unit
 pub fn[D, T, R] TraceReader::physical_compaction(Self[D, T, R]) -> Antichain[T]
 pub fn[D, T : Lattice, U : Lattice, R] TraceReader::refine(Self[D, T, R], lift~ : (T) -> U, project~ : (U) -> T) -> Self[D, U, R]
 pub fn[D, T, R] TraceReader::release(Self[D, T, R]) -> Unit
@@ -634,6 +647,7 @@ pub fn[D, T, R] TraceReader::upper(Self[D, T, R]) -> Antichain[T]
 pub struct TraceWriter[D, T, R] {
   // private fields
 }
+pub fn[D : Compare, T : Lattice, R : Semigroup] TraceWriter::close(Self[D, T, R]) -> Unit
 pub fn[D : Compare, T : Lattice, R : Semigroup] TraceWriter::insert(Self[D, T, R], Batch[D, T, R]) -> Unit
 pub fn[D, T : Lattice, R] TraceWriter::upper(Self[D, T, R]) -> Antichain[T]
 

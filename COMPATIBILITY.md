@@ -13,7 +13,7 @@ until resolved. A small core port does not satisfy this target.
 | Minimal/counted antichains | Implemented | 10,240 Rust and independent-oracle rounds |
 | Change batches | Implemented | Signed cancellation and frontier tests |
 | Difference algebra | Partial | All integer widths, Wrapping signed adapters, Present, singleton/tuple arities through four and VectorDiff; explicit multiplication callbacks adapt associated output types; tuple scaling conveniences remain |
-| Sealed traces | Initial implementation | Snapshots, compaction, cursors and lazy entered trace views with independent reader pins; not all upstream trace interfaces/layouts |
+| Sealed traces | Initial implementation | Snapshots, compaction, closure, exact-cut cursors, empty-interval traversal and lazy entered trace views with independent reader pins; not all upstream trace interfaces/layouts |
 | Buffered input | Implemented callback and worker integration | Explicit close replaces Rust Drop |
 | Worker scheduling | Cooperative workers | Counted scopes, activation deduplication, re-entry guards, bounded queues, disposal tests |
 | Unary and binary collection operators | Implemented baseline | Map/filter/flat-map/explode/negate/concat/consolidate and weighted join family |
@@ -65,3 +65,7 @@ callback/message interface and no durable or distributed replay protocol.
 Built-in String ordering follows MoonBit (length-first), so lexical Rust behavior
 requires a custom Compare implementation. Explicit release/close/dispose replace
 Rust Drop semantics; APIs document ownership transfers and borrowed capabilities.
+
+The pinned Rust spine rejects noncontiguous and zero-width insertions, despite
+the generic Trace trait documentation describing automatic gap filling. The port
+follows the pinned implementation: callers explicitly seal empty intervals.

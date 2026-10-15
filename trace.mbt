@@ -26,6 +26,9 @@ pub fn[D, T : Lattice, R] Trace::insert(
     abort("trace batches must be contiguous")
   }
   guard !self.upper.is_empty() else { abort("trace is closed") }
+  guard batch.description.lower.elements != batch.description.upper.elements else {
+    abort("trace batch must advance the frontier")
+  }
   self.batches.push(batch)
   self.upper = batch.description.upper()
 }
@@ -161,4 +164,38 @@ pub fn[D : Compare, T : Lattice, R : Semigroup] Trace::snapshot(
     }
   }
   consolidate(values)
+}
+
+///|
+/// Seal the remaining interval with an empty batch. Repeated close is harmless.
+pub fn[D, T : Lattice, R] Trace::close(self : Trace[D, T, R]) -> Unit {
+  if !self.upper.is_empty() {
+    self.insert(Batch::empty(lower=self.upper, upper=Antichain([])))
+  }
+}
+
+///|
+/// Visit retained batches in interval order, including empty progress batches.
+pub fn[D, T, R] Trace::map_batches(
+  self : Trace[D, T, R],
+  visit : (Batch[D, T, R]) -> Unit,
+) -> Unit {
+  for batch in self.batches {
+    visit(batch)
+  }
+}
+
+///|
+/// Advance a supplied bound across consecutive empty intervals without mutating it.
+pub fn[D, T : Lattice, R] Trace::advance_upper(
+  self : Trace[D, T, R],
+  upper : Antichain[T],
+) -> Antichain[T] {
+  let mut result = Antichain(upper.elements)
+  self.map_batches(fn(batch) {
+    if batch.is_empty() && batch.description.lower.elements == result.elements {
+      result = batch.description.upper()
+    }
+  })
+  result
 }

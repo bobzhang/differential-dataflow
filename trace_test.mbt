@@ -143,3 +143,50 @@ test "panic noncontiguous trace batch" {
     Batch([(1, 2L, 1L)], lower=Antichain([2L]), upper=Antichain([3L])),
   )
 }
+
+///|
+test "trace close and empty interval traversal preserve exact cuts" {
+  let (writer, trace) : (
+    @differential.TraceWriter[(Int32, Int32), Int64, Int64],
+    @differential.TraceAgent[(Int32, Int32), Int64, Int64],
+  ) = @differential.shared_trace(0L)
+  let reader = trace.reader()
+  writer.insert(
+    @differential.Batch::empty(lower=Antichain([0L]), upper=Antichain([2L])),
+  )
+  writer.insert(
+    Batch([((1, 10), 2L, 3L)], lower=Antichain([2L]), upper=Antichain([3L])),
+  )
+  writer.insert(
+    @differential.Batch::empty(lower=Antichain([3L]), upper=Antichain([5L])),
+  )
+  assert_eq(trace.advance_upper(Antichain([0L])).to_array(), [2L])
+  assert_eq(reader.advance_upper(Antichain([0L])).to_array(), [2L])
+  assert_false(trace.cursor_through(Antichain([2L])).unwrap().key_valid())
+  let cursor = reader.cursor_through(Antichain([3L])).unwrap()
+  assert_eq(cursor.times(), [(2L, 3L)])
+  writer.close()
+  writer.close()
+  assert_true(writer.upper().is_empty())
+  assert_true(reader.advance_upper(Antichain([3L])).is_empty())
+  let sizes = []
+  reader.map_batches(fn(batch) { sizes.push(batch.length()) })
+  assert_eq(sizes, [0, 1, 0, 0])
+  trace.release()
+  reader.release()
+  assert_eq(cursor.key(), Some(1))
+  assert_eq(cursor.times(), [(2L, 3L)])
+  let plain : @differential.Trace[Int32, Int64, Int64] = Trace(0L)
+  plain.close()
+  plain.close()
+  assert_true(plain.upper().is_empty())
+  assert_true(plain.snapshot(5L).is_empty())
+}
+
+///|
+test "panic trace batch without progress" {
+  let trace : @differential.Trace[Int32, Int64, Int64] = Trace(0L)
+  trace.insert(
+    @differential.Batch::empty(lower=Antichain([0L]), upper=Antichain([0L])),
+  )
+}

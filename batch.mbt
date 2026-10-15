@@ -49,3 +49,21 @@ pub fn[D : Compare, T : Lattice, R : Semigroup] Batch::compact(
     ),
   }
 }
+
+///|
+pub fn[D, T : Lattice, R] Batch::empty(
+  lower~ : Antichain[T],
+  upper~ : Antichain[T],
+) -> Batch[D, T, R] {
+  { updates: [], description: Description(lower, upper, lower), }
+}
+
+///|
+pub fn[D, T, R] Batch::length(self : Batch[D, T, R]) -> Int32 {
+  self.updates.length()
+}
+
+///|
+pub fn[D, T, R] Batch::is_empty(self : Batch[D, T, R]) -> Bool {
+  self.updates.is_empty()
+}
