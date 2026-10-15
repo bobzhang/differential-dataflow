@@ -12,7 +12,7 @@ until resolved. A small core port does not satisfy this target.
 | Lattice joins/meets and advance-by | Common built-ins and products | Byte/Int16/UInt16/32/64/128-bit integers, Duration, Unit and generic products; signed 8-bit adaptation remains |
 | Minimal/counted antichains | Implemented | 10,240 Rust and independent-oracle rounds |
 | Change batches | Implemented | Signed cancellation and frontier tests |
-| Difference algebra | Partial | 16/32/64/128-bit arithmetic, Byte, Present, tuples through arity four and VectorDiff; signed 8-bit, wrapping unsigned groups and convenience multiplication remain |
+| Difference algebra | Partial | 16/32/64/128-bit arithmetic, Byte, Present, tuples through arity four and VectorDiff; signed 8-bit, wrapping signed adapters, singleton tuples and convenience multiplication remain |
 | Sealed traces | Initial implementation | Snapshots, compaction, cursors; not all upstream trace interfaces/layouts |
 | Buffered input | Implemented callback and worker integration | Explicit close replaces Rust Drop |
 | Worker scheduling | Cooperative workers | Counted scopes, activation deduplication, re-entry guards, bounded queues, disposal tests |
@@ -25,7 +25,7 @@ until resolved. A small core port does not satisfy this target.
 | Multi-worker/distributed runtime | Cooperative groups and TCP process clusters | Globally counted serialized exchange and nested iteration tested in two and three native processes; shared-memory parallel threads and asynchronous transport scheduling remain |
 | Columnar/spilling/fueled trace variants | Pending | No compatibility or performance claim for these layouts |
 | Capture/replay, logging, diagnostics | Partial | Capture protocol and reordering iterator match Rust in 256 cases; async durable sources/sinks, distributed replay, logging and diagnostics remain |
-| Graph and auxiliary algorithms | BFS, label propagation and SCC edges | 192 dynamic graph epochs against Rust and independent BFS/transitive closure, including duplicate edges and scheduled labels; generic weights, arranged graph APIs, bijkstra, prefix sums and identifiers remain |
+| Graph and auxiliary algorithms | BFS, label propagation and SCC edges | 192 dynamic graph epochs against Rust and independent BFS/transitive closure, including duplicate edges and scheduled labels; generic weights, arranged graph APIs, bijkstra and identifiers remain; prefix aggregate/broadcast APIs match 192 Rust epochs |
 
 ## Completion gates
 

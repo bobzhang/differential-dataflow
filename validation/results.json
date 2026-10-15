@@ -87,5 +87,15 @@
     "edge and root retractions",
     "independent BFS and transitive closure"
   ],
+  "prefix_seeds": 16,
+  "prefix_epochs_per_seed": 12,
+  "prefix_checks": [
+    "exclusive prefixes",
+    "sparse 64-bit positions",
+    "multiple keys",
+    "data and query retractions",
+    "query multiplicities",
+    "independent summation"
+  ],
   "status": "passed"
 }

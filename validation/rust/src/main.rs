@@ -1,3 +1,4 @@
+mod prefix;
 use differential_dataflow::lattice::Lattice;
 use std::io::{self, BufRead};
 use timely::order::Product;
@@ -48,6 +49,7 @@ fn main() {
             match mode.as_str() {
                 "numeric" => evaluate_numeric(seed),
                 "graphs" => evaluate_graphs(seed),
+                "prefix" => prefix::evaluate(seed),
                 "join" => evaluate_join(seed),
                 "reduce" => evaluate_reduce(seed),
                 "stream_reduce" => evaluate_stream_reduce(seed),

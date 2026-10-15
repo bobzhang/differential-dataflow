@@ -267,6 +267,36 @@ for seed, r, m in zip(graph_seeds, rust, moon):
                     rows.extend((op, a, b, weights[a * 5 + b]) for op in (2, 4))
         expected.append(';'.join(','.join(map(str, row)) for row in sorted(rows)))
     assert r == m == '/'.join(expected), f'graph differential failure seed={seed}\nRust: {r}\nMoon: {m}\nOracle: {"/".join(expected)}'
+prefix_seeds = range(1, 17)
+inputs = ''.join(f'{seed}\n' for seed in prefix_seeds)
+rust = run(['validation/rust/target/release/differential-reference-check', 'prefix'], input=inputs, capture_output=True).stdout.splitlines()
+moon = run(['node', 'validation/run.cjs', 'prefix'], input=inputs, capture_output=True).stdout.splitlines()
+assert len(rust) == len(moon) == len(prefix_seeds)
+for seed, r, m in zip(prefix_seeds, rust, moon):
+    state = seed
+    values, requests = [0] * 16, [0] * 16
+    positions = [0, 1, 3, 7, 10, 31, 1 << 32, 1 << 63]
+    targets = [0, 1, 2, 4, 8, 32, 1 << 63, (1 << 64) - 1]
+    expected = []
+    for _ in range(12):
+        for _ in range(3):
+            state = (state * 1664525 + 1013904223) & 0xffffffff
+            index = (state >> 8) % 16
+            values[index] = state % 9 + 1 if values[index] == 0 else 0
+        for _ in range(3):
+            state = (state * 1664525 + 1013904223) & 0xffffffff
+            index = (state >> 8) % 16
+            requests[index] = state % 2 + 1 if requests[index] == 0 else 0
+        rows = []
+        for op, locations in enumerate((targets, positions)):
+            for index in range(16):
+                weight = requests[index] if op == 0 else int(values[index] != 0)
+                if weight:
+                    key, position = index // 8, locations[index % 8]
+                    total = sum(values[key * 8 + i] for i, p in enumerate(positions) if p < position)
+                    rows.append((op, position, key, total, weight))
+        expected.append(';'.join(','.join(map(str, row)) for row in sorted(rows)))
+    assert r == m == '/'.join(expected), f'prefix differential failure seed={seed}'
 summary = {
     'references': pins,
     'frontier_seeds': len(seeds),
@@ -303,6 +333,9 @@ summary = {
     'graph_seeds': len(graph_seeds),
     'graph_epochs_per_seed': 12,
     'graph_checks': ['shortest distances', 'minimum reachable labels', 'SCC edge multiplicities', 'scheduled labels', 'edge and root retractions', 'independent BFS and transitive closure'],
+    'prefix_seeds': len(prefix_seeds),
+    'prefix_epochs_per_seed': 12,
+    'prefix_checks': ['exclusive prefixes', 'sparse 64-bit positions', 'multiple keys', 'data and query retractions', 'query multiplicities', 'independent summation'],
     'status': 'passed',
 }
 (ROOT/'validation/results.json').write_text(json.dumps(summary,indent=2)+'\n')
