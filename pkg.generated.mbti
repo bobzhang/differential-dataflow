@@ -54,6 +54,8 @@ pub struct Collection[D, T, R] {
 pub fn[K : Compare + Hash, V : Compare, T : Lattice] Collection::antijoin(Self[(K, V), T, Int64], Self[K, T, Int64]) -> Self[(K, V), T, Int64]
 pub fn[D, T : Lattice, R] Collection::concat(Self[D, T, R], Self[D, T, R]) -> Self[D, T, R]
 pub fn[D : Compare, T : Lattice, R : Semigroup] Collection::consolidate(Self[D, T, R]) -> Self[D, T, R]
+pub fn[D : Compare + Hash, T : Lattice, R : Semigroup + Compare] Collection::count(Self[D, T, R]) -> Self[(D, R), T, Int64]
+pub fn[D : Compare + Hash, T : Lattice, R : Semigroup] Collection::distinct(Self[D, T, R]) -> Self[D, T, Int64]
 pub fn[D, E, T : Lattice, R, S] Collection::explode(Self[D, T, R], (D) -> Array[(E, (R) -> S)]) -> Self[E, T, S]
 pub fn[D, T : Lattice, R] Collection::filter(Self[D, T, R], (D) -> Bool) -> Self[D, T, R]
 pub fn[D, E, T : Lattice, R] Collection::flat_map(Self[D, T, R], (D) -> Array[E]) -> Self[E, T, R]
@@ -63,7 +65,9 @@ pub fn[K : Compare + Hash, V : Compare, W : Compare, D, T : Lattice, R : Semigro
 pub fn[D, E, T : Lattice, R] Collection::map(Self[D, T, R], (D) -> E) -> Self[E, T, R]
 pub fn[D, T : Lattice, R : Abelian] Collection::negate(Self[D, T, R]) -> Self[D, T, R]
 pub fn[D, T : Lattice, R] Collection::probe(Self[D, T, R]) -> Probe[T]
+pub fn[K : Compare + Hash, V : Compare, W : Compare, T : Lattice, R : Semigroup, S : Abelian] Collection::reduce(Self[(K, V), T, R], (K, Array[(V, R)]) -> Array[(W, S)]) -> Self[(K, W), T, S]
 pub fn[K : Compare + Hash, V : Compare, T : Lattice] Collection::semijoin(Self[(K, V), T, Int64], Self[K, T, Int64]) -> Self[(K, V), T, Int64]
+pub fn[D : Compare + Hash, T : Lattice, R : Semigroup, S : Abelian] Collection::threshold(Self[D, T, R], (D, R) -> S) -> Self[D, T, S]
 
 pub struct Cursor[K, V, T, R] {
   // private fields
