@@ -45,8 +45,64 @@ fn[V : Compare, W : Compare, T : Lattice, R : Semigroup, S : Abelian] reduce_his
 }
 
 ///|
-/// Pure grouped reduction with partial-order timestamp semantics.
-/// Currently uses the reference join-closure algorithm and retains open-input history.
+priv struct Reduction[V, W, T, R, S] {
+  mut history : Array[(V, T, R)]
+  mut emitted : Array[(W, T, S)]
+}
+
+///|
+fn[V, W, T, R, S] Reduction::Reduction() -> Reduction[V, W, T, R, S] {
+  { history: [], emitted: [], }
+}
+
+///|
+fn[V : Compare, W, T : Lattice, R : Semigroup, S] Reduction::update(
+  self : Reduction[V, W, T, R, S],
+  value : V,
+  time : T,
+  diff : R,
+) -> Unit {
+  self.history.push((value, time, diff))
+  self.history = consolidate_updates(self.history)
+}
+
+///|
+fn[V : Compare, W : Compare, T : Lattice, R : Semigroup, S : Abelian] Reduction::advance(
+  self : Reduction[V, W, T, R, S],
+  frontier : Antichain[T],
+  logic : (Array[(V, R)]) -> Array[(W, S)],
+) -> (Array[(W, T, S)], Array[T]) {
+  let delta = reduce_history(self.history, logic)
+  for (value, time, diff) in self.emitted {
+    delta.push((value, time, diff.negate()))
+  }
+  let ready = []
+  let pending = []
+  for update in consolidate_updates(delta) {
+    if frontier.less_equal(update.1) {
+      pending.push(update.1)
+    } else {
+      ready.push(update)
+    }
+  }
+  self.emitted = consolidate_updates(self.emitted + ready)
+  if frontier.elements is [time] {
+    // All future input/output queries are >= time. Joining both histories with
+    // this singleton preserves their snapshots on that entire future upset.
+    // Multiple incomparable frontier elements require a more general tactic.
+    self.history = consolidate_updates(
+      self.history.map(fn(u) { (u.0, u.1.join(time), u.2) }),
+    )
+    self.emitted = consolidate_updates(
+      self.emitted.map(fn(u) { (u.0, u.1.join(time), u.2) }),
+    )
+  }
+  (ready, pending)
+}
+
+///|
+/// Pure grouped reduction with partial-order timestamp semantics. Uses the
+/// join-closure reference algorithm, compacting history at singleton frontiers.
 pub fn[
   K : Compare + Hash,
   V : Compare,
@@ -60,8 +116,7 @@ pub fn[
 ) -> Collection[(K, W), T, S] {
   let output : Channel[(K, W), T, S] = self.channel.output()
   let input : Mailbox[(K, V), T, R] = Mailbox()
-  let histories : Map[K, Array[(V, T, R)]] = Map([])
-  let emitted : Map[K, Array[(W, T, S)]] = Map([])
+  let states : Map[K, Reduction[V, W, T, R, S]] = Map([])
   let held : Ref[Array[T]] = Ref([])
   input.task = self.worker.register(fn() {
     for frame in input.drain() {
@@ -70,31 +125,30 @@ pub fn[
           for ((key, value), time, diff) in updates {
             output.hold(time, 1)
             held.val.push(time)
-            let history = histories.get(key).unwrap_or([]).copy()
-            history.push((value, time, diff))
-            histories[key] = consolidate_updates(history)
+            let state = states.get(key).unwrap_or_else(fn() { Reduction() })
+            state.update(value, time, diff)
+            states[key] = state
           }
         Progress(frontier) => {
           let results = []
           let next_held = []
-          for key, history in histories {
-            let computed = reduce_history(history, fn(values) {
+          let empty_keys = []
+          for key, state in states {
+            let (ready, pending) = state.advance(frontier, fn(values) {
               logic(key, values)
             })
-            let ready = computed.filter(fn(u) { !frontier.less_equal(u.1) })
-            for (_, time, _) in computed {
-              if frontier.less_equal(time) {
-                next_held.push(time)
-              }
-            }
-            let delta = ready.copy()
-            for (value, time, diff) in emitted.get(key).unwrap_or([]) {
-              delta.push((value, time, diff.negate()))
-            }
-            for (value, time, diff) in consolidate_updates(delta) {
+            for (value, time, diff) in ready {
               results.push(((key, value), time, diff))
             }
-            emitted[key] = ready
+            for time in pending {
+              next_held.push(time)
+            }
+            if state.history.is_empty() && state.emitted.is_empty() {
+              empty_keys.push(key)
+            }
+          }
+          for key in empty_keys {
+            states.remove(key)
           }
           output.data(results)
           for time in next_held {
@@ -106,8 +160,7 @@ pub fn[
           held.val = next_held
           output.progress(frontier)
           if frontier.is_empty() {
-            histories.clear()
-            emitted.clear()
+            states.clear()
           }
         }
       }

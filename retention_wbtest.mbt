@@ -66,3 +66,44 @@ test "counted feedback releases pointstamps over two thousand input epochs" {
   assert_true(scope.progress.tracker.unwrap().counts.is_empty())
   worker.dispose()
 }
+
+///|
+test "reduction compacts twenty thousand completed epochs to current state" {
+  let state : Reduction[Int32, Int64, Int64, Int64, Int64] = Reduction()
+  let visible : Map[Int64, Int64] = Map([])
+  for epoch in 0L..<20000L {
+    if epoch > 0 {
+      state.update(0, epoch, -1)
+    }
+    state.update(0, epoch, 1)
+    state.update(1, epoch, 1)
+    let (ready, pending) = state.advance(Antichain([epoch + 1]), fn(values) {
+      [(values.iter().fold(init=0L, fn(sum, entry) { sum + entry.1 }), 1L)]
+    })
+    for (value, _, diff) in ready {
+      visible[value] = visible.get(value).unwrap_or(0) + diff
+    }
+    assert_true(pending.is_empty())
+    assert_true(state.history.length() <= 2)
+    assert_eq(state.emitted.length(), 1)
+    assert_eq(visible.get(epoch + 2), Some(1L))
+    if epoch > 0 {
+      assert_eq(visible.get(epoch + 1), Some(0L))
+    }
+  }
+}
+
+///|
+test "compacted reduction holds only unemitted corrections" {
+  let state : Reduction[Int32, Int32, Product[Int64, Int64], Int64, Int64] = Reduction()
+  state.update(0, Product(0, 1), 1)
+  state.update(0, Product(1, 0), 1)
+  let logic = fn(_ : Array[(Int32, Int64)]) { [(0, 1L)] }
+  let (initial, _) = state.advance(Antichain([Product(1, 1)]), logic)
+  assert_eq(initial.length(), 2)
+  let (ready, _) = state.advance(Antichain([Product(2, 1)]), logic)
+  assert_eq(ready, [(0, Product(1, 1), -1L)])
+  let (unchanged, pending) = state.advance(Antichain([Product(2, 1)]), logic)
+  assert_true(unchanged.is_empty())
+  assert_true(pending.is_empty())
+}
