@@ -11,6 +11,7 @@ priv struct Scheduler {
 ///|
 /// Cooperative worker. Build the graph before executing or sending input.
 pub struct Worker {
+  priv gate : Ref[Bool]
   priv scheduler : Scheduler
   priv tasks : Array[() -> Unit]
   priv progress : Array[() -> Unit]
@@ -19,7 +20,13 @@ pub struct Worker {
 
 ///|
 pub fn Worker::Worker() -> Worker {
+  Worker::with_gate(Ref(false))
+}
+
+///|
+fn Worker::with_gate(gate : Ref[Bool]) -> Worker {
   {
+    gate,
     scheduler: {
       queue: [],
       queued: [],
@@ -58,14 +65,18 @@ fn Worker::register(self : Worker, task : () -> Unit) -> Int32 {
 /// Execute one activated operator; true means a task ran, not that inputs are complete.
 pub fn Worker::step(self : Worker) -> Bool {
   guard self.scheduler.active else { abort("worker is disposed") }
-  guard !self.scheduler.stepping else { abort("worker step cannot re-enter") }
+  guard !self.scheduler.stepping && !self.gate.val else {
+    abort("worker group step cannot re-enter")
+  }
   self.scheduler.started = true
   self.scheduler.stepping = true
+  self.gate.val = true
   for pump in self.progress {
     pump()
   }
   if self.scheduler.head >= self.scheduler.queue.length() {
     self.scheduler.stepping = false
+    self.gate.val = false
     return false
   }
   let id = self.scheduler.queue[self.scheduler.head]
@@ -89,6 +100,7 @@ pub fn Worker::step(self : Worker) -> Bool {
     pump()
   }
   self.scheduler.stepping = false
+  self.gate.val = false
   true
 }
 
@@ -106,16 +118,18 @@ pub extend RunResult with Debug::{to_repr}
 
 ///|
 pub fn Worker::run(self : Worker, max_steps~ : Int32 = 100000) -> RunResult {
-  guard self.scheduler.active && !self.scheduler.stepping else {
+  guard self.scheduler.active && !self.scheduler.stepping && !self.gate.val else {
     abort("worker is disposed or running")
   }
   self.scheduler.started = true
   guard max_steps >= 0 else { abort("step limit must be nonnegative") }
   self.scheduler.stepping = true
+  self.gate.val = true
   for pump in self.progress {
     pump()
   }
   self.scheduler.stepping = false
+  self.gate.val = false
   let mut steps = 0
   while steps < max_steps {
     if !self.step() {
@@ -132,7 +146,7 @@ pub fn Worker::run(self : Worker, max_steps~ : Int32 = 100000) -> RunResult {
 
 ///|
 pub fn Worker::dispose(self : Worker) -> Unit {
-  guard !self.scheduler.stepping else {
+  guard !self.scheduler.stepping && !self.gate.val else {
     abort("cannot dispose a running worker")
   }
   self.scheduler.active = false

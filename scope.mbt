@@ -66,6 +66,16 @@ pub fn[T : Lattice, S : Compare] Worker::scope(
   minimum : T,
   domain : SummaryDomain[T, S],
 ) -> Scope[T, S] {
+  self.make_scope(minimum, domain, true)
+}
+
+///|
+fn[T : Lattice, S : Compare] Worker::make_scope(
+  self : Worker,
+  minimum : T,
+  domain : SummaryDomain[T, S],
+  local_progress : Bool,
+) -> Scope[T, S] {
   guard self.scheduler.active && !self.scheduler.started else {
     abort("build scope before execution")
   }
@@ -92,7 +102,9 @@ pub fn[T : Lattice, S : Compare] Worker::scope(
     },
     observe: fn(port, notify) { progress.observers[port].push(notify) },
   }
-  self.progress.push(fn() { progress.pump() })
+  if local_progress {
+    self.progress.push(fn() { progress.pump() })
+  }
   self.cleanup.push(fn() {
     progress.disposed = true
     progress.observers.clear()

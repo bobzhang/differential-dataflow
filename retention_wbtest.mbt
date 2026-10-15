@@ -227,3 +227,26 @@ test "canceling replay after disposal does not retain dead progress counts" {
   replay.cancel()
   assert_true(scope.progress.pending.is_empty())
 }
+
+///|
+test "worker group disposal clears global pointstamp ownership" {
+  let group = WorkerGroup(2)
+  let scopes = group.scopes(0L, SummaryDomain::int64())
+  let inputs : Array[
+    (InputSession[Int32, Int64, Int64], Collection[Int32, Int64, Int64]),
+  ] = scopes.input()
+  let outputs = scopes.exchange(inputs.map(fn(input) { input.1 }), fn(key) {
+    key.to_uint64()
+  })
+  for stream in outputs {
+    let _ = stream.probe()
+  }
+  inputs[0].0.insert(3)
+  inputs[0].0.flush()
+  let _ = group.run()
+  assert_true(scopes.coordinator.tracker is Some(_))
+  group.dispose()
+  assert_true(scopes.coordinator.tracker is None)
+  assert_true(scopes.coordinator.local_counts.is_empty())
+  assert_true(scopes.coordinator.members.is_empty())
+}

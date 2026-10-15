@@ -178,6 +178,13 @@ pub fn[D, A : Lattice, B : Lattice, R, S, U] NestedScope::enter(Self[A, B, S, U]
 pub fn[D, A : Lattice, B : Lattice, R, S, U] NestedScope::leave(Self[A, B, S, U], Collection[D, Product[A, B], R]) -> Collection[D, A, R]
 pub fn[A, B, S, U] NestedScope::scope(Self[A, B, S, U]) -> Scope[Product[A, B], Product[S, U]]
 
+pub struct NestedScopeGroup[A, B, S, U] {
+  // private fields
+}
+pub fn[D, A : Lattice, B : Lattice, R, S, U] NestedScopeGroup::enter(Self[A, B, S, U], Array[Collection[D, A, R]]) -> Array[Collection[D, Product[A, B], R]]
+pub fn[D, A : Lattice, B : Lattice, R, S, U] NestedScopeGroup::leave(Self[A, B, S, U], Array[Collection[D, Product[A, B], R]]) -> Array[Collection[D, A, R]]
+pub fn[A, B, S, U] NestedScopeGroup::scope(Self[A, B, S, U]) -> ScopeGroup[Product[A, B], Product[S, U]]
+
 pub struct Notificator[T, S] {
   // private fields
 }
@@ -291,6 +298,15 @@ pub fn[D, E, T : Lattice, R, U, S] Scope::unary(Self[T, S], Collection[D, T, R],
 pub fn[D, T : Lattice, R, S] Scope::variable(Self[T, S], S) -> (Variable[D, T, R, S], Collection[D, T, R])
 pub fn[D, T : Lattice, R, S] Scope::variable_from(Self[T, S], Collection[D, T, R], S) -> (Variable[D, T, R, S], Collection[D, T, R])
 
+pub struct ScopeGroup[T, S] {
+  // private fields
+}
+pub fn[D, T : Lattice, R, S] ScopeGroup::exchange(Self[T, S], Array[Collection[D, T, R]], (D) -> UInt64) -> Array[Collection[D, T, R]]
+pub fn[D, T : Lattice, R, S] ScopeGroup::input(Self[T, S]) -> Array[(InputSession[D, T, R], Collection[D, T, R])]
+pub fn[D, T : Lattice, R : Abelian, S : Compare] ScopeGroup::iterate(Self[T, S], Array[Collection[D, T, R]], (Self[Product[T, Int64], Product[S, Int64]], Array[Collection[D, Product[T, Int64], R]]) -> Array[Collection[D, Product[T, Int64], R]]) -> Array[Collection[D, T, R]]
+pub fn[A : Lattice, B : Lattice, S : Compare, U : Compare] ScopeGroup::nested(Self[A, S], B, SummaryDomain[B, U]) -> NestedScopeGroup[A, B, S, U]
+pub fn[T, S] ScopeGroup::scope(Self[T, S], Int) -> Scope[T, S]
+
 pub struct SummaryDomain[T, S] {
   // private fields
 }
@@ -357,6 +373,17 @@ pub fn[D, T : Lattice, R] Worker::input(Self, T) -> (InputSession[D, T, R], Coll
 pub fn Worker::run(Self, max_steps? : Int) -> RunResult
 pub fn[T : Lattice, S : Compare] Worker::scope(Self, T, SummaryDomain[T, S]) -> Scope[T, S]
 pub fn Worker::step(Self) -> Bool
+
+pub struct WorkerGroup {
+  // private fields
+}
+pub fn WorkerGroup::WorkerGroup(Int) -> Self
+pub fn WorkerGroup::dispose(Self) -> Unit
+pub fn WorkerGroup::peers(Self) -> Int
+pub fn WorkerGroup::run(Self, max_steps? : Int) -> RunResult
+pub fn[T : Lattice, S : Compare] WorkerGroup::scopes(Self, T, SummaryDomain[T, S]) -> ScopeGroup[T, S]
+pub fn WorkerGroup::step(Self) -> Bool
+pub fn WorkerGroup::worker(Self, Int) -> Worker
 
 // Type aliases
 
