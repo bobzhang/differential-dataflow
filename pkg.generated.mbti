@@ -145,6 +145,13 @@ pub fn[T : Lattice] MutableAntichain::frontier(Self[T]) -> Antichain[T]
 pub fn[T : Lattice] MutableAntichain::update_all(Self[T], Array[(T, Int64)]) -> Array[(T, Int64)]
 pub fn[T : Lattice] MutableAntichain::updates(Self[T]) -> Array[(T, Int64)]
 
+pub struct NestedScope[A, B, S, U] {
+  // private fields
+}
+pub fn[D, A : Lattice, B : Lattice, R, S, U] NestedScope::enter(Self[A, B, S, U], Collection[D, A, R]) -> Collection[D, Product[A, B], R]
+pub fn[D, A : Lattice, B : Lattice, R, S, U] NestedScope::leave(Self[A, B, S, U], Collection[D, Product[A, B], R]) -> Collection[D, A, R]
+pub fn[A, B, S, U] NestedScope::scope(Self[A, B, S, U]) -> Scope[Product[A, B], Product[S, U]]
+
 pub struct Notificator[T, S] {
   // private fields
 }
@@ -237,8 +244,12 @@ pub struct Scope[T, S] {
 }
 pub fn[D, T : Lattice, R, S] Scope::feedback(Self[T, S], S) -> (Feedback[D, T, R, S], Collection[D, T, R])
 pub fn[D, T : Lattice, R, S] Scope::input(Self[T, S]) -> (InputSession[D, T, R], Collection[D, T, R])
+pub fn[D, T : Lattice, R : Abelian, S : Compare] Scope::iterate(Self[T, S], Collection[D, T, R], (Self[Product[T, Int64], Product[S, Int64]], Collection[D, Product[T, Int64], R]) -> Collection[D, Product[T, Int64], R]) -> Collection[D, T, R]
+pub fn[A : Lattice, B : Lattice, S : Compare, U : Compare] Scope::nested(Self[A, S], B, SummaryDomain[B, U]) -> NestedScope[A, B, S, U]
 pub fn[D, T : Lattice, R, S] Scope::source(Self[T, S]) -> (Output[D, T, R, S], Capability[T, S], Collection[D, T, R])
 pub fn[D, E, T : Lattice, R, U, S] Scope::unary(Self[T, S], Collection[D, T, R], (Output[E, T, U, S], Capability[T, S]) -> (OperatorEvent[D, T, R, S]) -> Unit) -> Collection[E, T, U]
+pub fn[D, T : Lattice, R, S] Scope::variable(Self[T, S], S) -> (Variable[D, T, R, S], Collection[D, T, R])
+pub fn[D, T : Lattice, R, S] Scope::variable_from(Self[T, S], Collection[D, T, R], S) -> (Variable[D, T, R, S], Collection[D, T, R])
 
 pub struct SummaryDomain[T, S] {
   // private fields
@@ -264,6 +275,11 @@ pub fn[D : Compare, T : Lattice, R : Semigroup] Trace::set_logical_compaction(Se
 pub fn[D : Compare, T : Lattice, R : Semigroup] Trace::set_physical_compaction(Self[D, T, R], Antichain[T]) -> Unit
 pub fn[D : Compare, T : Lattice, R : Semigroup] Trace::snapshot(Self[D, T, R], T) -> Array[(D, R)]
 pub fn[D, T : Lattice, R] Trace::upper(Self[D, T, R]) -> Antichain[T]
+
+pub struct Variable[D, T, R, S] {
+  // private fields
+}
+pub fn[D, T : Lattice, R : Abelian, S] Variable::set(Self[D, T, R, S], Collection[D, T, R]) -> Unit
 
 pub struct Worker {
   // private fields
