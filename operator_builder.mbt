@@ -44,7 +44,9 @@ pub struct InputCapability[T, S] {
 
 ///|
 pub fn[T, S] Scope::operator(self : Scope[T, S]) -> OperatorBuilder[T, S] {
-  guard self.worker.scheduler.active && !self.worker.scheduler.started else {
+  guard self.worker.scheduler.active &&
+    !self.worker.scheduler.stepping &&
+    !self.progress.frozen else {
     abort("build operator before execution")
   }
   let ports : OperatorPorts[T, S] = {
@@ -173,7 +175,8 @@ pub fn[T : Compare, S] OperatorBuilder::build_reschedule(
 ) -> Unit {
   guard !self.ports.built else { abort("operator is already built") }
   guard self.scope.worker.scheduler.active &&
-    !self.scope.worker.scheduler.started else {
+    !self.scope.worker.scheduler.stepping &&
+    !self.scope.progress.frozen else {
     abort("build operator before execution")
   }
   self.ports.built = true

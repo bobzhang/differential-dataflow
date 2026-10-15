@@ -4,6 +4,7 @@ priv struct ProgressContext[T] {
   connect : (Int32, Int32) -> Unit
   observe : (Int32, (Antichain[T]) -> Unit) -> Unit
   pending : ChangeBatch[(Int32, T)]
+  freeze : () -> Unit
 }
 
 ///|
@@ -11,6 +12,7 @@ priv struct ScopeProgress[T, S] {
   id : Int32
   graph : ProgressGraph[T, S]
   transient : Array[Antichain[T]]
+  mut frozen : Bool
   mut dirty : Bool
   mut notified : Bool
   pending : ChangeBatch[(Int32, T)]
@@ -24,6 +26,7 @@ fn[T : Lattice, S : Compare] ScopeProgress::prepare(
   self : ScopeProgress[T, S],
   drain_local : Bool,
 ) -> Bool {
+  self.frozen = true
   let mut changed = self.dirty
   self.dirty = false
   if self.disposed {
@@ -138,13 +141,14 @@ fn[T : Lattice, S : Compare] Worker::make_scope(
   domain : SummaryDomain[T, S],
   local_progress : Bool,
 ) -> Scope[T, S] {
-  guard self.scheduler.active && !self.scheduler.started else {
-    abort("build scope before execution")
+  guard self.scheduler.active && !self.scheduler.stepping && !self.gate.val else {
+    abort("create scopes only on an idle active worker")
   }
   let progress : ScopeProgress[T, S] = {
     id: self.network.domains.length(),
     transient: [],
     dirty: true,
+    frozen: false,
     notified: false,
     graph: ProgressGraph(domain),
     pending: ChangeBatch(),
@@ -155,15 +159,17 @@ fn[T : Lattice, S : Compare] Worker::make_scope(
   let scheduler = self.scheduler
   let context = {
     pending: progress.pending,
+    freeze: fn() { progress.frozen = true },
     add_port: fn() {
-      guard scheduler.active && !scheduler.started else {
-        abort("build scope before execution")
+      guard scheduler.active && !scheduler.stepping && !progress.frozen else {
+        abort("build a scope before executing it or flushing its inputs")
       }
       let port = progress.graph.add_port()
       progress.observers.push([])
       port
     },
     connect: fn(source, target) {
+      guard !progress.frozen else { abort("scope graph is frozen") }
       progress.graph.connect(source, target, domain.identity)
     },
     observe: fn(port, notify) { progress.observers[port].push(notify) },
@@ -202,6 +208,9 @@ pub fn[D, T : Lattice, R, S] Scope::input(
     channel.data(data)
     if held.val.elements != frontier.elements {
       channel.scheduler.started = true
+      if channel.context is Some(context) {
+        (context.freeze)()
+      }
     }
     for time in held.val.elements {
       pending.update((port, time), -1)

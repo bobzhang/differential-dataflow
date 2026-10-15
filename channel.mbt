@@ -35,6 +35,9 @@ fn[D, T : Lattice, R] Channel::data(
     return
   }
   self.scheduler.started = true
+  if self.context is Some(context) {
+    (context.freeze)()
+  }
   for mailbox in self.subscribers {
     if mailbox.counter is Some((pending, port)) {
       for (_, time, _) in updates {
@@ -62,6 +65,9 @@ fn[D, T : Lattice, R] Channel::progress(
     return
   }
   self.scheduler.started = true
+  if self.context is Some(context) {
+    (context.freeze)()
+  }
   self.frontier.val = Antichain(frontier.elements)
   for mailbox in self.subscribers {
     mailbox.frames.push(Progress(Antichain(frontier.elements)))
@@ -77,6 +83,7 @@ fn[D, T : Lattice, R] Channel::subscribe(
   self.subscribers.push(mailbox)
   match self.context {
     None => {
+      guard !self.scheduler.started else { abort("unscoped graph is frozen") }
       mailbox.frames.push(Progress(Antichain(self.frontier.val.elements)))
       self.scheduler.schedule(mailbox.task)
     }
@@ -121,7 +128,10 @@ fn[D, T : Lattice, R] Channel::Channel(
 ) -> Channel[D, T, R] {
   let frontier = Ref(Antichain(frontier.elements))
   let port = match context {
-    None => -1
+    None => {
+      guard !scheduler.started else { abort("unscoped graph is frozen") }
+      -1
+    }
     Some(context) => {
       let port = (context.add_port)()
       (context.observe)(port, fn(next) { frontier.val = next })

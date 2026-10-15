@@ -10,6 +10,7 @@ priv struct ClusterState {
   scopes : Array[ClusterScopeCore]
   receivers : Array[(Json) -> Unit raise ClusterError]
   outgoing : Array[Json]
+  mut graph_shape : (Int32, Int32, Int32, Int32)?
   mut round : Int64
   mut closed : Bool
 }
@@ -41,7 +42,14 @@ pub fn ClusterWorker::ClusterWorker(
     index,
     peers,
     exchange,
-    state: { scopes: [], receivers: [], outgoing: [], round: 0, closed: false, },
+    state: {
+      scopes: [],
+      receivers: [],
+      outgoing: [],
+      round: 0,
+      graph_shape: None,
+      closed: false,
+    },
   }
 }
 
@@ -102,6 +110,7 @@ pub fn[T : Lattice, S : Compare] ClusterWorker::scope(
       )
     },
     apply: fn(changes) raise ClusterError {
+      progress.frozen = true
       if !changes.is_empty() {
         progress.dirty = true
       }
@@ -222,7 +231,14 @@ fn ClusterWorker::round(self : ClusterWorker) -> Bool raise {
   let state = self.state
   let changes = state.scopes.map(fn(core) { (core.drain)() })
   let busy = self.worker.scheduler.head < self.worker.scheduler.queue.length()
-  let manifest : Json = if state.round == 0 {
+  let shape = (
+    state.scopes.length(),
+    state.receivers.length(),
+    self.worker.network.domains.length(),
+    self.worker.network.topology.length(),
+  )
+  let graph_changed = state.graph_shape != Some(shape)
+  let manifest : Json = if graph_changed {
     [
       Json(state.scopes.map(fn(core) { (core.manifest)() })),
       Json(state.receivers.length()),
@@ -250,7 +266,7 @@ fn ClusterWorker::round(self : ClusterWorker) -> Bool raise {
     []
   })
   let deliveries = []
-  let mut active = state.round == 0
+  let mut active = graph_changed
   for peer, message in gathered {
     let message = @json.parse(message) catch {
       _ => raise ClusterError("malformed cluster envelope")
@@ -316,6 +332,7 @@ fn ClusterWorker::round(self : ClusterWorker) -> Bool raise {
     state.receivers[route](payload)
   }
   self.worker.network.pump()
+  state.graph_shape = Some(shape)
   state.round += 1
   let ran = self.worker.step()
   active || ran

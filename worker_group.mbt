@@ -104,6 +104,7 @@ fn[T : Lattice, S : Compare] GroupProgress::pump(
           abort("worker scopes must have identical operator graphs")
         }
         self.schedulers[index].started = true
+        self.members[index].frozen = true
       }
       let tracker = ProgressTracker(
         graph

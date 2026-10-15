@@ -13,7 +13,8 @@ priv struct Scheduler {
 }
 
 ///|
-/// Cooperative worker. Build the graph before executing or sending input.
+/// Cooperative worker. Each scope is frozen on first execution or input flush;
+/// fresh scopes can be built between worker steps.
 pub struct Worker {
   priv network : ProgressNetwork
   priv gate : Ref[Bool]
@@ -69,8 +70,8 @@ fn Scheduler::schedule(self : Scheduler, id : Int32) -> Unit {
 
 ///|
 fn Worker::register(self : Worker, task : () -> Unit) -> Int32 {
-  guard self.scheduler.active && !self.scheduler.started else {
-    abort("build graph before running or sending input")
+  guard self.scheduler.active && !self.scheduler.stepping && !self.gate.val else {
+    abort("build graph only on an idle active worker")
   }
   let id = self.tasks.length()
   self.tasks.push(Some(task))
