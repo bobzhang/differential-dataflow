@@ -51,14 +51,19 @@ pub fn[T : Compare] ChangeBatch::update_all(Self[T], Array[(T, Int64)]) -> Unit
 pub struct Collection[D, T, R] {
   // private fields
 }
+pub fn[K : Compare + Hash, V : Compare, T : Lattice] Collection::antijoin(Self[(K, V), T, Int64], Self[K, T, Int64]) -> Self[(K, V), T, Int64]
+pub fn[D, T : Lattice, R] Collection::concat(Self[D, T, R], Self[D, T, R]) -> Self[D, T, R]
 pub fn[D : Compare, T : Lattice, R : Semigroup] Collection::consolidate(Self[D, T, R]) -> Self[D, T, R]
 pub fn[D, E, T : Lattice, R, S] Collection::explode(Self[D, T, R], (D) -> Array[(E, (R) -> S)]) -> Self[E, T, S]
 pub fn[D, T : Lattice, R] Collection::filter(Self[D, T, R], (D) -> Bool) -> Self[D, T, R]
 pub fn[D, E, T : Lattice, R] Collection::flat_map(Self[D, T, R], (D) -> Array[E]) -> Self[E, T, R]
 pub fn[D, T : Lattice, R] Collection::inspect(Self[D, T, R], (D, T, R) -> Unit) -> Probe[T]
+pub fn[K : Compare + Hash, V : Compare, W : Compare, T : Lattice] Collection::join(Self[(K, V), T, Int64], Self[(K, W), T, Int64]) -> Self[(K, (V, W)), T, Int64]
+pub fn[K : Compare + Hash, V : Compare, W : Compare, D, T : Lattice, R : Semigroup, S : Semigroup, O] Collection::join_map(Self[(K, V), T, R], Self[(K, W), T, S], (K, V, W) -> D, multiply~ : (R, S) -> O) -> Self[D, T, O]
 pub fn[D, E, T : Lattice, R] Collection::map(Self[D, T, R], (D) -> E) -> Self[E, T, R]
 pub fn[D, T : Lattice, R : Abelian] Collection::negate(Self[D, T, R]) -> Self[D, T, R]
 pub fn[D, T : Lattice, R] Collection::probe(Self[D, T, R]) -> Probe[T]
+pub fn[K : Compare + Hash, V : Compare, T : Lattice] Collection::semijoin(Self[(K, V), T, Int64], Self[K, T, Int64]) -> Self[(K, V), T, Int64]
 
 pub struct Cursor[K, V, T, R] {
   // private fields
