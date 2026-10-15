@@ -2,3 +2,5 @@
 /_build/
 /.mooncakes/
 /validation/rust/target/
+
+__pycache__/

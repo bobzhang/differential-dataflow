@@ -5,14 +5,25 @@ fn main raise {
   let port : Int32 = @json.from_json(@json.parse(args[2]))
   let seed : Int32 = @json.from_json(@json.parse(args[3]))
   let peers : Int32 = @json.from_json(@json.parse(args[4]))
+  let mode = if args.length() > 5 { args[5] } else { "join" }
   let transport = @transport.TcpTransport(
     "127.0.0.1",
     port,
     peer,
     peers,
-    timeout_ms=10000,
+    timeout_ms=if mode == "timeout" { 200 } else { 10000 },
   )
   defer transport.close()
+  if mode == "wire" {
+    let payload = "🪐☄️漢字\u0000".repeat(seed)
+    let values = transport.exchange(payload)
+    guard values.length() == peers &&
+      values.iter().all(fn(value) { value == payload }) else {
+      abort("wire round trip mismatch")
+    }
+    println("wire-ok")
+    return
+  }
   let cluster = @differential.ClusterWorker(peer, peers, exchange=fn(
     value,
   ) raise {
