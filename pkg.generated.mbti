@@ -8,6 +8,10 @@ import {
 // Values
 pub fn[T : Lattice] advance_by(T, Antichain[T]) -> T
 
+pub fn[D : Compare, R : Semigroup] consolidate(Array[(D, R)]) -> Array[(D, R)]
+
+pub fn[D : Compare, T : Compare, R : Semigroup] consolidate_updates(Array[(D, T, R)]) -> Array[(D, T, R)]
+
 // Errors
 
 // Types and methods
@@ -45,6 +49,16 @@ pub fn[T : Lattice] MutableAntichain::frontier(Self[T]) -> Antichain[T]
 pub fn[T : Lattice] MutableAntichain::update_all(Self[T], Array[(T, Int64)]) -> Array[(T, Int64)]
 pub fn[T : Lattice] MutableAntichain::updates(Self[T]) -> Array[(T, Int64)]
 
+pub(all) enum Present {
+  Present
+} derive(Eq, @debug.Debug)
+pub fn Present::equal(Self, Self) -> Bool
+pub fn Present::is_zero(Self) -> Bool
+pub fn Present::not_equal(Self, Self) -> Bool
+pub fn Present::plus(Self, Self) -> Self
+pub fn Present::to_repr(Self) -> @debug.Repr
+pub impl Semigroup for Present
+
 pub(all) struct Product[A, B] {
   outer : A
   inner : B
@@ -66,9 +80,28 @@ pub impl[A : Lattice, B : Lattice] Lattice for Product[A, B]
 // Type aliases
 
 // Traits
+pub(open) trait Abelian : Monoid {
+  fn negate(Self) -> Self
+}
+pub impl Abelian for Int
+pub impl Abelian for Int64
+
 pub(open) trait Lattice : Compare {
   fn less_equal(Self, Self) -> Bool
   fn join(Self, Self) -> Self
   fn meet(Self, Self) -> Self
 }
 pub impl Lattice for Int64
+
+pub(open) trait Monoid : Semigroup {
+  fn zero() -> Self
+}
+pub impl Monoid for Int
+pub impl Monoid for Int64
+
+pub(open) trait Semigroup {
+  fn plus(Self, Self) -> Self
+  fn is_zero(Self) -> Bool
+}
+pub impl Semigroup for Int
+pub impl Semigroup for Int64
