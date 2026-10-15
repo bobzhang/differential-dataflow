@@ -93,3 +93,97 @@ test "dropping a producer closes surviving trace imports and permits new dataflo
   trace.release()
   worker.dispose()
 }
+
+///|
+test "group cancellation drops nested peer dataflows and leaves a sibling group live" {
+  let group = @differential.WorkerGroup(3)
+  let doomed = group.scopes(0L, @differential.SummaryDomain::int64())
+  let sources : Array[
+    (
+      @differential.InputSession[Int32, Int64, Int64],
+      @differential.Collection[Int32, Int64, Int64],
+    ),
+  ] = doomed.input()
+  let nested = doomed.nested(0L, @differential.SummaryDomain::int64())
+  assert_eq(nested.scope().dataflow_index(), doomed.dataflow_index())
+  let values = nested.leave(
+    nested
+    .scope()
+    .exchange(nested.enter(sources.map(fn(s) { s.1 })), fn(d) { d.to_uint64() }),
+  )
+  let seen = []
+  let probes = values.map(fn(v) { v.inspect(fn(d, _, _) { seen.push(d) }) })
+  let live = group.scopes(0L, @differential.SummaryDomain::int64())
+  let siblings : Array[
+    (
+      @differential.InputSession[Int32, Int64, Int64],
+      @differential.Collection[Int32, Int64, Int64],
+    ),
+  ] = live.input()
+  let done = live
+    .exchange(siblings.map(fn(s) { s.1 }), fn(d) { d.to_uint64() })
+    .map(fn(v) { v.inspect(fn(d, _, _) { seen.push(d) }) })
+  for (input, _) in sources {
+    input.insert(7)
+    input.flush()
+  }
+  group.drop_dataflow(doomed.dataflow_index())
+  for peer in 0..<3 {
+    assert_eq(group.worker(peer).installed_dataflows(), [live.dataflow_index()])
+    sources[peer].0.close()
+    siblings[peer].0.insert(peer)
+    siblings[peer].0.close()
+  }
+  let _ = group.run()
+  seen.sort()
+  assert_eq(seen, [0, 1, 2])
+  assert_true(done.iter().all(fn(p) { p.done() }))
+  assert_true(probes.iter().all(fn(p) { !p.done() }))
+  group.dispose()
+}
+
+///|
+test "cluster cancellation is applied collectively at the next round" {
+  let cluster = @differential.ClusterWorker(0, 1, exchange=fn(message) {
+    [message]
+  })
+  let scope = cluster.scope(
+    0L,
+    @differential.SummaryDomain::int64(),
+    time_codec=@differential.WireCodec::json(),
+    summary_codec=@differential.WireCodec::json(),
+  )
+  let (input, data) : (
+    @differential.InputSession[Int32, Int64, Int64],
+    @differential.Collection[Int32, Int64, Int64],
+  ) = scope.input()
+  let seen = []
+  let probe = scope
+    .exchange(
+      data,
+      fn(d) { d.to_uint64() },
+      data_codec=@differential.WireCodec::json(),
+      time_codec=@differential.WireCodec::json(),
+      diff_codec=@differential.WireCodec::json(),
+    )
+    .inspect(fn(d, _, _) { seen.push(d) })
+  input.insert(9)
+  input.flush()
+  cluster.drop_dataflow(scope.dataflow_index())
+  assert_eq(cluster.installed_dataflows(), [scope.dataflow_index()])
+  let _ = cluster.run()
+  assert_eq(cluster.installed_dataflows(), [])
+  assert_eq(seen, [])
+  assert_false(probe.done())
+  input.close()
+  let replacement = cluster.scope(
+    0L,
+    @differential.SummaryDomain::int64(),
+    time_codec=@differential.WireCodec::json(),
+    summary_codec=@differential.WireCodec::json(),
+  )
+  assert_true(replacement.dataflow_index() > scope.dataflow_index())
+  let _ = cluster.run()
+  assert_eq(cluster.installed_dataflows(), [])
+  cluster.dispose()
+}

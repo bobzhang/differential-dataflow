@@ -71,7 +71,7 @@ def failure(kind):
                     receive(client)
                 elif kind == 'graph':
                     # Copy the root envelope but mutate its scope manifest.
-                    envelope = ['moon-differential/2', '0', 1, 2, [[], 0], [], [], False, []]
+                    envelope = ['moon-differential/3', '0', 1, 2, [[], 0], [], [], False, [], []]
                     send(client, json.dumps(envelope).encode())
                     receive(client)
             stdout, stderr = process.communicate(timeout=3)

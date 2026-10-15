@@ -66,3 +66,60 @@ fn Worker::cancel_dataflow(self : Worker, family : DataflowState) -> Unit {
   self.scheduler.stepping = false
   self.gate.val = false
 }
+
+///|
+/// Cancel corresponding root dataflows on every cooperative worker. IDs for
+/// group-built root scopes match across peers; nested scopes share that ID.
+pub fn WorkerGroup::drop_dataflow(self : WorkerGroup, id : Int32) -> Unit {
+  for worker in self.workers {
+    guard worker.scheduler.active &&
+      !worker.scheduler.stepping &&
+      !worker.gate.val else {
+      abort("drop group dataflows only while all workers are idle")
+    }
+  }
+  for worker in self.workers {
+    if worker.dataflows.get(id) is Some(family) {
+      worker.cancel_dataflow(family)
+    }
+  }
+}
+
+///|
+pub fn[T, S] ScopeGroup::dataflow_index(self : ScopeGroup[T, S]) -> Int32 {
+  self.scopes[0].dataflow_index()
+}
+
+///|
+pub fn ClusterWorker::next_dataflow_index(self : ClusterWorker) -> Int32 {
+  self.worker.next_dataflow_index()
+}
+
+///|
+pub fn ClusterWorker::installed_dataflows(self : ClusterWorker) -> Array[Int32] {
+  self.worker.installed_dataflows()
+}
+
+///|
+pub fn[T, S] DistributedScope::dataflow_index(
+  self : DistributedScope[T, S],
+) -> Int32 {
+  self.scope.dataflow_index()
+}
+
+///|
+/// Request collective cancellation. Any peer may request it; the next run round
+/// cancels that root and all nested scopes on every peer before delivering that
+/// round's records. All peers must continue entering run until it is quiescent.
+/// Local inputs remain usable until the collective decision is applied.
+pub fn ClusterWorker::drop_dataflow(self : ClusterWorker, id : Int32) -> Unit {
+  guard !self.state.closed &&
+    self.worker.scheduler.active &&
+    !self.worker.scheduler.stepping &&
+    !self.worker.gate.val else {
+    abort("request cancellation only on an idle active cluster")
+  }
+  if self.worker.dataflows.contains(id) {
+    self.state.cancellations.add(id)
+  }
+}

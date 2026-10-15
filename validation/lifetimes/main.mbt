@@ -91,6 +91,14 @@ fn exercise(early : Bool, columnar : Bool) -> Unit {
       abort("lifetime graph did not close")
     }
   }
+  if early {
+    worker.drop_dataflow(scope.dataflow_index())
+    guard !worker.has_dataflows() &&
+      consumer.run() is Quiescent(_) &&
+      imported.done() else {
+      abort("surviving import did not close after root dataflow cancellation")
+    }
+  }
   worker.dispose()
   guard consumer.run() is Quiescent(_) && imported.done() else {
     abort("surviving import did not close after producer disposal")

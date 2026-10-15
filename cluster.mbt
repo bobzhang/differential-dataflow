@@ -2,6 +2,7 @@
 priv struct ClusterScopeCore {
   manifest : () -> Json
   ready : () -> Bool
+  cancelled : () -> Bool
   reclaim : () -> Unit
   drain : () -> Json
   apply : (Array[Json]) -> Unit raise ClusterError
@@ -12,6 +13,7 @@ priv struct ClusterState {
   scopes : Array[ClusterScopeCore]
   receivers : Array[(Json) -> Unit raise ClusterError]
   outgoing : Array[Json]
+  cancellations : Set[Int32]
   mut graph_shape : (Int32, Int32, Int32, Int32)?
   mut round : Int64
   mut closed : Bool
@@ -48,6 +50,7 @@ pub fn ClusterWorker::ClusterWorker(
       scopes: [],
       receivers: [],
       outgoing: [],
+      cancellations: Set([]),
       round: 0,
       graph_shape: None,
       closed: false,
@@ -120,6 +123,7 @@ fn[T : Lattice, S : Compare] ClusterWorker::make_distributed_scope(
       value
     },
     ready: fn() { progress.ready_to_reclaim(scheduler) },
+    cancelled: fn() { progress.family.cancelled },
     reclaim: fn() {
       progress.dispose()
       // Every peer makes the same decision. Future graph manifests retain a
@@ -213,6 +217,9 @@ pub fn[D, T : Lattice, R, S] DistributedScope::exchange(
   let output : Channel[D, T, R] = source.channel.output()
   let route = self.cluster.state.receivers.length()
   self.cluster.state.receivers.push(fn(payload) raise ClusterError {
+    if !(context.active)() {
+      return
+    }
     guard payload is Array(updates) else {
       raise ClusterError("invalid exchange batch")
     }
@@ -283,7 +290,7 @@ fn ClusterWorker::round(self : ClusterWorker) -> Bool raise {
     Json::null()
   }
   let payload : Json = [
-    "moon-differential/2",
+    "moon-differential/3",
     Json(state.round),
     Json(self.index),
     Json(self.peers),
@@ -292,12 +299,15 @@ fn ClusterWorker::round(self : ClusterWorker) -> Bool raise {
     Json(state.outgoing),
     Json(busy),
     Json(ready_to_reclaim),
+    Json(state.cancellations.to_array()),
   ]
   let gathered = (self.exchange)(payload.stringify())
   guard gathered.length() == self.peers else {
     raise ClusterError("all-gather peer count mismatch")
   }
   state.outgoing.clear()
+  state.cancellations.clear()
+  let cancelled : Set[Int32] = Set([])
   let totals : Array[Array[Json]] = Array::makei(state.scopes.length(), fn(_) {
     []
   })
@@ -310,7 +320,7 @@ fn ClusterWorker::round(self : ClusterWorker) -> Bool raise {
     }
     guard message
       is [
-        String("moon-differential/2"),
+        String("moon-differential/3"),
         round,
         sender,
         peers,
@@ -319,6 +329,7 @@ fn ClusterWorker::round(self : ClusterWorker) -> Bool raise {
         Array(messages),
         ready,
         Array(completed),
+        Array(requests),
       ] else {
       raise ClusterError("invalid cluster protocol envelope")
     }
@@ -333,6 +344,13 @@ fn ClusterWorker::round(self : ClusterWorker) -> Bool raise {
       changes.length() == totals.length() &&
       completed.length() == retire.length() else {
       raise ClusterError("cluster round, peer identity or graph mismatch")
+    }
+    for request in requests {
+      let id : Int32 = wire_read(request)
+      guard id >= 0 && id < self.worker.next_dataflow_index() else {
+        raise ClusterError("unknown cancelled dataflow")
+      }
+      cancelled.add(id)
     }
     for index, completed in completed {
       let completed : Bool = wire_read(completed)
@@ -367,9 +385,22 @@ fn ClusterWorker::round(self : ClusterWorker) -> Bool raise {
       }
     }
   }
+  // Apply a collective cancellation decision before any received records.
+  // Requests from one peer invalidate the same root family everywhere.
+  for id in cancelled {
+    if self.worker.dataflows.get(id) is Some(family) {
+      self.worker.cancel_dataflow(family)
+      active = true
+    }
+  }
   // All peer transactions are incorporated before any frontier is announced.
   for index, core in state.scopes {
-    (core.apply)(totals[index])
+    if (core.cancelled)() {
+      // This round can contain updates sent before another peer requested drop.
+      (core.reclaim)()
+    } else {
+      (core.apply)(totals[index])
+    }
   }
   for (route, payload) in deliveries {
     state.receivers[route](payload)
@@ -418,5 +449,6 @@ pub fn ClusterWorker::dispose(self : ClusterWorker) -> Unit {
     self.state.scopes.clear()
     self.state.receivers.clear()
     self.state.outgoing.clear()
+    self.state.cancellations.clear()
   }
 }

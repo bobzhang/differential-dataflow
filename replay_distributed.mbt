@@ -57,7 +57,11 @@ pub fn[D : Compare, T : Lattice, R : Compare, S] DistributedScope::replay_from(
   let route = self.cluster.state.receivers.length()
   let peers = self.cluster.peers
   let time_codec = self.time_codec
+  let context = self.scope.context
   self.cluster.state.receivers.push(fn(payload) raise ClusterError {
+    if !(context.active)() {
+      return
+    }
     let packet : ReplayPacket[D, T, R] = match payload {
       [String("records"), message] => {
         guard codec.from_json(message) is Some(Updates(rows)) else {

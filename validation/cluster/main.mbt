@@ -30,6 +30,10 @@ fn main raise {
     transport.exchange(value)
   })
   defer cluster.dispose()
+  if mode == "cancellation" {
+    println(cancellation(cluster, seed))
+    return
+  }
   if mode == "replay" {
     println(replay(cluster, seed))
     return

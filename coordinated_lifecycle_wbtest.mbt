@@ -65,3 +65,42 @@ test "cluster completed scopes have tombstone manifests and fresh scopes remain 
   }
   cluster.dispose()
 }
+
+///|
+test "collective cancellation discards already routed records before delivery" {
+  let cluster = ClusterWorker(0, 1, exchange=fn(message) { [message] })
+  let scope = cluster.scope(
+    0L,
+    SummaryDomain::int64(),
+    time_codec=WireCodec::json(),
+    summary_codec=WireCodec::json(),
+  )
+  let (input, data) : (
+    InputSession[Int32, Int64, Int64],
+    Collection[Int32, Int64, Int64],
+  ) = scope.input()
+  let seen = []
+  let probe = scope
+    .exchange(
+      data,
+      fn(d) { d.to_uint64() },
+      data_codec=WireCodec::json(),
+      time_codec=WireCodec::json(),
+      diff_codec=WireCodec::json(),
+    )
+    .inspect(fn(d, _, _) { seen.push(d) })
+  // A valid record has already acquired a route and entered the transport queue.
+  cluster.state.outgoing.push([
+    Json(0),
+    Json(0),
+    [[Json(9), Json(0L), Json(1L)]],
+  ])
+  cluster.drop_dataflow(scope.dataflow_index())
+  let _ = cluster.run()
+  assert_eq(seen, [])
+  assert_false(probe.done())
+  assert_true(cluster.installed_dataflows().is_empty())
+  assert_true(cluster.state.outgoing.is_empty())
+  input.close()
+  cluster.dispose()
+}

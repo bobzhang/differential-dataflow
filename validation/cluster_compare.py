@@ -97,6 +97,11 @@ def replay_expected(seed):
     return '/'.join(result)
 
 
+def cancellation_expected(seed, peers):
+    base = seed % 1000
+    return '/'.join(';'.join(f'{base+i},{peers}' for i in range(epoch+1)) for epoch in range(16))
+
+
 def main():
     pins = json.loads((ROOT / 'validation/pins.json').read_text())
     for name, pin in pins.items():
@@ -133,14 +138,17 @@ def main():
     for peer_count in (2, 3):
         for seed, expected in zip(seeds, replay_rust):
             assert run_peers(seed, peer_count, 'replay') == expected == replay_expected(seed)
+    for peer_count in (2, 3):
+        for seed in seeds:
+            assert run_peers(seed, peer_count, 'cancellation') == cancellation_expected(seed, peer_count)
     result = {'process_counts': [2, 3], 'seeds': seeds, 'epochs_per_seed': 16,
               'oracles': ['pinned Rust two-worker join', 'independent full weighted join', 'pinned Rust three-worker replay', 'independent replay totals'],
               'checks': ['TCP startup retry', 'keyed exchange', 'shared arrangement joins',
                          'global progress each epoch', 'closure', 'nested product timestamps',
                          'cyclic fixed points', 'two nested feedback loops', 'root retractions', 'independent BFS',
                          'capture duplicates across peers', 'progress before replay data',
-                         'unanimous completed-scope reclamation'],
-              'distributed_replay_epochs': 128, 'dynamic_dataflow_epochs': 144, 'iteration_epochs_per_seed': 8, 'status': 'passed'}
+                         'unanimous completed-scope reclamation', 'any-peer nested dataflow cancellation with live siblings'],
+              'collective_cancellation_epochs': 128, 'distributed_replay_epochs': 128, 'dynamic_dataflow_epochs': 144, 'iteration_epochs_per_seed': 8, 'status': 'passed'}
     (ROOT / 'validation/cluster_results.json').write_text(json.dumps(result, indent=2) + '\n')
     print(json.dumps(result))
 

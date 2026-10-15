@@ -101,5 +101,5 @@ finalizers after their mailboxes and outputs finish. Custom operators retain the
 explicit incomplete-work condition. Completed scopes reclaim reachability matrices, observer tables and boundary
 closures; stable identity slots remain. Group scopes retire together, and process
 scopes require unanimous completion votes before discarding their graphs. The
-cluster envelope is version 2; completed manifest entries become null so fresh
-dataflows can still validate consistently. Local root dataflow identity/enumeration and explicit cancellation are implemented, including all nested scopes and independent trace imports; 1,024 cancelled nested dataflows match Rust. Coordinated group/cluster cancellation remains pending.
+cluster envelope is version 3; completed manifest entries become null so fresh
+dataflows can still validate consistently. Local root dataflow identity/enumeration and explicit cancellation are implemented, including all nested scopes and independent trace imports; 1,024 cancelled nested dataflows match Rust. WorkerGroup cancels corresponding roots atomically while idle. ClusterWorker propagates any peer’s cancellation request at the next collective round, before record delivery; 128 two/three-process epochs exercise rotating requesters, nested scopes and live siblings.

@@ -220,7 +220,10 @@ pub struct ClusterWorker {
 }
 pub fn ClusterWorker::ClusterWorker(Int, Int, exchange~ : (String) -> Array[String] raise) -> Self
 pub fn ClusterWorker::dispose(Self) -> Unit
+pub fn ClusterWorker::drop_dataflow(Self, Int) -> Unit
 pub fn ClusterWorker::index(Self) -> Int
+pub fn ClusterWorker::installed_dataflows(Self) -> Array[Int]
+pub fn ClusterWorker::next_dataflow_index(Self) -> Int
 pub fn ClusterWorker::peers(Self) -> Int
 pub fn ClusterWorker::run(Self, max_rounds? : Int) -> RunResult raise
 pub fn[T : Lattice, S : Compare] ClusterWorker::scope(Self, T, SummaryDomain[T, S], time_codec~ : WireCodec[T], summary_codec~ : WireCodec[S]) -> DistributedScope[T, S]
@@ -292,6 +295,7 @@ pub fn[A, B, S, U] DistributedNestedScope::scope(Self[A, B, S, U]) -> Distribute
 pub struct DistributedScope[T, S] {
   // private fields
 }
+pub fn[T, S] DistributedScope::dataflow_index(Self[T, S]) -> Int
 pub fn[D, T : Lattice, R, S] DistributedScope::exchange(Self[T, S], Collection[D, T, R], (D) -> UInt64, data_codec~ : WireCodec[D], time_codec~ : WireCodec[T], diff_codec~ : WireCodec[R]) -> Collection[D, T, R]
 pub fn[D, T : Lattice, R, S] DistributedScope::input(Self[T, S]) -> (InputSession[D, T, R], Collection[D, T, R])
 pub fn[D, T : Lattice, R : Abelian, S : Compare] DistributedScope::iterate(Self[T, S], Collection[D, T, R], (Self[Product[T, Int64], Product[S, Int64]], Collection[D, Product[T, Int64], R]) -> Collection[D, Product[T, Int64], R]) -> Collection[D, T, R]
@@ -626,6 +630,7 @@ pub fn[D, T : Lattice, R, S] Scope::variable_from(Self[T, S], Collection[D, T, R
 pub struct ScopeGroup[T, S] {
   // private fields
 }
+pub fn[T, S] ScopeGroup::dataflow_index(Self[T, S]) -> Int
 pub fn[D, T : Lattice, R, S] ScopeGroup::exchange(Self[T, S], Array[Collection[D, T, R]], (D) -> UInt64) -> Array[Collection[D, T, R]]
 pub fn[D, T : Lattice, R, S] ScopeGroup::input(Self[T, S]) -> Array[(InputSession[D, T, R], Collection[D, T, R])]
 pub fn[D, T : Lattice, R : Abelian, S : Compare] ScopeGroup::iterate(Self[T, S], Array[Collection[D, T, R]], (Self[Product[T, Int64], Product[S, Int64]], Array[Collection[D, Product[T, Int64], R]]) -> Array[Collection[D, Product[T, Int64], R]]) -> Array[Collection[D, T, R]]
@@ -877,6 +882,7 @@ pub struct WorkerGroup {
 }
 pub fn WorkerGroup::WorkerGroup(Int, clock? : () -> Duration) -> Self
 pub fn WorkerGroup::dispose(Self) -> Unit
+pub fn WorkerGroup::drop_dataflow(Self, Int) -> Unit
 pub fn WorkerGroup::next_activation(Self) -> Duration?
 pub fn WorkerGroup::peers(Self) -> Int
 pub fn WorkerGroup::run(Self, max_steps? : Int) -> RunResult

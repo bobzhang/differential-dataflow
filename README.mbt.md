@@ -297,7 +297,12 @@ and closes trace writers so independent imports can finish. Externally owned
 trace readers remain usable. Later flush/close calls on cancelled inputs are
 ignored. As in pinned Timely, cancelled probes retain their last observed
 frontier: cancellation does not certify that queued records were processed.
-Coordinated group/cluster cancellation is being implemented separately.
+`WorkerGroup.drop_dataflow(id)` cancels corresponding roots across cooperative
+peers. `ClusterWorker.drop_dataflow(id)` requests collective cancellation: any
+peer can request it, and the next `run` round applies it everywhere before record
+delivery. All peers must continue calling `run`. This takes effect at the round
+boundary; work already processed remains observable. Cluster protocol version 3
+carries cancellation requests alongside progress and completion votes.
 
 ## Runnable upstream algorithms
 
