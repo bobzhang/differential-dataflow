@@ -79,3 +79,28 @@ pub extend Present with Debug::{to_repr}
 
 ///|
 pub extend Present with Semigroup::{plus, is_zero}
+
+///|
+pub impl[A : Semigroup, B : Semigroup] Semigroup for (A, B) with fn plus(
+  self,
+  other,
+) {
+  (self.0.plus(other.0), self.1.plus(other.1))
+}
+
+///|
+pub impl[A : Semigroup, B : Semigroup] Semigroup for (A, B) with fn is_zero(
+  self,
+) {
+  self.0.is_zero() && self.1.is_zero()
+}
+
+///|
+pub impl[A : Monoid, B : Monoid] Monoid for (A, B) with fn zero() {
+  (A::zero(), B::zero())
+}
+
+///|
+pub impl[A : Abelian, B : Abelian] Abelian for (A, B) with fn negate(self) {
+  (self.0.negate(), self.1.negate())
+}

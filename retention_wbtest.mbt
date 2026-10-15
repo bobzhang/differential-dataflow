@@ -214,3 +214,16 @@ test "capture replay releases completed deduplication state over ten thousand in
     assert_true(replay.statements.is_empty())
   }
 }
+
+///|
+test "canceling replay after disposal does not retain dead progress counts" {
+  let worker = Worker()
+  let scope = worker.scope(0L, SummaryDomain::int64())
+  let (replay, _) : (
+    ReplayInput[Int32, Int64, Int64],
+    Collection[Int32, Int64, Int64],
+  ) = scope.replay()
+  worker.dispose()
+  replay.cancel()
+  assert_true(scope.progress.pending.is_empty())
+}

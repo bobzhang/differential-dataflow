@@ -164,7 +164,7 @@ fn[D, T : Lattice, R] Channel::hold(
   time : T,
   diff : Int64,
 ) -> Unit {
-  if self.context is Some(context) {
+  if self.scheduler.active && self.context is Some(context) {
     context.pending.update((self.port, time), diff)
   }
 }

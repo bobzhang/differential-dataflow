@@ -297,9 +297,13 @@ pub struct SummaryDomain[T, S] {
 pub fn[T, S] SummaryDomain::SummaryDomain(S, apply~ : (S, T) -> T?, compose~ : (S, S) -> S?, less_equal~ : (S, S) -> Bool) -> Self[T, S]
 pub fn[T, S] SummaryDomain::followed_by(Self[T, S], S, S) -> S?
 pub fn[T, S] SummaryDomain::identity(Self[T, S]) -> S
+pub fn SummaryDomain::int32() -> Self[Int, Int]
 pub fn SummaryDomain::int64() -> Self[Int64, Int64]
 pub fn[A, B, S, U] SummaryDomain::product(Self[A, S], Self[B, U]) -> Self[Product[A, B], Product[S, U]]
 pub fn[T, S] SummaryDomain::results_in(Self[T, S], S, T) -> T?
+pub fn SummaryDomain::uint32() -> Self[UInt, UInt]
+pub fn SummaryDomain::uint64() -> Self[UInt64, UInt64]
+pub fn SummaryDomain::unit() -> Self[Unit, Unit]
 
 pub struct Trace[D, T, R] {
   // private fields
@@ -362,19 +366,27 @@ pub(open) trait Abelian : Monoid {
 }
 pub impl Abelian for Int
 pub impl Abelian for Int64
+pub impl[A : Abelian, B : Abelian] Abelian for (A, B)
 
 pub(open) trait Lattice : Compare {
   fn less_equal(Self, Self) -> Bool
   fn join(Self, Self) -> Self
   fn meet(Self, Self) -> Self
 }
+pub impl Lattice for Unit
+pub impl Lattice for Int
 pub impl Lattice for Int64
+pub impl Lattice for UInt
+pub impl Lattice for UInt64
 
 pub(open) trait Monoid : Semigroup {
   fn zero() -> Self
 }
 pub impl Monoid for Int
 pub impl Monoid for Int64
+pub impl Monoid for UInt
+pub impl Monoid for UInt64
+pub impl[A : Monoid, B : Monoid] Monoid for (A, B)
 
 pub(open) trait Semigroup {
   fn plus(Self, Self) -> Self
@@ -382,7 +394,14 @@ pub(open) trait Semigroup {
 }
 pub impl Semigroup for Int
 pub impl Semigroup for Int64
+pub impl Semigroup for UInt
+pub impl Semigroup for UInt64
+pub impl[A : Semigroup, B : Semigroup] Semigroup for (A, B)
 
 pub(open) trait TotalOrder : Lattice {
 }
+pub impl TotalOrder for Unit
+pub impl TotalOrder for Int
 pub impl TotalOrder for Int64
+pub impl TotalOrder for UInt
+pub impl TotalOrder for UInt64
