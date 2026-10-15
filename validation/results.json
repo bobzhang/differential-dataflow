@@ -172,6 +172,8 @@
   ],
   "cancelled_nested_dataflows": 1024,
   "example_epochs": 384,
+  "core_reduce_partial_order_epochs": 2304,
+  "core_reduce_presence_snapshots": 3200,
   "pointstamp_summary_cases": 4096,
   "runtime_depth_iteration_epochs": 512,
   "example_checks": [

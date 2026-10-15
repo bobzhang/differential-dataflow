@@ -67,6 +67,7 @@ pub fn[K : Compare, V : Compare, W : Compare, T : Lattice] Arranged::join(Self[K
 pub fn[K : Compare, V : Compare, W : Compare, D, T : Lattice, R : Semigroup, S : Semigroup, O] Arranged::join_map(Self[K, V, T, R], Self[K, W, T, S], (K, V, W) -> D, multiply~ : (R, S) -> O, fuel? : Int) -> Collection[D, T, O]
 pub fn[K : Compare + Hash, V : Compare, W : Compare, T : Lattice, R : Semigroup, S : Abelian] Arranged::reduce(Self[K, V, T, R], (K, Array[(V, R)]) -> Array[(W, S)]) -> Collection[(K, W), T, S]
 pub fn[K : Compare + Hash, V : Compare, W : Compare, T : Lattice, R : Semigroup, S : Abelian] Arranged::reduce_arranged(Self[K, V, T, R], (K, Array[(V, R)]) -> Array[(W, S)]) -> Self[K, W, T, S]
+pub fn[K : Compare + Hash, V : Compare, W : Compare, T : Lattice, R : Semigroup, S : Semigroup] Arranged::reduce_core(Self[K, V, T, R], (K, Array[(V, R)], Array[(W, S)]) -> Array[(W, S)]) -> Self[K, W, T, S]
 pub fn[K : Compare, V : Compare, T : Lattice, R : Semigroup] Arranged::release(Self[K, V, T, R]) -> Unit
 pub fn[K, V, T : Lattice, R] Arranged::trace(Self[K, V, T, R]) -> TraceAgent[(K, V), T, R]
 pub fn[K : Compare, V : Compare, T : Lattice, R : Semigroup] Arranged::view(Self[K, V, T, R]) -> ArrangementView[K, V, T, R]
@@ -82,6 +83,7 @@ pub fn[K : Compare, V, W, T : Lattice] ArrangementView::join(Self[K, V, T, Int64
 pub fn[K : Compare, V, W, D, T : Lattice, R, S, O] ArrangementView::join_map(Self[K, V, T, R], Self[K, W, T, S], (K, V, W) -> D, multiply~ : (R, S) -> O, fuel? : Int) -> Collection[D, T, O]
 pub fn[K : Compare + Hash, V : Compare, W : Compare, T : Lattice, R : Semigroup, S : Abelian] ArrangementView::reduce(Self[K, V, T, R], (K, Array[(V, R)]) -> Array[(W, S)]) -> Collection[(K, W), T, S]
 pub fn[K : Compare + Hash, V : Compare, W : Compare, T : Lattice, R : Semigroup, S : Abelian] ArrangementView::reduce_arranged(Self[K, V, T, R], (K, Array[(V, R)]) -> Array[(W, S)]) -> Arranged[K, W, T, S]
+pub fn[K : Compare + Hash, V : Compare, W : Compare, T : Lattice, R : Semigroup, S : Semigroup] ArrangementView::reduce_core(Self[K, V, T, R], (K, Array[(V, R)], Array[(W, S)]) -> Array[(W, S)]) -> Arranged[K, W, T, S]
 pub fn[K, V, T, R] ArrangementView::release(Self[K, V, T, R]) -> Unit
 pub fn[K, V, T, R] ArrangementView::trace(Self[K, V, T, R]) -> TraceReader[(K, V), T, R]
 
@@ -266,6 +268,7 @@ pub fn[D, E, T : Lattice, R] Collection::map(Self[D, T, R], (D) -> E) -> Self[E,
 pub fn[D, T : Lattice, R : Abelian] Collection::negate(Self[D, T, R]) -> Self[D, T, R]
 pub fn[D, T : Lattice, R] Collection::probe(Self[D, T, R]) -> Probe[T]
 pub fn[K : Compare + Hash, V : Compare, W : Compare, T : Lattice, R : Semigroup, S : Abelian] Collection::reduce(Self[(K, V), T, R], (K, Array[(V, R)]) -> Array[(W, S)]) -> Self[(K, W), T, S]
+pub fn[K : Compare + Hash, V : Compare, W : Compare, T : Lattice, R : Semigroup, S : Semigroup] Collection::reduce_core(Self[(K, V), T, R], (K, Array[(V, R)], Array[(W, S)]) -> Array[(W, S)]) -> Arranged[K, W, T, S]
 pub fn[K : Compare + Hash, V : Compare, T : Lattice] Collection::semijoin(Self[(K, V), T, Int64], Self[K, T, Int64]) -> Self[(K, V), T, Int64]
 pub fn[D : Compare + Hash, T : Lattice, R : Semigroup, S : Abelian] Collection::threshold(Self[D, T, R], (D, R) -> S) -> Self[D, T, S]
 

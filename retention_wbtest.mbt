@@ -476,3 +476,18 @@ test "shared fueled spine honors slow readers and releases unfinished merge sour
   assert_true(writer.shared.trace.batches.is_empty())
   assert_true(writer.shared.spine.unwrap().merging is None)
 }
+
+///|
+fn[V : Compare, W : Compare, T : Lattice, R : Semigroup, S : Abelian] Reduction::advance(
+  self : Reduction[V, W, T, R, S],
+  frontier : Antichain[T],
+  logic : (Array[(V, R)]) -> Array[(W, S)],
+) -> (Array[(W, T, S)], Array[T]) {
+  self.advance_core(frontier, fn(values, previous) {
+    let changes = if values.is_empty() { [] } else { logic(values).copy() }
+    for (value, diff) in previous {
+      changes.push((value, diff.negate()))
+    }
+    changes
+  })
+}

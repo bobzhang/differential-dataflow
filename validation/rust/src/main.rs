@@ -1,3 +1,4 @@
+mod core_presence;
 mod pointstamp;
 mod cancellation;
 mod examples;
@@ -84,7 +85,9 @@ fn main() {
                 "search" => search::evaluate(seed),
                 "join" => evaluate_join(seed),
                 "reduce" => evaluate_reduce(seed),
-                "stream_reduce" => evaluate_stream_reduce(seed),
+                "stream_reduce" => evaluate_stream_reduce(seed, false),
+                "core_reduce" => evaluate_stream_reduce(seed, true),
+                "core_presence" => core_presence::evaluate(seed),
                 "feedback" => evaluate_feedback(seed, false),
                 "signed_feedback" => evaluate_feedback(seed, true),
                 "iteration" => evaluate_iteration(seed),
@@ -596,7 +599,7 @@ fn evaluate_group_join(seed: u32) -> String {
         .join("/")
 }
 
-fn evaluate_stream_reduce(seed: u32) -> String {
+fn evaluate_stream_reduce(seed: u32, core: bool) -> String {
     use differential_dataflow::AsCollection;
     use std::{cell::RefCell, collections::BTreeMap, rc::Rc};
     use timely::dataflow::operators::vec::UnorderedInput;
@@ -608,11 +611,21 @@ fn evaluate_stream_reduce(seed: u32) -> String {
             outer.scoped::<Product<u64, u64>, _, _>("StreamReduce", |scope| {
                 let (input, stream) =
                     scope.new_unordered_input::<((u32, u32), Product<u64, u64>, i64)>();
-                let (probe, _) = stream
-                    .as_collection()
-                    .reduce(|_, values, output| {
+                let collection = stream.as_collection().map(|(k,v)| (k, v as i64));
+                let reduced = if core {
+                    use differential_dataflow::trace::implementations::{ValBuilder, ValSpine};
+                    collection.reduce_core::<_, ValBuilder<u32, i64, Product<u64,u64>, i64>, ValSpine<u32,i64,Product<u64,u64>,i64>>(
+                        "CoreReduce", |_, values, previous, changes| {
+                            if !values.is_empty() { changes.push((values.iter().map(|x|x.1).sum::<i64>(),1i64)); }
+                            changes.extend(previous.drain(..).map(|(v,r)|(v,-r)));
+                            differential_dataflow::consolidation::consolidate(changes);
+                        }).as_collection(|k,v| (*k,*v))
+                } else {
+                    collection.reduce(|_, values, output| {
                         output.push((values.iter().map(|x| x.1).sum::<i64>(), 1i64))
                     })
+                };
+                let (probe, _) = reduced
                     .inspect(move |&((_, value), time, diff)| {
                         *sink
                             .borrow_mut()

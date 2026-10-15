@@ -6,6 +6,8 @@ pub fn evaluate(Int) -> String
 
 pub fn evaluate_activators(Int) -> String
 
+pub fn evaluate_arranged_core_reduce(Int) -> String
+
 pub fn evaluate_arranged_join(Int) -> String
 
 pub fn evaluate_arranged_reduce(Int) -> String
@@ -30,6 +32,10 @@ pub fn evaluate_columnar_reduce(Int) -> String
 
 pub fn evaluate_columnar_spines(Int) -> String
 
+pub fn evaluate_core_presence(Int) -> String
+
+pub fn evaluate_core_reduce(Int) -> String
+
 pub fn evaluate_cursors(Int) -> String
 
 pub fn evaluate_dynamic(Int) -> String
@@ -37,6 +43,8 @@ pub fn evaluate_dynamic(Int) -> String
 pub fn evaluate_dynamic_iteration(Int) -> String
 
 pub fn evaluate_eager_replay(Int) -> String
+
+pub fn evaluate_entered_core_reduce(Int) -> String
 
 pub fn evaluate_entered_join(Int) -> String
 

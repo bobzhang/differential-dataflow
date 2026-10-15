@@ -33,3 +33,22 @@ pub fn[
 ) -> Arranged[K, W, T, S] {
   self.reduce(logic).arrange_by_key()
 }
+
+///|
+/// Compute semigroup output corrections from a shared arrangement. Input history
+/// remains in the shared index; the callback receives sorted snapshot copies.
+pub fn[
+  K : Compare + Hash,
+  V : Compare,
+  W : Compare,
+  T : Lattice,
+  R : Semigroup,
+  S : Semigroup,
+] Arranged::reduce_core(
+  self : Arranged[K, V, T, R],
+  logic : (K, Array[(V, R)], Array[(W, S)]) -> Array[(W, S)],
+) -> Arranged[K, W, T, S] {
+  let view = self.view()
+  defer view.release()
+  view.reduce_core(logic)
+}

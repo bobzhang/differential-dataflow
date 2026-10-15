@@ -16,6 +16,7 @@ fn stream_reduce_case(
   arranged : Bool,
   entered~ : Bool = false,
   columnar~ : Bool = false,
+  core~ : Bool = false,
 ) -> String {
   let worker = @differential.Worker()
   let scope = worker.scope(
@@ -47,7 +48,44 @@ fn stream_reduce_case(
   let logic = fn(_ : Int32, values : Array[(Int32, Int64)]) {
     [(values.iter().fold(init=0L, fn(sum, x) { sum + x.1 }), 1L)]
   }
-  let reduced = if arranged {
+  let correction = fn(
+    key : Int32,
+    values : Array[(Int32, Int64)],
+    previous : Array[(Int64, Int64)],
+  ) {
+    let changes = if values.is_empty() { [] } else { logic(key, values) }
+    for (value, diff) in previous {
+      changes.push((value, -diff))
+    }
+    changes
+  }
+  let reduced = if core {
+    let reduced = if arranged {
+      let index = source.arrange_by_key()
+      let result = if entered {
+        let nested = scope.nested(0L, @differential.SummaryDomain::int64())
+        let view = index.enter(nested)
+        let result = view.reduce_core(correction)
+        let stream = nested.leave(result.as_collection())
+        result.release()
+        view.release()
+        stream
+      } else {
+        let result = index.reduce_core(correction)
+        let stream = result.as_collection()
+        result.release()
+        stream
+      }
+      index.release()
+      result
+    } else {
+      let result = source.reduce_core(correction)
+      let stream = result.as_collection()
+      result.release()
+      stream
+    }
+    reduced
+  } else if arranged {
     let index = source.arrange_by_key(columnar~, fueled=columnar)
     let result = if entered {
       let nested = scope.nested(0L, @differential.SummaryDomain::int64())
@@ -119,4 +157,22 @@ pub fn evaluate_entered_reduce(seed : Int32) -> String {
 #export_name("evaluate_columnar_reduce")
 pub fn evaluate_columnar_reduce(seed : Int32) -> String {
   stream_reduce_case(seed, true, entered=true, columnar=true)
+}
+
+///|
+#export_name("evaluate_core_reduce")
+pub fn evaluate_core_reduce(seed : Int32) -> String {
+  stream_reduce_case(seed, false, core=true)
+}
+
+///|
+#export_name("evaluate_arranged_core_reduce")
+pub fn evaluate_arranged_core_reduce(seed : Int32) -> String {
+  stream_reduce_case(seed, true, core=true)
+}
+
+///|
+#export_name("evaluate_entered_core_reduce")
+pub fn evaluate_entered_core_reduce(seed : Int32) -> String {
+  stream_reduce_case(seed, true, entered=true, core=true)
 }

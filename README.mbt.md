@@ -352,6 +352,21 @@ completion. Complete corrupt frames raise `JournalError` and poison the reader.
 Call `close` explicitly to report close errors. Automatic writer recovery is not
 provided. The versioned JSON/frame encoding is independent of Rust serde.
 
+## Reducers with explicit corrections
+
+`Collection.reduce_core`, `Arranged.reduce_core`, and
+`ArrangementView.reduce_core` receive the key, consolidated input snapshot, and
+consolidated existing output snapshot. Return the changes to apply to that output.
+Both snapshots are owned copies; the callback can receive an empty input after a
+retraction. It is never called with both snapshots empty.
+
+Unlike `reduce`, this API accepts output weights that implement only `Semigroup`.
+For example, a presence-only reducer can emit newly seen values without requiring
+subtraction or a zero value. The result is an `Arranged` shared index; use
+`as_collection()` for the update stream and release the arrangement when finished.
+The callback must be deterministic and preserve its reduction invariant after
+applying corrections, including at joins of incomparable timestamps.
+
 ## Runtime-defined iteration depths
 
 `PointStamp` stores a runtime-sized vector of timestamp coordinates. It uses

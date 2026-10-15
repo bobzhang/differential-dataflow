@@ -13,6 +13,46 @@ pub fn[
   self : ArrangementView[K, V, T, R],
   logic : (K, Array[(V, R)]) -> Array[(W, S)],
 ) -> Collection[(K, W), T, S] {
+  self.reduce_core_collection(fn(key, values, previous) {
+    let changes = if values.is_empty() { [] } else { logic(key, values).copy() }
+    for (value, diff) in previous {
+      changes.push((value, diff.negate()))
+    }
+    changes
+  })
+}
+
+///|
+/// Retain the reduced output as a shared index for downstream joins or reductions.
+pub fn[
+  K : Compare + Hash,
+  V : Compare,
+  W : Compare,
+  T : Lattice,
+  R : Semigroup,
+  S : Abelian,
+] ArrangementView::reduce_arranged(
+  self : ArrangementView[K, V, T, R],
+  logic : (K, Array[(V, R)]) -> Array[(W, S)],
+) -> Arranged[K, W, T, S] {
+  self.reduce(logic).arrange_by_key()
+}
+
+///|
+/// Reduce directly from a shared arrangement. Input history stays in the shared
+/// index; per-key state retains only output history and unfinished corrections.
+/// Logic is recomputed only for changed keys, and its input is a copied snapshot.
+fn[
+  K : Compare + Hash,
+  V : Compare,
+  W : Compare,
+  T : Lattice,
+  R : Semigroup,
+  S : Semigroup,
+] ArrangementView::reduce_core_collection(
+  self : ArrangementView[K, V, T, R],
+  logic : (K, Array[(V, R)], Array[(W, S)]) -> Array[(W, S)],
+) -> Collection[(K, W), T, S] {
   let reader = self.trace.clone()
   let output : Channel[(K, W), T, S] = self.collection.channel.output()
   let input : Mailbox[(K, V), T, R] = Mailbox()
@@ -53,8 +93,11 @@ pub fn[
               }
               state.history = consolidate_updates(history)
             }
-            let (ready, pending) = state.advance(frontier, fn(values) {
-              logic(key, values)
+            let (ready, pending) = state.advance_core(frontier, fn(
+              values,
+              previous,
+            ) {
+              logic(key, values, previous)
             })
             for (value, time, diff) in ready {
               results.push(((key, value), time, diff))
@@ -103,17 +146,17 @@ pub fn[
 }
 
 ///|
-/// Retain the reduced output as a shared index for downstream joins or reductions.
+/// Shared-index reduction with explicit correction logic and semigroup outputs.
 pub fn[
   K : Compare + Hash,
   V : Compare,
   W : Compare,
   T : Lattice,
   R : Semigroup,
-  S : Abelian,
-] ArrangementView::reduce_arranged(
+  S : Semigroup,
+] ArrangementView::reduce_core(
   self : ArrangementView[K, V, T, R],
-  logic : (K, Array[(V, R)]) -> Array[(W, S)],
+  logic : (K, Array[(V, R)], Array[(W, S)]) -> Array[(W, S)],
 ) -> Arranged[K, W, T, S] {
-  self.reduce(logic).arrange_by_key()
+  self.reduce_core_collection(logic).arrange_by_key()
 }
