@@ -53,7 +53,8 @@ and an independent wire protocol, not Timely wire interoperability. It does not
 yet offer shared-memory parallel threads or asynchronous peer-to-peer scheduling.
 Transport failures terminate the local runtime; reconnect/recovery is not implicit.
 Fault injection covers truncation, oversized frames, timeouts, malformed text,
-wrong peers and graph mismatches. Native workloads pass ASan and LSan locally.
+wrong peers and graph mismatches. Native workloads pass ASan and LSan locally, including 512 shared graph/import
+epochs across normal closure and disposal with live input capabilities.
 
 Reduction compacts history at arbitrary antichains but still enumerates a timestamp
 join-closure. Trace cursors merge retained batch indexes lazily; lookups still scan snapshots.
