@@ -48,6 +48,22 @@ pub fn[T : Compare] ChangeBatch::to_array(Self[T]) -> Array[(T, Int64)]
 pub fn[T : Compare] ChangeBatch::update(Self[T], T, Int64) -> Unit
 pub fn[T : Compare] ChangeBatch::update_all(Self[T], Array[(T, Int64)]) -> Unit
 
+pub struct Cursor[K, V, T, R] {
+  // private fields
+}
+pub fn[K, V, T, R] Cursor::key(Self[K, V, T, R]) -> K?
+pub fn[K, V, T, R] Cursor::key_valid(Self[K, V, T, R]) -> Bool
+pub fn[K, V, T, R] Cursor::map_times(Self[K, V, T, R], (T, R) -> Unit) -> Unit
+pub fn[K : Eq, V : Eq, T, R] Cursor::rewind_keys(Self[K, V, T, R]) -> Unit
+pub fn[K, V : Eq, T, R] Cursor::rewind_vals(Self[K, V, T, R]) -> Unit
+pub fn[K : Compare, V : Eq, T, R] Cursor::seek_key(Self[K, V, T, R], K) -> Unit
+pub fn[K, V : Compare, T, R] Cursor::seek_val(Self[K, V, T, R], V) -> Unit
+pub fn[K : Eq, V : Eq, T, R] Cursor::step_key(Self[K, V, T, R]) -> Unit
+pub fn[K, V : Eq, T, R] Cursor::step_val(Self[K, V, T, R]) -> Unit
+pub fn[K, V, T, R] Cursor::times(Self[K, V, T, R]) -> Array[(T, R)]
+pub fn[K, V, T, R] Cursor::val(Self[K, V, T, R]) -> V?
+pub fn[K, V, T, R] Cursor::val_valid(Self[K, V, T, R]) -> Bool
+
 pub struct Description[T] {
   // private fields
 }
@@ -99,6 +115,8 @@ pub struct Trace[D, T, R] {
 }
 pub fn[D, T : Lattice, R] Trace::Trace(T) -> Self[D, T, R]
 pub fn[D, T : Lattice, R] Trace::batches_through(Self[D, T, R], Antichain[T]) -> Array[Batch[D, T, R]]?
+pub fn[K : Compare, V : Compare, T : Lattice, R : Semigroup] Trace::cursor(Self[(K, V), T, R]) -> Cursor[K, V, T, R]
+pub fn[K : Compare, V : Compare, T : Lattice, R : Semigroup] Trace::cursor_through(Self[(K, V), T, R], Antichain[T]) -> Cursor[K, V, T, R]?
 pub fn[D, T : Lattice, R] Trace::insert(Self[D, T, R], Batch[D, T, R]) -> Unit
 pub fn[D, T : Lattice, R] Trace::logical_compaction(Self[D, T, R]) -> Antichain[T]
 pub fn[D, T : Lattice, R] Trace::physical_compaction(Self[D, T, R]) -> Antichain[T]
