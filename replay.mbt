@@ -103,6 +103,9 @@ pub fn[D : Compare, T : Lattice, R : Compare] ReplayInput::push(
     abort("replay input is closed or disposed")
   }
   self.output.scheduler.started = true
+  if self.output.context is Some(context) {
+    (context.freeze)()
+  }
   let previous = self.replayer.frontier()
   if self.replayer.push(message) is Some((updates, frontier)) {
     self.output.data(updates)

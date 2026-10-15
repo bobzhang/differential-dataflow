@@ -80,3 +80,15 @@ test "panic existing scope cannot gain a nested scope after execution" {
   let _ = worker.run()
   let _ = scope.nested(0L, @differential.SummaryDomain::int64())
 }
+
+///|
+test "panic replay progress freezes the scope before worker execution" {
+  let worker = @differential.Worker()
+  let scope = worker.scope(0L, @differential.SummaryDomain::int64())
+  let (input, _) : (
+    @differential.ReplayInput[Int32, Int64, Int64],
+    @differential.Collection[Int32, Int64, Int64],
+  ) = scope.replay()
+  input.push(Progress(CaptureProgress(Antichain([0L]), Antichain([1L]), [])))
+  let _ = scope.operator()
+}
