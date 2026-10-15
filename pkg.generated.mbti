@@ -268,6 +268,7 @@ pub(all) enum Present {
 } derive(Eq, @debug.Debug)
 pub fn Present::equal(Self, Self) -> Bool
 pub fn Present::is_zero(Self) -> Bool
+pub fn[T] Present::multiply(Self, T) -> T
 pub fn Present::not_equal(Self, Self) -> Bool
 pub fn Present::plus(Self, Self) -> Self
 pub fn Present::to_repr(Self) -> @debug.Repr
@@ -390,12 +391,15 @@ pub struct SummaryDomain[T, S] {
   // private fields
 }
 pub fn[T, S] SummaryDomain::SummaryDomain(S, apply~ : (S, T) -> T?, compose~ : (S, S) -> S?, less_equal~ : (S, S) -> Bool) -> Self[T, S]
+pub fn SummaryDomain::byte() -> Self[Byte, Byte]
 pub fn[T, S] SummaryDomain::followed_by(Self[T, S], S, S) -> S?
 pub fn[T, S] SummaryDomain::identity(Self[T, S]) -> S
+pub fn SummaryDomain::int16() -> Self[Int16, Int16]
 pub fn SummaryDomain::int32() -> Self[Int, Int]
 pub fn SummaryDomain::int64() -> Self[Int64, Int64]
 pub fn[A, B, S, U] SummaryDomain::product(Self[A, S], Self[B, U]) -> Self[Product[A, B], Product[S, U]]
 pub fn[T, S] SummaryDomain::results_in(Self[T, S], S, T) -> T?
+pub fn SummaryDomain::uint16() -> Self[UInt16, UInt16]
 pub fn SummaryDomain::uint32() -> Self[UInt, UInt]
 pub fn SummaryDomain::uint64() -> Self[UInt64, UInt64]
 pub fn SummaryDomain::unit() -> Self[Unit, Unit]
@@ -443,6 +447,28 @@ pub struct Variable[D, T, R, S] {
 }
 pub fn[D, T : Lattice, R : Abelian, S] Variable::set(Self[D, T, R, S], Collection[D, T, R]) -> Unit
 
+pub struct VectorDiff[R] {
+  // private fields
+} derive(Compare, Eq, @debug.Debug)
+pub fn[R] VectorDiff::VectorDiff(Array[R]) -> Self[R]
+pub fn[R : Compare] VectorDiff::compare(Self[R], Self[R]) -> Int
+pub fn[R : Eq] VectorDiff::equal(Self[R], Self[R]) -> Bool
+pub fn[R : Semigroup] VectorDiff::is_zero(Self[R]) -> Bool
+pub fn[R : Abelian] VectorDiff::negate(Self[R]) -> Self[R]
+pub fn[R : Eq] VectorDiff::not_equal(Self[R], Self[R]) -> Bool
+pub fn[R : Compare] VectorDiff::op_ge(Self[R], Self[R]) -> Bool
+pub fn[R : Compare] VectorDiff::op_gt(Self[R], Self[R]) -> Bool
+pub fn[R : Compare] VectorDiff::op_le(Self[R], Self[R]) -> Bool
+pub fn[R : Compare] VectorDiff::op_lt(Self[R], Self[R]) -> Bool
+pub fn[R : Semigroup] VectorDiff::plus(Self[R], Self[R]) -> Self[R]
+pub fn[R, S, T] VectorDiff::scale(Self[R], S, (R, S) -> T) -> Self[T]
+pub fn[R] VectorDiff::to_array(Self[R]) -> Array[R]
+pub fn[R : @debug.Debug] VectorDiff::to_repr(Self[R]) -> @debug.Repr
+pub fn[R : Monoid] VectorDiff::zero() -> Self[R]
+pub impl[R : Abelian] Abelian for VectorDiff[R]
+pub impl[R : Monoid] Monoid for VectorDiff[R]
+pub impl[R : Semigroup] Semigroup for VectorDiff[R]
+
 pub struct WireCodec[T] {
   // private fields
 }
@@ -477,9 +503,13 @@ pub fn WorkerGroup::worker(Self, Int) -> Worker
 pub(open) trait Abelian : Monoid {
   fn negate(Self) -> Self
 }
+pub impl Abelian for Unit
 pub impl Abelian for Int
+pub impl Abelian for Int16
 pub impl Abelian for Int64
 pub impl[A : Abelian, B : Abelian] Abelian for (A, B)
+pub impl[A : Abelian, B : Abelian, C : Abelian] Abelian for (A, B, C)
+pub impl[A : Abelian, B : Abelian, C : Abelian, D : Abelian] Abelian for (A, B, C, D)
 
 pub(open) trait Lattice : Compare {
   fn less_equal(Self, Self) -> Bool
@@ -487,34 +517,52 @@ pub(open) trait Lattice : Compare {
   fn meet(Self, Self) -> Self
 }
 pub impl Lattice for Unit
+pub impl Lattice for Byte
 pub impl Lattice for Int
+pub impl Lattice for Int16
 pub impl Lattice for Int64
 pub impl Lattice for UInt
+pub impl Lattice for UInt16
 pub impl Lattice for UInt64
 
 pub(open) trait Monoid : Semigroup {
   fn zero() -> Self
 }
+pub impl Monoid for Unit
+pub impl Monoid for Byte
 pub impl Monoid for Int
+pub impl Monoid for Int16
 pub impl Monoid for Int64
 pub impl Monoid for UInt
+pub impl Monoid for UInt16
 pub impl Monoid for UInt64
 pub impl[A : Monoid, B : Monoid] Monoid for (A, B)
+pub impl[A : Monoid, B : Monoid, C : Monoid] Monoid for (A, B, C)
+pub impl[A : Monoid, B : Monoid, C : Monoid, D : Monoid] Monoid for (A, B, C, D)
 
 pub(open) trait Semigroup {
   fn plus(Self, Self) -> Self
   fn is_zero(Self) -> Bool
 }
+pub impl Semigroup for Unit
+pub impl Semigroup for Byte
 pub impl Semigroup for Int
+pub impl Semigroup for Int16
 pub impl Semigroup for Int64
 pub impl Semigroup for UInt
+pub impl Semigroup for UInt16
 pub impl Semigroup for UInt64
 pub impl[A : Semigroup, B : Semigroup] Semigroup for (A, B)
+pub impl[A : Semigroup, B : Semigroup, C : Semigroup] Semigroup for (A, B, C)
+pub impl[A : Semigroup, B : Semigroup, C : Semigroup, D : Semigroup] Semigroup for (A, B, C, D)
 
 pub(open) trait TotalOrder : Lattice {
 }
 pub impl TotalOrder for Unit
+pub impl TotalOrder for Byte
 pub impl TotalOrder for Int
+pub impl TotalOrder for Int16
 pub impl TotalOrder for Int64
 pub impl TotalOrder for UInt
+pub impl TotalOrder for UInt16
 pub impl TotalOrder for UInt64
