@@ -116,6 +116,11 @@ pub fn[T : Lattice] Description::lower(Self[T]) -> Antichain[T]
 pub fn[T : Lattice] Description::since(Self[T]) -> Antichain[T]
 pub fn[T : Lattice] Description::upper(Self[T]) -> Antichain[T]
 
+pub struct Feedback[D, T, R, S] {
+  // private fields
+}
+pub fn[D, T : Lattice, R, S] Feedback::connect(Self[D, T, R, S], Collection[D, T, R]) -> Unit
+
 pub struct InputSession[D, T, R] {
   // private fields
 }
@@ -207,6 +212,12 @@ pub fn RunResult::equal(Self, Self) -> Bool
 pub fn RunResult::not_equal(Self, Self) -> Bool
 pub fn RunResult::to_repr(Self) -> @debug.Repr
 
+pub struct Scope[T, S] {
+  // private fields
+}
+pub fn[D, T : Lattice, R, S] Scope::feedback(Self[T, S], S) -> (Feedback[D, T, R, S], Collection[D, T, R])
+pub fn[D, T : Lattice, R, S] Scope::input(Self[T, S]) -> (InputSession[D, T, R], Collection[D, T, R])
+
 pub struct SummaryDomain[T, S] {
   // private fields
 }
@@ -239,6 +250,7 @@ pub fn Worker::Worker() -> Self
 pub fn Worker::dispose(Self) -> Unit
 pub fn[D, T : Lattice, R] Worker::input(Self, T) -> (InputSession[D, T, R], Collection[D, T, R])
 pub fn Worker::run(Self, max_steps? : Int) -> RunResult
+pub fn[T : Lattice, S : Compare] Worker::scope(Self, T, SummaryDomain[T, S]) -> Scope[T, S]
 pub fn Worker::step(Self) -> Bool
 
 // Type aliases

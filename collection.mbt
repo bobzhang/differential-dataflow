@@ -26,10 +26,7 @@ pub fn[D, E, T : Lattice, R] Collection::flat_map(
   self : Collection[D, T, R],
   logic : (D) -> Array[E],
 ) -> Collection[E, T, R] {
-  let output : Channel[E, T, R] = Channel(
-    self.worker.scheduler,
-    Antichain(self.channel.frontier.val.elements),
-  )
+  let output : Channel[E, T, R] = self.channel.output()
   let input : Mailbox[D, T, R] = Mailbox()
   input.task = self.worker.register(fn() {
     for frame in input.drain() {
@@ -48,6 +45,7 @@ pub fn[D, E, T : Lattice, R] Collection::flat_map(
     }
   })
   self.channel.subscribe(input)
+  output.depends_on(input)
   { worker: self.worker, channel: output, }
 }
 
@@ -80,10 +78,7 @@ pub fn[D, E, T : Lattice, R, S] Collection::explode(
   self : Collection[D, T, R],
   logic : (D) -> Array[(E, (R) -> S)],
 ) -> Collection[E, T, S] {
-  let output : Channel[E, T, S] = Channel(
-    self.worker.scheduler,
-    Antichain(self.channel.frontier.val.elements),
-  )
+  let output : Channel[E, T, S] = self.channel.output()
   let input : Mailbox[D, T, R] = Mailbox()
   input.task = self.worker.register(fn() {
     for frame in input.drain() {
@@ -102,6 +97,7 @@ pub fn[D, E, T : Lattice, R, S] Collection::explode(
     }
   })
   self.channel.subscribe(input)
+  output.depends_on(input)
   { worker: self.worker, channel: output, }
 }
 
@@ -109,10 +105,7 @@ pub fn[D, E, T : Lattice, R, S] Collection::explode(
 pub fn[D : Compare, T : Lattice, R : Semigroup] Collection::consolidate(
   self : Collection[D, T, R],
 ) -> Collection[D, T, R] {
-  let output : Channel[D, T, R] = Channel(
-    self.worker.scheduler,
-    Antichain(self.channel.frontier.val.elements),
-  )
+  let output : Channel[D, T, R] = self.channel.output()
   let input : Mailbox[D, T, R] = Mailbox()
   let pending : Ref[Array[(D, T, R)]] = Ref([])
   input.task = self.worker.register(fn() {
@@ -121,6 +114,7 @@ pub fn[D : Compare, T : Lattice, R : Semigroup] Collection::consolidate(
         Data(updates) =>
           for update in updates {
             pending.val.push(update)
+            output.hold(update.1, 1)
           }
         Progress(frontier) => {
           let ready = []
@@ -134,12 +128,16 @@ pub fn[D : Compare, T : Lattice, R : Semigroup] Collection::consolidate(
           }
           pending.val = retained
           output.data(consolidate_updates(ready))
+          for (_, time, _) in ready {
+            output.hold(time, -1)
+          }
           output.progress(frontier)
         }
       }
     }
   })
   self.channel.subscribe(input)
+  output.depends_on(input)
   { worker: self.worker, channel: output, }
 }
 

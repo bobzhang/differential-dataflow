@@ -8,6 +8,10 @@ pub fn evaluate_join(Int) -> String
 
 pub fn evaluate_reduce(Int) -> String
 
+pub fn evaluate_scope_join(Int) -> String
+
+pub fn evaluate_scope_reduce(Int) -> String
+
 // Errors
 
 // Types and methods

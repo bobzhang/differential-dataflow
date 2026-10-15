@@ -40,6 +40,8 @@ join_seeds = range(1,65)
 inputs = ''.join(f'{s}\n' for s in join_seeds)
 rust = run(['validation/rust/target/release/differential-reference-check','join'],input=inputs,capture_output=True).stdout.splitlines()
 moon = run(['node','validation/run.cjs','join'],input=inputs,capture_output=True).stdout.splitlines()
+scope_join = run(['node','validation/run.cjs','scope_join'],input=inputs,capture_output=True).stdout.splitlines()
+assert scope_join == moon, 'counted scope join runtime differs'
 assert len(rust) == len(moon) == len(join_seeds)
 for seed,r,m in zip(join_seeds,rust,moon):
     state=seed
@@ -62,6 +64,8 @@ reduce_seeds = range(1,129)
 inputs = ''.join(f'{s}\n' for s in reduce_seeds)
 rust = run(['validation/rust/target/release/differential-reference-check','reduce'],input=inputs,capture_output=True).stdout.splitlines()
 moon = run(['node','validation/run.cjs','reduce'],input=inputs,capture_output=True).stdout.splitlines()
+scope_reduce = run(['node','validation/run.cjs','scope_reduce'],input=inputs,capture_output=True).stdout.splitlines()
+assert scope_reduce == moon, 'counted scope reduction runtime differs'
 assert len(rust) == len(moon) == len(reduce_seeds)
 for seed,r,m in zip(reduce_seeds,rust,moon):
     assert r == m, f'partial-order reduction differential failure at seed {seed}\nRust: {r}\nMoon: {m}'
@@ -88,6 +92,6 @@ for seed,r,m in zip(reduce_seeds,rust,moon):
                 if a<=x and b<=y: snapshot[op,k,v]=snapshot.get((op,k,v),0)+d
             snapshot={key:d for key,d in snapshot.items() if d}
             assert snapshot==expected, f'reduction snapshot failure seed={seed} time={(x,y)}'
-summary={'references':pins,'frontier_seeds':len(seeds),'frontier_rounds_per_seed':40,'frontier_checks':['membership changes','minimal positive timestamps','lattice advance_by'],'join_seeds':len(join_seeds),'join_epochs_per_seed':16,'oracles':['independent positive-count partial-order model','full weighted join recomputation each epoch'],'reduce_seeds':len(reduce_seeds),'reduce_queries_per_seed':25,'reduce_checks':['distinct','count','group minimum','exact product-timestamp corrections','independent grid snapshots'],'status':'passed'}
+summary={'references':pins,'frontier_seeds':len(seeds),'frontier_rounds_per_seed':40,'frontier_checks':['membership changes','minimal positive timestamps','lattice advance_by'],'join_seeds':len(join_seeds),'join_epochs_per_seed':16,'oracles':['independent positive-count partial-order model','full weighted join recomputation each epoch'],'runtimes':['acyclic forwarding','counted pointstamp scopes'],'reduce_seeds':len(reduce_seeds),'reduce_queries_per_seed':25,'reduce_checks':['distinct','count','group minimum','exact product-timestamp corrections','independent grid snapshots'],'status':'passed'}
 (ROOT/'validation/results.json').write_text(json.dumps(summary,indent=2)+'\n')
 print(json.dumps(summary))

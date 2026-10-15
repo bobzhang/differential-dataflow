@@ -3,7 +3,12 @@ fn[A, B, T, R, S] same_worker(
   left : Collection[A, T, R],
   right : Collection[B, T, S],
 ) -> Unit {
-  guard physical_equal(left.worker, right.worker) else {
+  let same_scope = match (left.channel.context, right.channel.context) {
+    (None, None) => true
+    (Some(a), Some(b)) => physical_equal(a, b)
+    _ => false
+  }
+  guard same_scope && physical_equal(left.worker, right.worker) else {
     abort("collections belong to different workers")
   }
 }
@@ -16,9 +21,8 @@ pub fn[D, T : Lattice, R] Collection::concat(
   same_worker(self, other)
   let left_frontier = Ref(Antichain(self.channel.frontier.val.elements))
   let right_frontier = Ref(Antichain(other.channel.frontier.val.elements))
-  let output : Channel[D, T, R] = Channel(
-    self.worker.scheduler,
-    Antichain(left_frontier.val.elements + right_frontier.val.elements),
+  let output : Channel[D, T, R] = self.channel.output(
+    frontier=Antichain(left_frontier.val.elements + right_frontier.val.elements),
   )
   let left : Mailbox[D, T, R] = Mailbox()
   let right : Mailbox[D, T, R] = Mailbox()
@@ -43,6 +47,8 @@ pub fn[D, T : Lattice, R] Collection::concat(
   right.task = task
   self.channel.subscribe(left)
   other.channel.subscribe(right)
+  output.depends_on(left)
+  output.depends_on(right)
   { worker: self.worker, channel: output, }
 }
 
@@ -67,9 +73,8 @@ pub fn[
   same_worker(self, other)
   let left_frontier = Ref(Antichain(self.channel.frontier.val.elements))
   let right_frontier = Ref(Antichain(other.channel.frontier.val.elements))
-  let output : Channel[D, T, O] = Channel(
-    self.worker.scheduler,
-    Antichain(left_frontier.val.elements + right_frontier.val.elements),
+  let output : Channel[D, T, O] = self.channel.output(
+    frontier=Antichain(left_frontier.val.elements + right_frontier.val.elements),
   )
   let left : Mailbox[(K, V), T, R] = Mailbox()
   let right : Mailbox[(K, W), T, S] = Mailbox()
@@ -139,6 +144,8 @@ pub fn[
   right.task = task
   self.channel.subscribe(left)
   other.channel.subscribe(right)
+  output.depends_on(left)
+  output.depends_on(right)
   { worker: self.worker, channel: output, }
 }
 

@@ -13,6 +13,7 @@ priv struct Scheduler {
 pub struct Worker {
   priv scheduler : Scheduler
   priv tasks : Array[() -> Unit]
+  priv progress : Array[() -> Unit]
 }
 
 ///|
@@ -27,6 +28,7 @@ pub fn Worker::Worker() -> Worker {
       stepping: false,
     },
     tasks: [],
+    progress: [],
   }
 }
 
@@ -56,7 +58,12 @@ pub fn Worker::step(self : Worker) -> Bool {
   guard self.scheduler.active else { abort("worker is disposed") }
   guard !self.scheduler.stepping else { abort("worker step cannot re-enter") }
   self.scheduler.started = true
+  self.scheduler.stepping = true
+  for pump in self.progress {
+    pump()
+  }
   if self.scheduler.head >= self.scheduler.queue.length() {
+    self.scheduler.stepping = false
     return false
   }
   let id = self.scheduler.queue[self.scheduler.head]
@@ -76,6 +83,9 @@ pub fn Worker::step(self : Worker) -> Bool {
   }
   self.scheduler.stepping = true
   self.tasks[id]()
+  for pump in self.progress {
+    pump()
+  }
   self.scheduler.stepping = false
   true
 }
@@ -120,6 +130,7 @@ pub fn Worker::dispose(self : Worker) -> Unit {
   }
   self.scheduler.active = false
   self.tasks.clear()
+  self.progress.clear()
   self.scheduler.queue.clear()
   self.scheduler.queued.clear()
   self.scheduler.head = 0

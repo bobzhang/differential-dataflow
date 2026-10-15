@@ -58,28 +58,35 @@ pub fn[
   self : Collection[(K, V), T, R],
   logic : (K, Array[(V, R)]) -> Array[(W, S)],
 ) -> Collection[(K, W), T, S] {
-  let output : Channel[(K, W), T, S] = Channel(
-    self.worker.scheduler,
-    Antichain(self.channel.frontier.val.elements),
-  )
+  let output : Channel[(K, W), T, S] = self.channel.output()
   let input : Mailbox[(K, V), T, R] = Mailbox()
   let histories : Map[K, Array[(V, T, R)]] = Map([])
   let emitted : Map[K, Array[(W, T, S)]] = Map([])
+  let held : Ref[Array[T]] = Ref([])
   input.task = self.worker.register(fn() {
     for frame in input.drain() {
       match frame {
         Data(updates) =>
           for ((key, value), time, diff) in updates {
+            output.hold(time, 1)
+            held.val.push(time)
             let history = histories.get(key).unwrap_or([]).copy()
             history.push((value, time, diff))
             histories[key] = consolidate_updates(history)
           }
         Progress(frontier) => {
           let results = []
+          let next_held = []
           for key, history in histories {
-            let ready = reduce_history(history, fn(values) {
+            let computed = reduce_history(history, fn(values) {
               logic(key, values)
-            }).filter(fn(u) { !frontier.less_equal(u.1) })
+            })
+            let ready = computed.filter(fn(u) { !frontier.less_equal(u.1) })
+            for (_, time, _) in computed {
+              if frontier.less_equal(time) {
+                next_held.push(time)
+              }
+            }
             let delta = ready.copy()
             for (value, time, diff) in emitted.get(key).unwrap_or([]) {
               delta.push((value, time, diff.negate()))
@@ -90,6 +97,13 @@ pub fn[
             emitted[key] = ready
           }
           output.data(results)
+          for time in next_held {
+            output.hold(time, 1)
+          }
+          for time in held.val {
+            output.hold(time, -1)
+          }
+          held.val = next_held
           output.progress(frontier)
           if frontier.is_empty() {
             histories.clear()
@@ -100,6 +114,7 @@ pub fn[
     }
   })
   self.channel.subscribe(input)
+  output.depends_on(input)
   { worker: self.worker, channel: output, }
 }
 

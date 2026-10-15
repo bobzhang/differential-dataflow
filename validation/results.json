@@ -16,6 +16,10 @@
     "independent positive-count partial-order model",
     "full weighted join recomputation each epoch"
   ],
+  "runtimes": [
+    "acyclic forwarding",
+    "counted pointstamp scopes"
+  ],
   "reduce_seeds": 128,
   "reduce_queries_per_seed": 25,
   "reduce_checks": [

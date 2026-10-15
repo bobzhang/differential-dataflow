@@ -35,15 +35,27 @@ pub fn evaluate(seed : Int32) -> String {
 ///|
 #export_name("evaluate_join")
 pub fn evaluate_join(seed : Int32) -> String {
+  join_case(seed, false)
+}
+
+///|
+#export_name("evaluate_scope_join")
+pub fn evaluate_scope_join(seed : Int32) -> String {
+  join_case(seed, true)
+}
+
+///|
+fn join_case(seed : Int32, counted : Bool) -> String {
   let worker = @differential.Worker()
+  let scope = worker.scope(0L, @differential.SummaryDomain::int64())
   let (a, left) : (
     @differential.InputSession[(Int32, Int32), Int64, Int64],
     @differential.Collection[(Int32, Int32), Int64, Int64],
-  ) = worker.input(0)
+  ) = if counted { scope.input() } else { worker.input(0) }
   let (b, right) : (
     @differential.InputSession[(Int32, Int32), Int64, Int64],
     @differential.Collection[(Int32, Int32), Int64, Int64],
-  ) = worker.input(0)
+  ) = if counted { scope.input() } else { worker.input(0) }
   let observed : Map[(Int32, Int32, Int32), Int64] = Map([])
   let probe = left
     .join(right)
@@ -93,7 +105,25 @@ pub fn evaluate_join(seed : Int32) -> String {
 ///|
 #export_name("evaluate_reduce")
 pub fn evaluate_reduce(seed : Int32) -> String {
+  reduce_case(seed, false)
+}
+
+///|
+#export_name("evaluate_scope_reduce")
+pub fn evaluate_scope_reduce(seed : Int32) -> String {
+  reduce_case(seed, true)
+}
+
+///|
+fn reduce_case(seed : Int32, counted : Bool) -> String {
   let worker = @differential.Worker()
+  let scope = worker.scope(
+    @differential.Product(0L, 0L),
+    @differential.SummaryDomain::product(
+      @differential.SummaryDomain::int64(),
+      @differential.SummaryDomain::int64(),
+    ),
+  )
   let (input, collection) : (
     @differential.InputSession[
       (Int32, Int32),
@@ -105,7 +135,7 @@ pub fn evaluate_reduce(seed : Int32) -> String {
       @differential.Product[Int64, Int64],
       Int64,
     ],
-  ) = worker.input(Product(0, 0))
+  ) = if counted { scope.input() } else { worker.input(Product(0, 0)) }
   let observed : Array[
     ((Int32, Int32, Int64), @differential.Product[Int64, Int64], Int64),
   ] = []
