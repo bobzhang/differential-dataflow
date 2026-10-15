@@ -13,11 +13,12 @@ pub fn[A : Lattice, B : Lattice, S : Compare, U : Compare] DistributedScope::nes
   time_codec~ : WireCodec[B],
   summary_codec~ : WireCodec[U],
 ) -> DistributedNestedScope[A, B, S, U] {
-  let child = self.cluster.scope(
+  let child = self.cluster.make_distributed_scope(
     Product(self.scope.minimum, minimum),
     SummaryDomain::product(self.scope.domain, domain),
     time_codec=WireCodec::product(self.time_codec, time_codec),
     summary_codec=WireCodec::product(self.summary_codec, summary_codec),
+    family=self.scope.progress.family,
   )
   { nested: { outer: self.scope, inner: child.scope, minimum, }, child, }
 }

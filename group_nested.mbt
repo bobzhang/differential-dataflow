@@ -15,6 +15,7 @@ pub fn[A : Lattice, B : Lattice, S : Compare, U : Compare] ScopeGroup::nested(
       Product(outer.minimum, minimum),
       SummaryDomain::product(outer.domain, domain),
       false,
+      family=outer.progress.family,
     )
     { outer, inner, minimum, }
   })

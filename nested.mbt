@@ -14,9 +14,11 @@ pub fn[A : Lattice, B : Lattice, S : Compare, U : Compare] Scope::nested(
   domain : SummaryDomain[B, U],
 ) -> NestedScope[A, B, S, U] {
   guard !self.progress.frozen else { abort("parent scope graph is frozen") }
-  let inner = self.worker.scope(
+  let inner = self.worker.make_scope(
     Product(self.minimum, minimum),
     SummaryDomain::product(self.domain, domain),
+    true,
+    family=self.progress.family,
   )
   { outer: self, inner, minimum, }
 }

@@ -14,6 +14,18 @@ run(['cargo','build','--release','--locked','--manifest-path','validation/rust/C
 run(['moon','build','--release','--target','js'])
 from examples_compare import compare as compare_examples
 compare_examples(build=False)
+cancel_inputs = ''.join(f'{seed}\n' for seed in range(1,65))
+rust = run(['validation/rust/target/release/differential-reference-check', 'cancellation'], input=cancel_inputs, capture_output=True).stdout.splitlines()
+moon = run(['node', 'validation/run.cjs', 'cancellation'], input=cancel_inputs, capture_output=True).stdout.splitlines()
+assert len(rust) == len(moon) == 64
+for seed, (r, m) in enumerate(zip(rust, moon), 1):
+    state, total, expected = seed, 0, []
+    for epoch in range(16):
+        state = (state * 1664525 + 1013904223) & 0xffffffff
+        value = (state >> 8) % 100
+        total += value
+        expected.append(f'{value*2},{total},false,false')
+    assert r == m == '/'.join(expected), f'dataflow cancellation differs seed={seed}\nRust {r}\nMoon {m}'
 eager_inputs = ''.join(f'{seed}\n' for seed in range(1,129))
 rust = run(['validation/rust/target/release/differential-reference-check', 'eager_replay'], input=eager_inputs, capture_output=True).stdout.splitlines()
 moon = run(['node', 'validation/run.cjs', 'eager_replay'], input=eager_inputs, capture_output=True).stdout.splitlines()
@@ -546,6 +558,7 @@ summary = {
     'search_seeds': len(search_seeds),
     'search_epochs_per_seed': 12,
     'search_checks': ['shared forward and reversed indexes', 'bidirectional shortest paths', 'goal multiplicities', 'sequential neighbor updates', 'edge and goal retractions', 'independent BFS and ordered node evaluation'],
+    'cancelled_nested_dataflows': 1024,
     'example_epochs': 384,
     'example_checks': ['integer PageRank with 1-5 iterations', 'degree histograms', 'item recommendations with exact Jaccard fractions', 'empty graphs and retractions', 'independent full recomputation'],
     'status': 'passed',

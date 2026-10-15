@@ -33,6 +33,8 @@ pub struct Worker {
   priv retirement : Array[(Int32, () -> Bool, () -> Unit)]
   priv progress : Array[() -> Unit]
   priv cleanup : Array[() -> Unit]
+  priv dataflows : Map[Int32, DataflowState]
+  priv mut next_dataflow : Int32
 }
 
 ///|
@@ -66,6 +68,8 @@ fn Worker::with_gate(
     retirement: [],
     progress: [],
     cleanup: [],
+    dataflows: Map([]),
+    next_dataflow: 0,
   }
 }
 
@@ -222,6 +226,7 @@ pub fn Worker::dispose(self : Worker) -> Unit {
     self.cleanup[self.cleanup.length() - 1 - offset]()
   }
   self.cleanup.clear()
+  self.dataflows.clear()
   self.tasks.clear()
   self.retirement.clear()
   self.progress.clear()

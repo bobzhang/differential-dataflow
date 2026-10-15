@@ -102,4 +102,4 @@ explicit incomplete-work condition. Completed scopes reclaim reachability matric
 closures; stable identity slots remain. Group scopes retire together, and process
 scopes require unanimous completion votes before discarding their graphs. The
 cluster envelope is version 2; completed manifest entries become null so fresh
-dataflows can still validate consistently. Explicit drop-dataflow APIs remain pending.
+dataflows can still validate consistently. Local root dataflow identity/enumeration and explicit cancellation are implemented, including all nested scopes and independent trace imports; 1,024 cancelled nested dataflows match Rust. Coordinated group/cluster cancellation remains pending.

@@ -1,13 +1,13 @@
 ///|
 // Called only after progress publication, while the worker re-entry gate is held.
-fn Worker::retire_completed(self : Worker) -> Unit {
+fn Worker::retire_completed(self : Worker, cancel? : Set[Int32]) -> Unit {
   if self.retirement.is_empty() {
     return
   }
   let retained = []
   let mut changed = false
   for (task, ready, finish) in self.retirement {
-    if ready() {
+    if (cancel is Some(ids) && ids.contains(task)) || ready() {
       let status = self.scheduler.slots[task]
       self.scheduler.slots.remove(task)
       self.tasks.remove(task)

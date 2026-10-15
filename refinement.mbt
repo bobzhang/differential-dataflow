@@ -75,7 +75,12 @@ pub fn[A, B : Lattice, S, U : Compare] Scope::refine(
   refinement : Refinement[A, B, S, U],
 ) -> RefinedScope[A, B, S, U] {
   guard !self.progress.frozen else { abort("parent scope graph is frozen") }
-  let inner = self.worker.scope(refinement.to_inner(self.minimum), domain)
+  let inner = self.worker.make_scope(
+    refinement.to_inner(self.minimum),
+    domain,
+    true,
+    family=self.progress.family,
+  )
   { outer: self, inner, refinement, }
 }
 

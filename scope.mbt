@@ -6,11 +6,16 @@ priv struct ProgressContext[T] {
   pending : ChangeBatch[(Int32, T)]
   freeze : () -> Unit
   own_task : (Int32) -> Unit
+  active : () -> Bool
+  on_close : (() -> Unit) -> Unit
 }
 
 ///|
 priv struct ScopeProgress[T, S] {
   id : Int32
+  family : DataflowState
+  families : Map[Int32, DataflowState]
+  close_hooks : Array[() -> Unit]
   tasks : Array[Int32]
   graph : ProgressGraph[T, S]
   transient : Array[Antichain[T]]
@@ -142,12 +147,37 @@ fn[T : Lattice, S : Compare] Worker::make_scope(
   minimum : T,
   domain : SummaryDomain[T, S],
   local_progress : Bool,
+  family? : DataflowState,
 ) -> Scope[T, S] {
   guard self.scheduler.active && !self.scheduler.stepping && !self.gate.val else {
     abort("create scopes only on an idle active worker")
   }
+  let family = match family {
+    Some(family) => {
+      guard !family.cancelled else { abort("dataflow was cancelled") }
+      family
+    }
+    None => {
+      guard self.next_dataflow < 0x7fff_ffff else {
+        abort("dataflow identity space exhausted")
+      }
+      let family : DataflowState = {
+        id: self.next_dataflow,
+        coordinated: !local_progress,
+        cancelled: false,
+        tasks: Set([]),
+        scopes: Map([]),
+      }
+      self.next_dataflow += 1
+      self.dataflows[family.id] = family
+      family
+    }
+  }
   let progress : ScopeProgress[T, S] = {
     id: self.network.domains.length(),
+    family,
+    families: self.dataflows,
+    close_hooks: [],
     tasks: [],
     transient: [],
     dirty: true,
@@ -159,17 +189,32 @@ fn[T : Lattice, S : Compare] Worker::make_scope(
     tracker: None,
     disposed: false,
   }
+  family.scopes[progress.id] = fn() {
+    for observers in progress.observers {
+      for notify in observers {
+        notify(Antichain([]))
+      }
+    }
+    progress.dispose()
+  }
   let scheduler = self.scheduler
   let context = {
     pending: progress.pending,
     freeze: fn() { progress.frozen = true },
+    active: fn() { !progress.disposed && !family.cancelled },
+    on_close: fn(close) { progress.close_hooks.push(close) },
     own_task: fn(task) {
+      family.tasks.add(task)
       if !progress.tasks.contains(task) {
         progress.tasks.push(task)
       }
     },
     add_port: fn() {
-      guard scheduler.active && !scheduler.stepping && !progress.frozen else {
+      guard scheduler.active &&
+        !scheduler.stepping &&
+        !progress.frozen &&
+        !progress.disposed &&
+        !family.cancelled else {
         abort("build a scope before executing it or flushing its inputs")
       }
       let port = progress.graph.add_port()
@@ -215,7 +260,11 @@ pub fn[D, T : Lattice, R, S] Scope::input(
   let port = channel.port
   let held = Ref(Antichain([self.minimum]))
   pending.update((port, self.minimum), 1)
+  let context = self.context
   let input = InputSession(self.minimum, deliver=fn(data, frontier) {
+    if !(context.active)() {
+      return
+    }
     channel.data(data)
     if held.val.elements != frontier.elements {
       channel.scheduler.started = true
@@ -236,8 +285,23 @@ pub fn[D, T : Lattice, R, S] Scope::input(
 
 ///|
 fn[T, S] ScopeProgress::dispose(self : ScopeProgress[T, S]) -> Unit {
+  if self.disposed {
+    return
+  }
   self.disposed = true
+  self.frozen = true
   self.dirty = true
+  for close in self.close_hooks {
+    close()
+  }
+  self.close_hooks.clear()
+  for task in self.tasks {
+    self.family.tasks.remove(task)
+  }
+  self.family.scopes.remove(self.id)
+  if self.family.scopes.is_empty() {
+    self.families.remove(self.family.id)
+  }
   self.transient.clear()
   self.observers.clear()
   self.graph.edges.clear()

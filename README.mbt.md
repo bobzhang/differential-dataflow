@@ -286,6 +286,19 @@ at most that many cursor/emission steps before yielding. Pending work retains
 immutable batch views and timestamp capabilities, so probes cannot report its
 results complete prematurely. Empty historical intervals do not hold old times.
 
+## Dataflow lifecycle
+
+Each root `worker.scope(...)` gets a monotone `dataflow_index`; nested scopes and
+regions share it. `next_dataflow_index`, `installed_dataflows`, and `has_dataflows`
+inspect this lifecycle. `worker.drop_dataflow(id)` cancels a local dataflow and
+all its nested work without disposing the worker. It drops queued records,
+invalidates scoped output capabilities, runs operator shutdown callbacks once,
+and closes trace writers so independent imports can finish. Externally owned
+trace readers remain usable. Later flush/close calls on cancelled inputs are
+ignored. As in pinned Timely, cancelled probes retain their last observed
+frontier: cancellation does not certify that queued records were processed.
+Coordinated group/cluster cancellation is being implemented separately.
+
 ## Runnable upstream algorithms
 
 Run `moon run examples/showcase --target js` (or `--target native`) to see

@@ -12,6 +12,7 @@ pub fn[D, T, R, S] Output::accepts(
 ) -> Bool {
   self.channel.scheduler.active &&
   capability.live &&
+  capability.owner.active() &&
   capability.port == self.channel.port &&
   capability.owner.same(self.owner)
 }

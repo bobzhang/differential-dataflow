@@ -598,6 +598,7 @@ pub fn[N : Compare + Hash, T : Lattice, S : Compare] Scope::bidijkstra(Self[T, S
 pub fn[N : Compare + Hash, T : Lattice, S : Compare] Scope::bidijkstra_arranged(Self[T, S], ArrangementView[N, N, T, Int64], ArrangementView[N, N, T, Int64], Collection[(N, N), T, Int64]) -> Collection[((N, N), UInt), T, Int64]
 pub fn[K : Compare + Hash, D : Compare + Hash, T : Lattice, S : Compare] Scope::broadcast_prefix(Self[T, S], Collection[((UInt64, Int, K), D), T, Int64], Collection[(UInt64, K), T, Int64], D, (K, D, D) -> D) -> Collection[((UInt64, K), D), T, Int64]
 pub fn[D : Compare, T : Lattice, R : Semigroup, S] Scope::capture_to(Self[T, S], Collection[D, T, R], CaptureWriter[D, T, R]) -> CaptureHandle
+pub fn[T, S] Scope::dataflow_index(Self[T, S]) -> Int
 pub fn[D, T : Lattice, R, S] Scope::feedback(Self[T, S], S) -> (Feedback[D, T, R, S], Collection[D, T, R])
 pub fn[D : Compare + RustHash, T : Lattice, R : Abelian, S : Compare] Scope::identifiers(Self[T, S], Collection[D, T, R]) -> Collection[(D, UInt64), T, R]
 pub fn[D : Compare, T : Lattice, R : Abelian, S : Compare] Scope::identifiers_with(Self[T, S], Collection[D, T, R], (Int, D) -> UInt64) -> Collection[(D, UInt64), T, R]
@@ -861,8 +862,12 @@ pub struct Worker {
 }
 pub fn Worker::Worker(clock? : () -> Duration) -> Self
 pub fn Worker::dispose(Self) -> Unit
+pub fn Worker::drop_dataflow(Self, Int) -> Unit
+pub fn Worker::has_dataflows(Self) -> Bool
 pub fn[D, T : Lattice, R] Worker::input(Self, T) -> (InputSession[D, T, R], Collection[D, T, R])
+pub fn Worker::installed_dataflows(Self) -> Array[Int]
 pub fn Worker::next_activation(Self) -> Duration?
+pub fn Worker::next_dataflow_index(Self) -> Int
 pub fn Worker::run(Self, max_steps? : Int) -> RunResult
 pub fn[T : Lattice, S : Compare] Worker::scope(Self, T, SummaryDomain[T, S]) -> Scope[T, S]
 pub fn Worker::step(Self) -> Bool

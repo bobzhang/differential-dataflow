@@ -1,3 +1,4 @@
+mod cancellation;
 mod examples;
 mod replay_distributed;
 mod capture_async;
@@ -60,6 +61,7 @@ fn main() {
             "{}",
             match mode.as_str() {
                 "examples" => examples::evaluate(seed),
+                "cancellation" => cancellation::evaluate(seed),
                 "spilled_spines" => columnar::spilled(seed),
                 "columnar_spines" => columnar::evaluate(seed),
                 "eager_replay" => capture_async::eager(seed),

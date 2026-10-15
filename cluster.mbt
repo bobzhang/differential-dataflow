@@ -83,7 +83,19 @@ pub fn[T : Lattice, S : Compare] ClusterWorker::scope(
   time_codec~ : WireCodec[T],
   summary_codec~ : WireCodec[S],
 ) -> DistributedScope[T, S] {
-  let scope = self.worker.make_scope(minimum, domain, false)
+  self.make_distributed_scope(minimum, domain, time_codec~, summary_codec~)
+}
+
+///|
+fn[T : Lattice, S : Compare] ClusterWorker::make_distributed_scope(
+  self : ClusterWorker,
+  minimum : T,
+  domain : SummaryDomain[T, S],
+  time_codec~ : WireCodec[T],
+  summary_codec~ : WireCodec[S],
+  family? : DataflowState,
+) -> DistributedScope[T, S] {
+  let scope = self.worker.make_scope(minimum, domain, false, family?)
   let progress = scope.progress
   let manifest_cache : Ref[Json?] = Ref(None)
   let scheduler = self.worker.scheduler

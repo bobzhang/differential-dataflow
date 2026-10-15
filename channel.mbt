@@ -27,6 +27,9 @@ fn[D, T : Lattice, R] Channel::data(
   updates : Array[(D, T, R)],
 ) -> Unit {
   guard self.scheduler.active else { abort("worker is disposed") }
+  if self.context is Some(context) && !(context.active)() {
+    return
+  }
   for (_, time, _) in updates {
     guard self.frontier.val.less_equal(time) else {
       abort("update precedes channel frontier")
@@ -150,7 +153,19 @@ fn[D, T : Lattice, R] Channel::Channel(
       port
     }
   }
-  { scheduler, subscribers: [], frontier, context, port, }
+  let subscribers : Array[Mailbox[D, T, R]] = []
+  if context is Some(context) {
+    (context.on_close)(fn() {
+      frontier.val = Antichain([])
+      for mailbox in subscribers {
+        mailbox.frames.clear()
+        mailbox.ended.val = true
+        mailbox.counter = None
+      }
+      subscribers.clear()
+    })
+  }
+  { scheduler, subscribers, frontier, context, port, }
 }
 
 ///|
@@ -190,7 +205,9 @@ fn[D, T : Lattice, R] Channel::hold(
   time : T,
   diff : Int64,
 ) -> Unit {
-  if self.scheduler.active && self.context is Some(context) {
+  if self.scheduler.active &&
+    self.context is Some(context) &&
+    (context.active)() {
     context.pending.update((self.port, time), diff)
   }
 }

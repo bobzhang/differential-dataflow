@@ -16,6 +16,8 @@ pub fn evaluate_assigned_join(Int) -> String
 
 pub fn evaluate_batches(Int) -> String
 
+pub fn evaluate_cancellation(Int) -> String
+
 pub fn evaluate_capture_async(Int) -> String
 
 pub fn evaluate_columnar_batches(Int) -> String
