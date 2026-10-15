@@ -109,6 +109,11 @@ pub fn Worker::run(self : Worker, max_steps~ : Int32 = 100000) -> RunResult {
   }
   self.scheduler.started = true
   guard max_steps >= 0 else { abort("step limit must be nonnegative") }
+  self.scheduler.stepping = true
+  for pump in self.progress {
+    pump()
+  }
+  self.scheduler.stepping = false
   let mut steps = 0
   while steps < max_steps {
     if !self.step() {

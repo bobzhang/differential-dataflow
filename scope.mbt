@@ -109,6 +109,9 @@ pub fn[D, T : Lattice, R, S] Scope::input(
   pending.update((port, self.minimum), 1)
   let input = InputSession(self.minimum, deliver=fn(data, frontier) {
     channel.data(data)
+    if held.val.elements != frontier.elements {
+      channel.scheduler.started = true
+    }
     for time in held.val.elements {
       pending.update((port, time), -1)
     }

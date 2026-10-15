@@ -103,3 +103,21 @@ test "binary output starts at the union of unequal input frontiers" {
   assert_true(probe.done())
   worker.dispose()
 }
+
+///|
+test "zero step budget accounts for pending progress notifications" {
+  let worker = @differential.Worker()
+  let scope = worker.scope(0L, @differential.SummaryDomain::int64())
+  let (input, values) : (
+    @differential.InputSession[Int32, Int64, Int64],
+    @differential.Collection[Int32, Int64, Int64],
+  ) = scope.input()
+  let probe = values.probe()
+  input.close()
+  assert_eq(worker.run(max_steps=0), StepLimit(0))
+  assert_true(!probe.done())
+  let _ = worker.run()
+  assert_true(probe.done())
+  assert_eq(worker.run(max_steps=0), Quiescent(0))
+  worker.dispose()
+}
