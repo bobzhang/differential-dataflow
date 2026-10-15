@@ -79,6 +79,12 @@ pub fn[K : Compare, V : Compare, T : Lattice, R : Semigroup] Collection::arrange
   })
   self.channel.subscribe(input)
   output.depends_on(input)
+  // Rust TraceWriter::drop seals an empty final batch. Surviving imports must
+  // receive the same closure even when the producer is explicitly disposed.
+  self.worker.cleanup.push(fn() {
+    pending.val.clear()
+    writer.close()
+  })
   { collection: { worker: self.worker, channel: output, }, trace, }
 }
 

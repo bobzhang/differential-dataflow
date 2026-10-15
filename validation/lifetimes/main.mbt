@@ -91,8 +91,11 @@ fn exercise(early : Bool, columnar : Bool) -> Unit {
       abort("lifetime graph did not close")
     }
   }
-  consumer.dispose()
   worker.dispose()
+  guard consumer.run() is Quiescent(_) && imported.done() else {
+    abort("surviving import did not close after producer disposal")
+  }
+  consumer.dispose()
 }
 
 ///|
