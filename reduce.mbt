@@ -216,7 +216,7 @@ fn[
   input.task = self.worker.register(fn() {
     for frame in input.drain() {
       match frame {
-        Data(updates) =>
+        Records(_, updates) =>
           for ((key, value), time, diff) in updates {
             output.hold(time, 1)
             held.val.push(time)

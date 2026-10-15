@@ -277,7 +277,7 @@ pub fn[D, T : Lattice, R, S] OperatorInput::for_each(
   for frame in self.mailbox.drain() {
     match frame {
       Progress(frontier) => self.frontier.val = frontier
-      Data(updates) => {
+      Records(_, updates) => {
         updates.sort_by(fn(a, b) { Compare::compare(a.1, b.1) })
         let mut index = 0
         while index < updates.length() {
@@ -344,4 +344,33 @@ pub fn[D, T : Lattice, R, S] InputCapability::delayed(
   .unwrap_or_else(fn() {
     abort("output time is not reachable through the declared summaries")
   })
+}
+
+///|
+/// Drain original message containers with their borrowed input capability.
+/// Record timestamps are preserved separately and can be later than the
+/// capability time. Use Output.send_at to forward them without losing this
+/// distinction. for_each remains the convenience API grouped by record time.
+pub fn[D, T : Lattice, R, S] OperatorInput::for_each_batch(
+  self : OperatorInput[D, T, R, S],
+  consume : (InputCapability[T, S], Array[(D, T, R)]) -> Unit,
+) -> Unit {
+  guard self.ports.running else {
+    abort("input must be drained by its operator")
+  }
+  for frame in self.mailbox.drain() {
+    match frame {
+      Progress(frontier) => self.frontier.val = frontier
+      Records(time, records) => {
+        let capability : InputCapability[T, S] = {
+          ports: self.ports,
+          port: self.port,
+          time,
+          live: true,
+        }
+        consume(capability, records)
+        capability.live = false
+      }
+    }
+  }
 }

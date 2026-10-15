@@ -135,7 +135,7 @@ pub fn[D, A : Lattice, B : Lattice, R, S, U] RefinedScope::enter_at(
   input.task = self.outer.worker.register(fn() {
     for frame in input.drain() {
       match frame {
-        Data(updates) => {
+        Records(envelope, updates) => {
           let result = updates.map(fn(update) {
             let time = assign(update.0, update.1)
             guard refinement.to_inner(update.1).less_equal(time) else {
@@ -143,7 +143,7 @@ pub fn[D, A : Lattice, B : Lattice, R, S, U] RefinedScope::enter_at(
             }
             (update.0, time, update.2)
           })
-          output.data(result)
+          output.data_at(refinement.to_inner(envelope), result)
         }
         Progress(_) => ()
       }
@@ -184,8 +184,9 @@ pub fn[D, A : Lattice, B : Lattice, R, S, U] RefinedScope::leave(
   input.task = self.inner.worker.register(fn() {
     for frame in input.drain() {
       match frame {
-        Data(updates) =>
-          output.data(
+        Records(envelope, updates) =>
+          output.data_at(
+            refinement.to_outer(envelope),
             updates.map(fn(update) {
               (update.0, refinement.to_outer(update.1), update.2)
             }),

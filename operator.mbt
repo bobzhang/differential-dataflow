@@ -26,7 +26,8 @@ pub fn[D, T : Lattice, R, S] Output::send(
   guard self.accepts(capability) else {
     abort("output requires a live capability for its port")
   }
-  self.channel.data(
+  self.channel.data_at(
+    capability.time,
     records.map(fn(record) { (record.0, capability.time, record.1) }),
   )
 }
@@ -46,7 +47,7 @@ pub fn[D, T : Lattice, R, S] Output::send_at(
       abort("record precedes capability")
     }
   }
-  self.channel.data(records)
+  self.channel.data_at(capability.time, records)
 }
 
 ///|
@@ -91,7 +92,7 @@ pub fn[D, E, T : Lattice, R, U, S] Scope::unary(
   input.task = self.worker.register(fn() {
     for frame in input.drain() {
       match frame {
-        Data(updates) => {
+        Records(_, updates) => {
           updates.sort_by(fn(a, b) { Compare::compare(a.1, b.1) })
           let mut start = 0
           while start < updates.length() {

@@ -42,7 +42,7 @@ pub fn[K : Compare, V : Compare, T : Lattice, R : Semigroup] Collection::arrange
   input.task = self.worker.register(fn() {
     for frame in input.drain() {
       match frame {
-        Data(updates) =>
+        Records(_, updates) =>
           for update in updates {
             pending.val.push(update)
             output.hold(update.1, 1)

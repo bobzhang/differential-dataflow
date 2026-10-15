@@ -15,7 +15,9 @@ pub fn[D, T : Lattice, R] Worker::input(
   }
   let channel = Channel(self.scheduler, Antichain([initial]))
   let input = InputSession(initial, deliver=fn(data, frontier) {
-    channel.data(data)
+    if !data.is_empty() {
+      channel.data_at(channel.frontier.val.elements[0], data)
+    }
     channel.progress(frontier)
   })
   (input, { worker: self, channel, })
@@ -31,14 +33,14 @@ pub fn[D, E, T : Lattice, R] Collection::flat_map(
   input.task = self.worker.register(fn() {
     for frame in input.drain() {
       match frame {
-        Data(updates) => {
+        Records(envelope, updates) => {
           let result = []
           for (data, time, diff) in updates {
             for value in logic(data) {
               result.push((value, time, diff))
             }
           }
-          output.data(result)
+          output.data_at(envelope, result)
         }
         Progress(frontier) => output.progress(frontier)
       }
@@ -83,14 +85,14 @@ pub fn[D, E, T : Lattice, R, S] Collection::explode(
   input.task = self.worker.register(fn() {
     for frame in input.drain() {
       match frame {
-        Data(updates) => {
+        Records(envelope, updates) => {
           let result = []
           for (data, time, diff) in updates {
             for (value, multiply) in logic(data) {
               result.push((value, time, multiply(diff)))
             }
           }
-          output.data(result)
+          output.data_at(envelope, result)
         }
         Progress(frontier) => output.progress(frontier)
       }
@@ -111,7 +113,7 @@ pub fn[D : Compare, T : Lattice, R : Semigroup] Collection::consolidate(
   input.task = self.worker.register(fn() {
     for frame in input.drain() {
       match frame {
-        Data(updates) =>
+        Records(_, updates) =>
           for update in updates {
             pending.val.push(update)
             output.hold(update.1, 1)
@@ -176,7 +178,7 @@ pub fn[D, T : Lattice, R] Collection::inspect(
   input.task = self.worker.register(fn() {
     for frame in input.drain() {
       match frame {
-        Data(updates) =>
+        Records(_, updates) =>
           for (data, time, diff) in updates {
             logic(data, time, diff)
           }

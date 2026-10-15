@@ -1,6 +1,6 @@
 ///|
 priv enum Frame[D, T, R] {
-  Data(Array[(D, T, R)])
+  Records(T, Array[(D, T, R)])
   Progress(Antichain[T])
 }
 
@@ -22,17 +22,24 @@ priv struct Channel[D, T, R] {
 }
 
 ///|
-fn[D, T : Lattice, R] Channel::data(
+fn[D, T : Lattice, R] Channel::data_at(
   self : Channel[D, T, R],
+  envelope : T,
   updates : Array[(D, T, R)],
 ) -> Unit {
   guard self.scheduler.active else { abort("worker is disposed") }
   if self.context is Some(context) && !(context.active)() {
     return
   }
+  if updates.is_empty() {
+    return
+  }
+  guard self.frontier.val.less_equal(envelope) else {
+    abort("message precedes channel frontier")
+  }
   for (_, time, _) in updates {
-    guard self.frontier.val.less_equal(time) else {
-      abort("update precedes channel frontier")
+    guard envelope.less_equal(time) else {
+      abort("record precedes message capability")
     }
   }
   if updates.is_empty() {
@@ -44,11 +51,9 @@ fn[D, T : Lattice, R] Channel::data(
   }
   for mailbox in self.subscribers {
     if mailbox.counter is Some((pending, port)) {
-      for (_, time, _) in updates {
-        pending.update((port, time), 1)
-      }
+      pending.update((port, envelope), 1)
     }
-    mailbox.frames.push(Data(updates.copy()))
+    mailbox.frames.push(Records(envelope, updates.copy()))
     self.scheduler.schedule(mailbox.task)
   }
 }
@@ -125,10 +130,8 @@ fn[D, T : Lattice, R] Mailbox::drain(
   }
   if self.counter is Some((pending, port)) {
     for frame in frames {
-      if frame is Data(updates) {
-        for (_, time, _) in updates {
-          pending.update((port, time), -1)
-        }
+      if frame is Records(envelope, _) {
+        pending.update((port, envelope), -1)
       }
     }
   }
@@ -209,5 +212,27 @@ fn[D, T : Lattice, R] Channel::hold(
     self.context is Some(context) &&
     (context.active)() {
     context.pending.update((self.port, time), diff)
+  }
+}
+
+///|
+// Stateful operators may produce records at incomparable times. Each equal-time
+// group gets a real message capability; never synthesize their meet, which might
+// precede the output frontier.
+fn[D, T : Lattice, R] Channel::data(
+  self : Channel[D, T, R],
+  updates : Array[(D, T, R)],
+) -> Unit {
+  let updates = updates.copy()
+  updates.sort_by(fn(a, b) { Compare::compare(a.1, b.1) })
+  let mut index = 0
+  while index < updates.length() {
+    let time = updates[index].1
+    let records = []
+    while index < updates.length() && updates[index].1 == time {
+      records.push(updates[index])
+      index += 1
+    }
+    self.data_at(time, records)
   }
 }

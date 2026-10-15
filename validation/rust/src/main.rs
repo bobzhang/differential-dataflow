@@ -1,3 +1,4 @@
+mod envelopes;
 mod monoid_bfs;
 mod core_presence;
 mod pointstamp;
@@ -90,6 +91,7 @@ fn main() {
                 "core_reduce" => evaluate_stream_reduce(seed, true),
                 "core_presence" => core_presence::evaluate(seed),
                 "monoid_bfs" => monoid_bfs::evaluate(seed),
+                "envelopes" => envelopes::evaluate(seed),
                 "feedback" => evaluate_feedback(seed, false),
                 "signed_feedback" => evaluate_feedback(seed, true),
                 "iteration" => evaluate_iteration(seed),

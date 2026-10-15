@@ -33,8 +33,9 @@
     "any-peer nested dataflow cancellation with live siblings",
     "nonblocking host polling for every distributed workload"
   ],
+  "message_capability_snapshots": 208,
   "runtime_depth_iteration_epochs": 128,
-  "async_host_polling_epochs": 848,
+  "async_host_polling_epochs": 952,
   "collective_cancellation_epochs": 128,
   "distributed_replay_epochs": 128,
   "dynamic_dataflow_epochs": 144,

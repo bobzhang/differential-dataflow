@@ -12,7 +12,7 @@ BIN = ROOT / '_build/native/release/build/validation/cluster/cluster.exe'
 
 def run_peers(seed, peers, mode="join"):
     logical_mode = mode.removeprefix("async_")
-    epochs = 24 if logical_mode == "dynamic_iteration" else 8 if logical_mode in ("iteration", "deep_iteration", "pointstamp") else 16
+    epochs = 13 if logical_mode == "envelopes" else 24 if logical_mode == "dynamic_iteration" else 8 if logical_mode in ("iteration", "deep_iteration", "pointstamp") else 16
     with socket.socket() as reserved:
         reserved.bind(('127.0.0.1', 0))
         port = reserved.getsockname()[1]
@@ -103,6 +103,19 @@ def cancellation_expected(seed, peers):
     return '/'.join(';'.join(f'{base+i},{peers}' for i in range(epoch+1)) for epoch in range(16))
 
 
+def envelope_snapshot(reference):
+    from collections import Counter
+    expected = []
+    for phase in reference.split('/'):
+        rows = Counter()
+        for record in phase.split(';'):
+            if record:
+                tag, cap, data, time, diff = map(int,record.split(','))
+                if tag == 2: rows[cap,data,time] += diff
+        expected.append(';'.join(f'{cap},{data},{time},{diff}' for (cap,data,time),diff in sorted(rows.items()) if diff))
+    return '/'.join(expected)
+
+
 def main():
     pins = json.loads((ROOT / 'validation/pins.json').read_text())
     for name, pin in pins.items():
@@ -155,6 +168,17 @@ def main():
         for seed, expected in zip(seeds, dynamic_rust):
             for mode in ('pointstamp', 'async_pointstamp'):
                 assert run_peers(seed, peer_count, mode) == expected == iteration_expected(seed), (seed, peer_count, mode)
+    from envelope_compare import expected as envelope_expected
+    envelope_rust = subprocess.run(['validation/rust/target/release/differential-reference-check', 'envelopes'],
+                                  cwd=ROOT, input=''.join(f'{seed}\n' for seed in seeds), text=True,
+                                  capture_output=True, check=True, timeout=90).stdout.splitlines()
+    assert len(envelope_rust) == len(seeds)
+    for seed, reference in zip(seeds, envelope_rust):
+        assert reference == envelope_expected(seed)
+        expected = envelope_snapshot(reference)
+        for peer_count in (2,3):
+            for mode in ('envelopes','async_envelopes'):
+                assert run_peers(seed,peer_count,mode) == expected, (seed,peer_count,mode)
     result = {'process_counts': [2, 3], 'seeds': seeds, 'epochs_per_seed': 16,
               'oracles': ['pinned Rust two-worker join', 'independent full weighted join', 'pinned Rust three-worker replay', 'independent replay totals'],
               'checks': ['TCP startup retry', 'keyed exchange', 'shared arrangement joins',
@@ -162,7 +186,7 @@ def main():
                          'cyclic fixed points', 'two nested feedback loops', 'root retractions', 'independent BFS',
                          'capture duplicates across peers', 'progress before replay data',
                          'unanimous completed-scope reclamation', 'any-peer nested dataflow cancellation with live siblings', 'nonblocking host polling for every distributed workload'],
-              'runtime_depth_iteration_epochs': 128, 'async_host_polling_epochs': 848, 'collective_cancellation_epochs': 128, 'distributed_replay_epochs': 128, 'dynamic_dataflow_epochs': 144, 'iteration_epochs_per_seed': 8, 'status': 'passed'}
+              'message_capability_snapshots': 208, 'runtime_depth_iteration_epochs': 128, 'async_host_polling_epochs': 952, 'collective_cancellation_epochs': 128, 'distributed_replay_epochs': 128, 'dynamic_dataflow_epochs': 144, 'iteration_epochs_per_seed': 8, 'status': 'passed'}
     (ROOT / 'validation/cluster_results.json').write_text(json.dumps(result, indent=2) + '\n')
     print(json.dumps(result))
 

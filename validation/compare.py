@@ -20,6 +20,8 @@ from core_reduce_compare import compare as compare_core_reduce
 compare_core_reduce(build=False)
 from monoid_bfs_compare import compare as compare_monoid_bfs
 compare_monoid_bfs(build=False)
+from envelope_compare import compare as compare_envelopes
+compare_envelopes(build=False)
 cancel_inputs = ''.join(f'{seed}\n' for seed in range(1,65))
 rust = run(['validation/rust/target/release/differential-reference-check', 'cancellation'], input=cancel_inputs, capture_output=True).stdout.splitlines()
 moon = run(['node', 'validation/run.cjs', 'cancellation'], input=cancel_inputs, capture_output=True).stdout.splitlines()
@@ -566,6 +568,7 @@ summary = {
     'search_checks': ['shared forward and reversed indexes', 'bidirectional shortest paths', 'goal multiplicities', 'sequential neighbor updates', 'edge and goal retractions', 'independent BFS and ordered node evaluation'],
     'cancelled_nested_dataflows': 1024,
     'example_epochs': 384,
+    'message_capability_operator_snapshots': 2496,
     'min_plus_graph_epochs': 1024,
     'core_reduce_partial_order_epochs': 2304,
     'core_reduce_presence_snapshots': 3200,

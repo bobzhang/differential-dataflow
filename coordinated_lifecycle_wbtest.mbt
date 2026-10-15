@@ -93,7 +93,7 @@ test "collective cancellation discards already routed records before delivery" {
   cluster.state.outgoing.push([
     Json(0),
     Json(0),
-    [[Json(9), Json(0L), Json(1L)]],
+    [Json(0L), [[Json(9), Json(0L), Json(1L)]]],
   ])
   cluster.drop_dataflow(scope.dataflow_index())
   let _ = cluster.run()

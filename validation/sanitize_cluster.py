@@ -9,6 +9,8 @@ import cluster_compare
 import transport_failures
 import journal_check
 import async_transport
+from envelope_compare import expected as envelope_expected
+from pointstamp_compare import iteration_expected as pointstamp_expected
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -55,6 +57,10 @@ def main():
     journal_check.BIN = journal_output
     journal_check.check()
     for peers in (2, 3):
+        for mode in ('envelopes', 'async_envelopes'):
+            assert cluster_compare.run_peers(42, peers, mode) == cluster_compare.envelope_snapshot(envelope_expected(42))
+        for mode in ('pointstamp', 'async_pointstamp'):
+            assert cluster_compare.run_peers(42, peers, mode) == pointstamp_expected(42)
         assert cluster_compare.run_peers(42, peers) == cluster_compare.independent(42)
         assert cluster_compare.run_peers(42, peers, 'async_join') == cluster_compare.independent(42)
         assert cluster_compare.run_peers(42, peers, 'async_cancellation') == cluster_compare.cancellation_expected(42, peers)

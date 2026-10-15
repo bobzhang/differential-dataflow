@@ -262,14 +262,14 @@ pub fn[D, T : Lattice, R, S] ScopeGroup::exchange(
     let input : Mailbox[D, T, R] = Mailbox()
     input.task = source.worker.register(fn() {
       for frame in input.drain() {
-        if frame is Data(updates) {
+        if frame is Records(envelope, updates) {
           let buckets = Array::makei(outputs.length(), fn(_) { [] })
           for update in updates {
             let destination = (hash(update.0) % peers).to_int()
             buckets[destination].push(update)
           }
           for peer, bucket in buckets {
-            outputs[peer].data(bucket)
+            outputs[peer].data_at(envelope, bucket)
           }
         }
       }

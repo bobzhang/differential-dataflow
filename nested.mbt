@@ -52,8 +52,9 @@ pub fn[D, A : Lattice, B : Lattice, R, S, U] NestedScope::enter(
   input.task = self.outer.worker.register(fn() {
     for frame in input.drain() {
       match frame {
-        Data(updates) =>
-          output.data(
+        Records(envelope, updates) =>
+          output.data_at(
+            Product(envelope, minimum),
             updates.map(fn(update) {
               (update.0, Product(update.1, minimum), update.2)
             }),
@@ -94,8 +95,9 @@ pub fn[D, A : Lattice, B : Lattice, R, S, U] NestedScope::leave(
   input.task = self.inner.worker.register(fn() {
     for frame in input.drain() {
       match frame {
-        Data(updates) =>
-          output.data(
+        Records(envelope, updates) =>
+          output.data_at(
+            envelope.outer,
             updates.map(fn(update) { (update.0, update.1.outer, update.2) }),
           )
         Progress(_) => ()

@@ -42,14 +42,17 @@ pub fn[D, T : Lattice, R, S] Feedback::connect(
   let summary = self.summary
   input.task = self.scope.worker.register(fn() {
     for frame in input.drain() {
-      if frame is Data(updates) {
+      if frame is Records(envelope, updates) {
+        guard domain.results_in(summary, envelope) is Some(envelope) else {
+          continue
+        }
         let result = []
         for (data, time, diff) in updates {
           if domain.results_in(summary, time) is Some(at) {
             result.push((data, at, diff))
           }
         }
-        output.data(result)
+        output.data_at(envelope, result)
       }
     }
   })

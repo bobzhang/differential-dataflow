@@ -50,6 +50,8 @@ pub fn evaluate_entered_join(Int) -> String
 
 pub fn evaluate_entered_reduce(Int) -> String
 
+pub fn evaluate_envelopes(Int) -> String
+
 pub fn evaluate_examples(Int) -> String
 
 pub fn evaluate_feedback(Int) -> String

@@ -52,7 +52,7 @@ pub fn[K : Compare, V : Compare, T : Lattice, R : Semigroup, Q, O] TraceAgent::l
     }
     for frame in input.drain() {
       match frame {
-        Data(updates) =>
+        Records(_, updates) =>
           for update in updates {
             guard reader.logical_compaction().less_equal(update.0.1) else {
               abort("lookup query precedes retained history")

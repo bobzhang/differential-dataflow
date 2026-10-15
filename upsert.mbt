@@ -12,7 +12,7 @@ pub fn[K : Compare + Hash, V : Compare, T : TotalOrder] Collection::arrange_from
   input.task = self.worker.register(fn() {
     for frame in input.drain() {
       match frame {
-        Data(updates) =>
+        Records(_, updates) =>
           for update in updates {
             pending.val.push(update)
             output.hold(update.1, 1)

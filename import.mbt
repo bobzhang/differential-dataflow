@@ -27,7 +27,7 @@ pub fn[D : Compare, T : Lattice, R : Semigroup, S] TraceReader::import_into(
   reader.map_batches(fn(batch) {
     batch.for_each(fn(data, time, diff) { initial.push((data, time, diff)) })
   })
-  frames.push(Data(initial))
+  frames.push(Records(scope.minimum, initial))
   frames.push(Progress(reader.upper()))
   let pending = scope.context.pending
   let port = output.port
@@ -45,7 +45,7 @@ pub fn[D : Compare, T : Lattice, R : Semigroup, S] TraceReader::import_into(
     frames.clear()
     for frame in events {
       match frame {
-        Data(updates) =>
+        Records(_, updates) =>
           output.data(
             consolidate_updates(
               updates.map(fn(u) { (u.0, advance_by(u.1, base), u.2) }),
@@ -75,8 +75,9 @@ pub fn[D : Compare, T : Lattice, R : Semigroup, S] TraceReader::import_into(
   })
   (scope.context.own_task)(task)
   let scheduler = scope.worker.scheduler
+  let minimum = scope.minimum
   cancel.val = reader.subscribe(fn(batch) {
-    frames.push(Data(batch.to_array()))
+    frames.push(Records(minimum, batch.to_array()))
     frames.push(Progress(batch.description.upper()))
     scheduler.schedule(task)
   })

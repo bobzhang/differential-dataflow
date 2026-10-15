@@ -236,7 +236,8 @@ pub fn[D, T : Lattice, R, S] DistributedScope::exchange(
     if !(context.active)() {
       return
     }
-    guard payload is Array(updates) else {
+    guard payload is [envelope, Array(updates)] &&
+      (time_codec.decode)(envelope) is Some(envelope) else {
       raise ClusterError("invalid exchange batch")
     }
     let decoded = []
@@ -250,17 +251,20 @@ pub fn[D, T : Lattice, R, S] DistributedScope::exchange(
       decoded.push((data, time, diff))
     }
     for (_, time, _) in decoded {
-      output.hold(time, -1)
+      guard envelope.less_equal(time) else {
+        raise ClusterError("record precedes exchange capability")
+      }
     }
-    output.data(decoded)
+    output.hold(envelope, -1)
+    output.data_at(envelope, decoded)
   })
   let outgoing = self.cluster.state.outgoing
   let peers = self.cluster.peers
   let input : Mailbox[D, T, R] = Mailbox()
   input.task = self.cluster.worker.register(fn() {
-    let buckets : Array[Array[Json]] = Array::makei(peers, fn(_) { [] })
     for frame in input.drain() {
-      if frame is Data(updates) {
+      if frame is Records(envelope, updates) {
+        let buckets : Array[Array[Json]] = Array::makei(peers, fn(_) { [] })
         for (data, time, diff) in updates {
           let peer = (hash(data) % peers.to_uint64()).to_int()
           buckets[peer].push([
@@ -268,13 +272,17 @@ pub fn[D, T : Lattice, R, S] DistributedScope::exchange(
             (time_codec.encode)(time),
             (diff_codec.encode)(diff),
           ])
-          output.hold(time, 1)
         }
-      }
-    }
-    for peer, bucket in buckets {
-      if !bucket.is_empty() {
-        outgoing.push([Json(peer), Json(route), Json(bucket)])
+        for peer, bucket in buckets {
+          if !bucket.is_empty() {
+            output.hold(envelope, 1)
+            outgoing.push([
+              Json(peer),
+              Json(route),
+              [(time_codec.encode)(envelope), Json(bucket)],
+            ])
+          }
+        }
       }
     }
   })
@@ -309,7 +317,7 @@ fn ClusterWorker::prepare_round(self : ClusterWorker) -> ClusterRound {
     Json::null()
   }
   let payload : Json = [
-    "moon-differential/3",
+    "moon-differential/4",
     Json(state.round),
     Json(self.index),
     Json(self.peers),
@@ -351,7 +359,7 @@ fn ClusterWorker::apply_round(
     }
     guard message
       is [
-        String("moon-differential/3"),
+        String("moon-differential/4"),
         round,
         sender,
         peers,

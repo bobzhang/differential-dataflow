@@ -352,6 +352,31 @@ completion. Complete corrupt frames raise `JournalError` and poison the reader.
 Call `close` explicitly to report close errors. Automatic writer recovery is not
 provided. The versioned JSON/frame encoding is independent of Rust serde.
 
+## Message times and record times
+
+A data message carries a capability time; each `(data, time, difference)` record
+inside it may have a later logical time. `InputSession.update_at` and
+`Output.send_at` preserve that distinction through mapping, nested scopes,
+feedback, and local or process exchange. Progress counts messages at their
+capability times, so future records do not hide unfinished earlier work.
+
+- `inspect_batch` observes the capability time and a copied record array;
+  `inspect_container` also observes frontier changes and forwards the stream.
+- `results_in(step, domain)` changes logical record times and drops overflows,
+  while retaining the original message capability.
+- `delay(advance)` changes both times and holds messages until the input frontier
+  passes their delayed capability. The function must be pure, monotone, and only
+  advance times.
+- `join_function` joins input times with computed row times and applies an explicit
+  weight multiplication callback.
+- `consolidate_stream` consolidates each message immediately, without waiting for
+  all updates at a logical time.
+- `OperatorInput.for_each_batch` exposes original messages and borrowed input
+  capabilities; `for_each` remains a convenience API grouped by record time.
+
+The cluster protocol is now version 4 because routed messages include capability
+timestamps. All participating workers must use the same library version.
+
 ## Min-plus shortest paths
 
 `examples/algorithms.monoid_bfs` ports upstream's semigroup shortest-path example.

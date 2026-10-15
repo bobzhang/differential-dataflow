@@ -61,7 +61,7 @@ fn[
   input.task = self.collection.worker.register(fn() {
     for frame in input.drain() {
       match frame {
-        Data(updates) =>
+        Records(_, updates) =>
           for ((key, _), time, _) in updates {
             let state = states
               .get(key)

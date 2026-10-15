@@ -265,7 +265,9 @@ pub fn[D, T : Lattice, R, S] Scope::input(
     if !(context.active)() {
       return
     }
-    channel.data(data)
+    if !data.is_empty() {
+      channel.data_at(held.val.elements[0], data)
+    }
     if held.val.elements != frontier.elements {
       channel.scheduler.started = true
       if channel.context is Some(context) {

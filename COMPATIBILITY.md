@@ -16,7 +16,7 @@ until resolved. A small core port does not satisfy this target.
 | Sealed traces | Initial implementation | Snapshots, compaction, closure, exact-cut cursors, empty-interval traversal and lazy entered/frontier-filtered trace views with independent reader pins; not all upstream trace interfaces/layouts |
 | Buffered input | Implemented callback and worker integration | Explicit close replaces Rust Drop |
 | Worker scheduling | Cooperative workers | Counted scopes, local/timed activators with explicit monotonic host clock, activation deduplication, re-entry guards, bounded queues, disposal tests; 8,192 activation rounds match Rust; fresh scopes and live trace queries can be added between runs |
-| Unary and binary collection operators | Implemented baseline | Map/filter/flat-map/explode/negate/concat/consolidate and weighted join family |
+| Unary and binary collection operators | Implemented baseline | Map/filter/flat-map/explode/negate/concat/consolidate and weighted join family; message-preserving results_in, delay, join_function, inspect_batch/container and immediate consolidate_stream match 2,496 Rust/model operator snapshots |
 | Live weighted joins | Shared indexed arrangements and collection joins | 1,024 Rust epochs in four runtime variants, including twice-entered shared indexes; shared-reader lifetime and self-join tests; bounded cursor/emission work with explicit output capabilities, including compaction while joins are unfinished |
 | Reduce/count/threshold/distinct | Arbitrary-frontier compaction and explicit semigroup corrections | 768 streamed Rust antichain epochs for collections, arrangements and entered views; 20,000 total-order and 5,000 incomparable-frontier retention epochs; unchanged keys cache pending corrections; reduce_core supports collection/shared/nested arrangements and non-Abelian output weights, checked against Rust over 2,304 partial-order epochs and 3,200 presence snapshots |
 | Shared arrangements/imports/lookups/upsert | Implemented baseline | 1,024 Rust reader-compaction epochs, 8,192 Rust upsert records; live imports, deferred lookups, shared indexed joins and reductions tested |
@@ -102,5 +102,11 @@ finalizers after their mailboxes and outputs finish. Custom operators retain the
 explicit incomplete-work condition. Completed scopes reclaim reachability matrices, observer tables and boundary
 closures; stable identity slots remain. Group scopes retire together, and process
 scopes require unanimous completion votes before discarding their graphs. The
-cluster envelope is version 3; completed manifest entries become null so fresh
+cluster envelope is version 4; completed manifest entries become null so fresh
 dataflows can still validate consistently. Local root dataflow identity/enumeration and explicit cancellation are implemented, including all nested scopes and independent trace imports; 1,024 cancelled nested dataflows match Rust. WorkerGroup cancels corresponding roots atomically while idle. ClusterWorker propagates any peer’s cancellation request at the next collective round, before record delivery; 128 two/three-process epochs exercise rotating requesters, nested scopes and live siblings.
+
+Message capability timestamps are represented separately from record timestamps,
+including input buffering, feedback, scope boundaries, custom batch operators and
+keyed exchange. The version-4 cluster payload carries both; 208 two/three-process
+snapshots check delayed future-record messages against Rust in sync and host-polled
+execution. Batch boundaries remain scheduling-dependent, as upstream.

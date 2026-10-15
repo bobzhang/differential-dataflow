@@ -29,13 +29,13 @@ pub fn[D, T : Lattice, R] Collection::concat(
   let task = self.worker.register(fn() {
     for frame in left.drain() {
       match frame {
-        Data(updates) => output.data(updates)
+        Records(envelope, updates) => output.data_at(envelope, updates)
         Progress(frontier) => left_frontier.val = frontier
       }
     }
     for frame in right.drain() {
       match frame {
-        Data(updates) => output.data(updates)
+        Records(envelope, updates) => output.data_at(envelope, updates)
         Progress(frontier) => right_frontier.val = frontier
       }
     }
@@ -83,7 +83,7 @@ pub fn[
   let task = self.worker.register(fn() {
     for frame in left.drain() {
       match frame {
-        Data(updates) => {
+        Records(_, updates) => {
           let results = []
           for ((key, value), time, diff) in updates {
             if right_state.get(key) is Some(history) {
@@ -109,7 +109,7 @@ pub fn[
     }
     for frame in right.drain() {
       match frame {
-        Data(updates) => {
+        Records(_, updates) => {
           let results = []
           for ((key, value), time, diff) in updates {
             if left_state.get(key) is Some(history) {
