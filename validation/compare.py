@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Compare progress frontier changes and lattice compaction against pinned Rust."""
+"""Compare runtime, collections, traces, and capture behavior against pinned Rust."""
 import json
 import pathlib
 import subprocess
@@ -209,6 +209,35 @@ moon = run(['node','validation/run.cjs','group_join'],input=inputs,capture_outpu
 assert len(rust) == len(moon) == len(group_join_seeds)
 for seed,r,m in zip(group_join_seeds,rust,moon):
     assert r==m==join_cases[seed], f'two-worker join failure seed={seed}'
-summary={'references':pins,'frontier_seeds':len(seeds),'frontier_rounds_per_seed':40,'frontier_checks':['membership changes','minimal positive timestamps','lattice advance_by'],'join_seeds':len(join_seeds),'join_epochs_per_seed':16,'oracles':['independent positive-count partial-order model','full weighted join recomputation each epoch'],'runtimes':['acyclic forwarding','counted pointstamp scopes'],'reduce_seeds':len(reduce_seeds),'reduce_queries_per_seed':25,'reduce_checks':['distinct','count','group minimum','exact product-timestamp corrections','independent grid snapshots'],'feedback_seeds':len(feedback_seeds),'feedback_epochs_per_seed':4,'iteration_seeds':len(iteration_seeds),'iteration_epochs_per_seed':8,'iteration_checks':['nested fixed points','root insertions and retractions','cyclic graph BFS oracle'],'arrangement_seeds':len(arrangement_seeds),'arrangement_epochs_per_seed':16,'arrangement_checks':['independent readers','logical and physical compaction','past and current snapshots'],'upsert_seeds':len(upsert_seeds),'upsert_records_per_seed':64,'upsert_checks':['out-of-order times','greatest-value tie breaking','deletion and repeated values'],'replay_seeds':len(replay_seeds),'replay_checks':['reordered duplicated messages','exact progress transitions','complete unique updates'],'group_join_seeds':len(group_join_seeds),'group_join_epochs_per_seed':16,'group_join_peers':2,'status':'passed'}
+summary = {
+    'references': pins,
+    'frontier_seeds': len(seeds),
+    'frontier_rounds_per_seed': 40,
+    'frontier_checks': ['membership changes', 'minimal positive timestamps', 'lattice advance_by'],
+    'join_seeds': len(join_seeds),
+    'join_epochs_per_seed': 16,
+    'oracles': ['independent positive-count partial-order model', 'full weighted join recomputation each epoch'],
+    'runtimes': ['acyclic forwarding', 'counted pointstamp scopes', 'coordinated worker groups'],
+    'reduce_seeds': len(reduce_seeds),
+    'reduce_queries_per_seed': 25,
+    'reduce_checks': ['distinct', 'count', 'group minimum', 'exact product-timestamp corrections', 'independent grid snapshots'],
+    'feedback_seeds': len(feedback_seeds),
+    'feedback_epochs_per_seed': 4,
+    'iteration_seeds': len(iteration_seeds),
+    'iteration_epochs_per_seed': 8,
+    'iteration_checks': ['nested fixed points', 'root insertions and retractions', 'cyclic graph BFS oracle'],
+    'arrangement_seeds': len(arrangement_seeds),
+    'arrangement_epochs_per_seed': 16,
+    'arrangement_checks': ['independent readers', 'logical and physical compaction', 'past and current snapshots'],
+    'upsert_seeds': len(upsert_seeds),
+    'upsert_records_per_seed': 64,
+    'upsert_checks': ['out-of-order times', 'greatest-value tie breaking', 'deletion and repeated values'],
+    'replay_seeds': len(replay_seeds),
+    'replay_checks': ['reordered duplicated messages', 'exact progress transitions', 'complete unique updates'],
+    'group_join_seeds': len(group_join_seeds),
+    'group_join_epochs_per_seed': 16,
+    'group_join_peers': 2,
+    'status': 'passed',
+}
 (ROOT/'validation/results.json').write_text(json.dumps(summary,indent=2)+'\n')
 print(json.dumps(summary))

@@ -18,7 +18,8 @@
   ],
   "runtimes": [
     "acyclic forwarding",
-    "counted pointstamp scopes"
+    "counted pointstamp scopes",
+    "coordinated worker groups"
   ],
   "reduce_seeds": 128,
   "reduce_queries_per_seed": 25,
