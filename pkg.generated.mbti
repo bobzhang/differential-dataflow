@@ -82,6 +82,7 @@ pub struct Batch[D, T, R] {
 }
 pub fn[D : Compare, T : Lattice, R : Semigroup] Batch::Batch(Array[(D, T, R)], lower~ : Antichain[T], upper~ : Antichain[T]) -> Self[D, T, R]
 pub fn[D, T : Lattice, R] Batch::begin_merge(Self[D, T, R], Self[D, T, R], Antichain[T]) -> BatchMerger[D, T, R]
+pub fn[K : Eq, V : Eq, T, R] Batch::columnar(Self[(K, V), T, R]) -> ColumnarBatch[K, V, T, R]
 pub fn[D : Compare, T : Lattice, R : Semigroup] Batch::compact(Self[D, T, R], Antichain[T]) -> Self[D, T, R]
 pub fn[D, T, R] Batch::description(Self[D, T, R]) -> Description[T]
 pub fn[D, T : Lattice, R] Batch::empty(lower~ : Antichain[T], upper~ : Antichain[T]) -> Self[D, T, R]
@@ -193,8 +194,8 @@ pub struct Collection[D, T, R] {
   // private fields
 }
 pub fn[K : Compare + Hash, V : Compare, T : Lattice] Collection::antijoin(Self[(K, V), T, Int64], Self[K, T, Int64]) -> Self[(K, V), T, Int64]
-pub fn[K : Compare, V : Compare, T : Lattice, R : Semigroup] Collection::arrange_by_key(Self[(K, V), T, R], fueled? : Bool) -> Arranged[K, V, T, R]
-pub fn[K : Compare, T : Lattice, R : Semigroup] Collection::arrange_by_self(Self[K, T, R], fueled? : Bool) -> Arranged[K, Unit, T, R]
+pub fn[K : Compare, V : Compare, T : Lattice, R : Semigroup] Collection::arrange_by_key(Self[(K, V), T, R], fueled? : Bool, columnar? : Bool) -> Arranged[K, V, T, R]
+pub fn[K : Compare, T : Lattice, R : Semigroup] Collection::arrange_by_self(Self[K, T, R], fueled? : Bool, columnar? : Bool) -> Arranged[K, Unit, T, R]
 pub fn[K : Compare + Hash, V : Compare, T : TotalOrder] Collection::arrange_from_upsert(Self[(K, V?), T, Present]) -> Arranged[K, V, T, Int64]
 pub fn[D : Compare, T : Lattice, R : Semigroup] Collection::capture(Self[D, T, R], (CaptureMessage[D, T, R]) -> Unit) -> Probe[T]
 pub fn[D, T : Lattice, R] Collection::concat(Self[D, T, R], Self[D, T, R]) -> Self[D, T, R]
@@ -213,6 +214,13 @@ pub fn[D, T : Lattice, R] Collection::probe(Self[D, T, R]) -> Probe[T]
 pub fn[K : Compare + Hash, V : Compare, W : Compare, T : Lattice, R : Semigroup, S : Abelian] Collection::reduce(Self[(K, V), T, R], (K, Array[(V, R)]) -> Array[(W, S)]) -> Self[(K, W), T, S]
 pub fn[K : Compare + Hash, V : Compare, T : Lattice] Collection::semijoin(Self[(K, V), T, Int64], Self[K, T, Int64]) -> Self[(K, V), T, Int64]
 pub fn[D : Compare + Hash, T : Lattice, R : Semigroup, S : Abelian] Collection::threshold(Self[D, T, R], (D, R) -> S) -> Self[D, T, S]
+
+pub struct ColumnarBatch[K, V, T, R] {
+  // private fields
+}
+pub fn[K : Compare, V : Compare, T : Lattice, R : Semigroup] ColumnarBatch::ColumnarBatch(Array[((K, V), T, R)], lower~ : Antichain[T], upper~ : Antichain[T]) -> Self[K, V, T, R]
+pub fn[K : Eq, V : Eq, T, R] ColumnarBatch::batch(Self[K, V, T, R]) -> Batch[(K, V), T, R]
+pub fn[K, V, T, R] ColumnarBatch::storage_counts(Self[K, V, T, R]) -> (Int, Int, Int)
 
 pub struct Cursor[K, V, T, R] {
   // private fields

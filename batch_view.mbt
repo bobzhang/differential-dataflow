@@ -13,7 +13,7 @@ pub fn[D, T, R] Batch::view(self : Batch[D, T, R]) -> BatchView[D, T, R] {
   {
     size: self.updates.length(),
     visible: fn(_) { true },
-    read: fn(index) { self.updates[index] },
+    read: self.updates.reader().read,
     description: self.description,
   }
 }

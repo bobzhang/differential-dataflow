@@ -6,18 +6,19 @@ pub fn[K : Compare, V, T, R] Batch::for_key(
   key : K,
   visit : (V, T, R) -> Unit,
 ) -> Unit {
+  let updates = self.updates.reader()
   let mut lower = 0
-  let mut upper = self.updates.length()
+  let mut upper = updates.length()
   while lower < upper {
     let middle = lower + (upper - lower) / 2
-    if Compare::compare(self.updates[middle].0.0, key) < 0 {
+    if Compare::compare(updates[middle].0.0, key) < 0 {
       lower = middle + 1
     } else {
       upper = middle
     }
   }
-  while lower < self.updates.length() && self.updates[lower].0.0 == key {
-    let ((_, value), time, diff) = self.updates[lower]
+  while lower < updates.length() && updates[lower].0.0 == key {
+    let ((_, value), time, diff) = updates[lower]
     visit(value, time, diff)
     lower += 1
   }

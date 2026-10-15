@@ -52,7 +52,7 @@ pub fn[D, T, R] BatchBuilder::done(
   let updates = self.updates
   self.updates = []
   self.previous = None
-  { updates, description, }
+  { updates: Rows(updates), description, }
 }
 
 ///|

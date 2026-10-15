@@ -8,6 +8,7 @@ pub struct BatchMerger[D, T, R] {
   priv mut a : Int32
   priv mut b : Int32
   priv mut output : Array[(D, T, R)]
+  priv pack : (Array[(D, T, R)]) -> UpdateStorage[D, T, R]
   priv description : Description[T]
   priv mut complete : Bool
   priv mut finished : Bool
@@ -26,6 +27,7 @@ pub fn[D, T : Lattice, R] BatchMerger::BatchMerger(
   {
     left: Some(left),
     right: Some(right),
+    pack: left.updates.merge_packer(right.updates),
     a: 0,
     b: 0,
     output: [],
@@ -52,8 +54,8 @@ pub fn[D : Compare, T : Lattice, R : Semigroup] BatchMerger::work(
   fuel : Int32,
 ) -> Int32 {
   guard !self.finished else { abort("batch merger was consumed") }
-  let left = self.left.unwrap().updates
-  let right = self.right.unwrap().updates
+  let left = self.left.unwrap().updates.reader()
+  let right = self.right.unwrap().updates.reader()
   let mut remaining = fuel
   while remaining > 0 && !self.complete {
     let data = if self.a == left.length() {
@@ -98,7 +100,7 @@ pub fn[D, T, R] BatchMerger::done(
   self.right = None
   let updates = self.output
   self.output = []
-  { updates, description: self.description, }
+  { updates: (self.pack)(updates), description: self.description, }
 }
 
 ///|

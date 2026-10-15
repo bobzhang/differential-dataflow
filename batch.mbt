@@ -1,7 +1,7 @@
 ///|
 /// Immutable sorted updates with a sealed timestamp interval.
 pub struct Batch[D, T, R] {
-  priv updates : Array[(D, T, R)]
+  priv updates : UpdateStorage[D, T, R]
   priv description : Description[T]
 }
 
@@ -17,7 +17,7 @@ pub fn[D : Compare, T : Lattice, R : Semigroup] Batch::Batch(
       abort("update is outside batch interval")
     }
   }
-  { updates: consolidate_updates(updates), description, }
+  { updates: Rows(consolidate_updates(updates)), description, }
 }
 
 ///|
@@ -39,8 +39,13 @@ pub fn[D : Compare, T : Lattice, R : Semigroup] Batch::compact(
     abort("logical compaction cannot move backward")
   }
   {
-    updates: consolidate_updates(
-      self.updates.map(fn(u) { (u.0, advance_by(u.1, since), u.2) }),
+    updates: self.updates.packer()(
+      consolidate_updates(
+        self.updates
+        .iter()
+        .map(fn(u) { (u.0, advance_by(u.1, since), u.2) })
+        .to_array(),
+      ),
     ),
     description: Description(
       self.description.lower,
@@ -55,7 +60,7 @@ pub fn[D, T : Lattice, R] Batch::empty(
   lower~ : Antichain[T],
   upper~ : Antichain[T],
 ) -> Batch[D, T, R] {
-  { updates: [], description: Description(lower, upper, lower), }
+  { updates: Rows([]), description: Description(lower, upper, lower), }
 }
 
 ///|

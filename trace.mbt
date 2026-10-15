@@ -87,7 +87,7 @@ pub fn[D : Compare, T : Lattice, R : Semigroup] Trace::set_physical_compaction(
         None => pending = Some(batch)
         Some(previous) => {
           let combined = previous.updates.copy()
-          for update in batch.updates {
+          for update in batch.updates.iter() {
             combined.push(update)
           }
           let since = Antichain(
@@ -95,7 +95,9 @@ pub fn[D : Compare, T : Lattice, R : Semigroup] Trace::set_physical_compaction(
             batch.description.since.elements,
           )
           pending = Some({
-            updates: consolidate_updates(combined),
+            updates: previous.updates.merge_packer(batch.updates)(
+              consolidate_updates(combined),
+            ),
             description: Description(
               previous.description.lower,
               batch.description.upper,
@@ -157,7 +159,7 @@ pub fn[D : Compare, T : Lattice, R : Semigroup] Trace::snapshot(
   }
   let values = []
   for batch in self.batches {
-    for (data, at, diff) in batch.updates {
+    for (data, at, diff) in batch.updates.iter() {
       if at.less_equal(time) {
         values.push((data, diff))
       }
