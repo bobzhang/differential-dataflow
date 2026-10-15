@@ -50,6 +50,7 @@ fn main() {
         println!(
             "{}",
             match mode.as_str() {
+                "trace_views" => cursors::views(seed),
                 "cursors" => cursors::evaluate(seed),
                 "numeric" => evaluate_numeric(seed),
                 "graphs" => evaluate_graphs(seed),

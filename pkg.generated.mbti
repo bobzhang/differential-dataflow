@@ -43,6 +43,8 @@ pub struct Arranged[K, V, T, R] {
 }
 pub fn[K, V, T, R] Arranged::as_collection(Self[K, V, T, R]) -> Collection[(K, V), T, R]
 pub fn[K : Compare, V : Compare, A : Lattice, B : Lattice, R : Semigroup, S, U] Arranged::enter(Self[K, V, A, R], NestedScope[A, B, S, U]) -> ArrangementView[K, V, Product[A, B], R]
+pub fn[K : Compare, V : Compare, A : Lattice, B : Lattice, R : Semigroup, S, U] Arranged::enter_at(Self[K, V, A, R], NestedScope[A, B, S, U], ((K, V), A) -> B, (Product[A, B]) -> A) -> ArrangementView[K, V, Product[A, B], R]
+pub fn[K : Compare, V : Compare, A : Lattice, B : Lattice, R : Semigroup, S, U] Arranged::enter_refined(Self[K, V, A, R], RefinedScope[A, B, S, U]) -> ArrangementView[K, V, B, R]
 pub fn[K : Compare, V : Compare, W : Compare, T : Lattice] Arranged::join(Self[K, V, T, Int64], Self[K, W, T, Int64]) -> Collection[(K, (V, W)), T, Int64]
 pub fn[K : Compare, V : Compare, W : Compare, D, T : Lattice, R : Semigroup, S : Semigroup, O] Arranged::join_map(Self[K, V, T, R], Self[K, W, T, S], (K, V, W) -> D, multiply~ : (R, S) -> O) -> Collection[D, T, O]
 pub fn[K : Compare + Hash, V : Compare, W : Compare, T : Lattice, R : Semigroup, S : Abelian] Arranged::reduce(Self[K, V, T, R], (K, Array[(V, R)]) -> Array[(W, S)]) -> Collection[(K, W), T, S]
@@ -56,6 +58,7 @@ pub struct ArrangementView[K, V, T, R] {
 }
 pub fn[K, V, T, R] ArrangementView::as_collection(Self[K, V, T, R]) -> Collection[(K, V), T, R]
 pub fn[K, V, A : Lattice, B : Lattice, R, S, U] ArrangementView::enter(Self[K, V, A, R], NestedScope[A, B, S, U]) -> Self[K, V, Product[A, B], R]
+pub fn[K, V, A : Lattice, B : Lattice, R, S, U] ArrangementView::enter_at(Self[K, V, A, R], NestedScope[A, B, S, U], ((K, V), A) -> B, (Product[A, B]) -> A) -> Self[K, V, Product[A, B], R]
 pub fn[K, V, A : Lattice, B : Lattice, R, S, U] ArrangementView::enter_refined(Self[K, V, A, R], RefinedScope[A, B, S, U]) -> Self[K, V, B, R]
 pub fn[K : Compare, V, W, T : Lattice] ArrangementView::join(Self[K, V, T, Int64], Self[K, W, T, Int64]) -> Collection[(K, (V, W)), T, Int64]
 pub fn[K : Compare, V, W, D, T : Lattice, R, S, O] ArrangementView::join_map(Self[K, V, T, R], Self[K, W, T, S], (K, V, W) -> D, multiply~ : (R, S) -> O) -> Collection[D, T, O]
@@ -84,10 +87,12 @@ pub fn[K : Compare, V : Compare, T, R] BatchView::cursor(Self[(K, V), T, R]) -> 
 pub fn[D, T, R] BatchView::description(Self[D, T, R]) -> Description[T]
 pub fn[D, T, R] BatchView::for_each(Self[D, T, R], (D, T, R) -> Unit) -> Unit
 pub fn[K : Compare, V, T, R] BatchView::for_key(Self[(K, V), T, R], K, (V, T, R) -> Unit) -> Unit
+pub fn[D, T : Lattice, R] BatchView::frontier(Self[D, T, R], Antichain[T], Antichain[T]) -> Self[D, T, R]
 pub fn[D, T, R] BatchView::get(Self[D, T, R], Int) -> (D, T, R)?
 pub fn[D, T, R] BatchView::is_empty(Self[D, T, R]) -> Bool
 pub fn[D, T, R] BatchView::length(Self[D, T, R]) -> Int
 pub fn[D, T, U : Lattice, R] BatchView::map_times(Self[D, T, R], (T) -> U) -> Self[D, U, R]
+pub fn[D, T, U : Lattice, R] BatchView::map_times_at(Self[D, T, R], (T) -> U, (D, T) -> U) -> Self[D, U, R]
 pub fn[D, T, R] BatchView::to_array(Self[D, T, R]) -> Array[(D, T, R)]
 
 pub struct Capability[T, S] {
@@ -635,10 +640,13 @@ pub fn[D, T, R] TraceReader::clone(Self[D, T, R]) -> Self[D, T, R]
 pub fn[K : Compare, V : Compare, T : Lattice, R] TraceReader::cursor(Self[(K, V), T, R]) -> Cursor[K, V, T, R]
 pub fn[K : Compare, V : Compare, T, R] TraceReader::cursor_through(Self[(K, V), T, R], Antichain[T]) -> Cursor[K, V, T, R]?
 pub fn[D, T : Lattice, U : Lattice, R] TraceReader::enter(Self[D, T, R], U) -> Self[D, Product[T, U], R]
+pub fn[D, T : Lattice, R] TraceReader::frontier(Self[D, T, R], Antichain[T], Antichain[T]) -> Self[D, T, R]
+pub fn[D : Compare, T : Lattice, R : Semigroup, S] TraceReader::import_into(Self[D, T, R], Scope[T, S]) -> Collection[D, T, R]
 pub fn[D, T, R] TraceReader::logical_compaction(Self[D, T, R]) -> Antichain[T]
 pub fn[D, T : Lattice, R] TraceReader::map_batches(Self[D, T, R], (BatchView[D, T, R]) -> Unit) -> Unit
 pub fn[D, T, R] TraceReader::physical_compaction(Self[D, T, R]) -> Antichain[T]
 pub fn[D, T : Lattice, U : Lattice, R] TraceReader::refine(Self[D, T, R], lift~ : (T) -> U, project~ : (U) -> T) -> Self[D, U, R]
+pub fn[D, T : Lattice, U : Lattice, R] TraceReader::refine_at(Self[D, T, R], lift~ : (T) -> U, project~ : (U) -> T, assign~ : (D, T) -> U, prior~ : (U) -> T) -> Self[D, U, R]
 pub fn[D, T, R] TraceReader::release(Self[D, T, R]) -> Unit
 pub fn[D, T, R] TraceReader::set_logical_compaction(Self[D, T, R], Antichain[T]) -> Unit
 pub fn[D, T, R] TraceReader::set_physical_compaction(Self[D, T, R], Antichain[T]) -> Unit

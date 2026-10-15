@@ -147,9 +147,39 @@ fn[D, T : Lattice, U : Lattice, R] trace_reader_refine_owned(
   lift : (T) -> U,
   project : (U) -> T,
 ) -> TraceReader[D, U, R] {
+  trace_reader_refine_at_owned(
+    parent,
+    lift,
+    project,
+    fn(_, time) { lift(time) },
+    project,
+  )
+}
+
+///|
+/// Retain a data-dependent timestamp view. Exact cuts use project; compaction
+/// capabilities use prior, which must conservatively invert the assignment.
+pub fn[D, T : Lattice, U : Lattice, R] TraceReader::refine_at(
+  self : TraceReader[D, T, R],
+  lift~ : (T) -> U,
+  project~ : (U) -> T,
+  assign~ : (D, T) -> U,
+  prior~ : (U) -> T,
+) -> TraceReader[D, U, R] {
+  trace_reader_refine_at_owned(self.clone(), lift, project, assign, prior)
+}
+
+///|
+fn[D, T : Lattice, U : Lattice, R] trace_reader_refine_at_owned(
+  parent : TraceReader[D, T, R],
+  lift : (T) -> U,
+  project : (U) -> T,
+  assign : (D, T) -> U,
+  prior : (U) -> T,
+) -> TraceReader[D, U, R] {
   {
     copy_reader: fn() {
-      trace_reader_refine_owned(parent.clone(), lift, project)
+      trace_reader_refine_at_owned(parent.clone(), lift, project, assign, prior)
     },
     drop_reader: fn() { parent.release() },
     read_upper: fn() { Antichain(parent.upper().elements.map(lift)) },
@@ -160,18 +190,20 @@ fn[D, T : Lattice, U : Lattice, R] trace_reader_refine_owned(
       Antichain(parent.physical_compaction().elements.map(lift))
     },
     compact_logical: fn(frontier) {
-      parent.set_logical_compaction(Antichain(frontier.elements.map(project)))
+      parent.set_logical_compaction(Antichain(frontier.elements.map(prior)))
     },
     compact_physical: fn(frontier) {
-      parent.set_physical_compaction(Antichain(frontier.elements.map(project)))
+      parent.set_physical_compaction(Antichain(frontier.elements.map(prior)))
     },
     read_batches: fn(upper) {
       parent
       .batches_through(Antichain(upper.elements.map(project)))
-      .map(fn(batches) { batches.map(fn(batch) { batch.map_times(lift) }) })
+      .map(fn(batches) {
+        batches.map(fn(batch) { batch.map_times_at(lift, assign) })
+      })
     },
     listen: fn(notify) {
-      parent.subscribe(fn(batch) { notify(batch.map_times(lift)) })
+      parent.subscribe(fn(batch) { notify(batch.map_times_at(lift, assign)) })
     },
     live: true,
   }

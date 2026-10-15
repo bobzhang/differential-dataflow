@@ -100,3 +100,95 @@ test "entered arrangements join and reduce shared indexes through retractions" {
   assert_true(p0.done() && p1.done())
   worker.dispose()
 }
+
+///|
+test "frontier batch views retain keys and metadata when times are suppressed" {
+  let batch = @differential.Batch(
+    [
+      ((1, 10), @differential.Product(0L, 0L), 1L),
+      ((2, 20), Product(4L, 4L), 2L),
+      ((3, 30), Product(3L, 0L), 3L),
+    ],
+    lower=Antichain([Product(0L, 0L)]),
+    upper=Antichain([]),
+  )
+  let since = @differential.Antichain([
+    @differential.Product(2L, 1L),
+    Product(1L, 2L),
+  ])
+  let view = batch.view().frontier(since, Antichain([Product(3L, 3L)]))
+  since.clear()
+  assert_eq(view.length(), 3)
+  assert_eq(view.description().since().to_array(), [Product(0L, 0L)])
+  assert_eq(view.to_array(), [
+    ((1, 10), Product(1L, 1L), 1L),
+    ((3, 30), Product(3L, 1L), 3L),
+  ])
+  let cursor = view.cursor()
+  assert_eq(cursor.key(), Some(1))
+  cursor.step_key()
+  assert_eq(cursor.key(), Some(2))
+  assert_eq(cursor.val(), Some(20))
+  assert_true(cursor.times().is_empty())
+  cursor.step_key()
+  assert_eq(cursor.times(), [(Product(3L, 1L), 3L)])
+  let hidden = batch
+    .view()
+    .frontier(Antichain([Product(5L, 5L)]), Antichain([Product(4L, 4L)]))
+  assert_false(hidden.is_empty())
+  assert_true(hidden.to_array().is_empty())
+  assert_eq(hidden.cursor().key(), Some(1))
+}
+
+///|
+test "data dependent trace entry separates compaction prior from exact cut projection" {
+  let (writer, root) : (
+    @differential.TraceWriter[(Int32, Int64), Int64, Int64],
+    @differential.TraceAgent[(Int32, Int64), Int64, Int64],
+  ) = @differential.shared_trace(0L)
+  let reader = root.reader()
+  let view = reader.refine_at(
+    lift=fn(time) { @differential.Product(time, 0L) },
+    project=fn(time) { time.outer },
+    assign=fn(data, time) { Product(time, data.1) },
+    prior=fn(time) { if time.outer == 0L { 0L } else { time.outer - 1 } },
+  )
+  let slow = view.clone()
+  root.release()
+  reader.release()
+  for time in 0L..<3L {
+    writer.insert(
+      Batch(
+        [((1, 7L), time, 1L)],
+        lower=Antichain([time]),
+        upper=Antichain([time + 1]),
+      ),
+    )
+  }
+  view.set_logical_compaction(Antichain([Product(2L, 99L)]))
+  view.set_physical_compaction(Antichain([Product(2L, 99L)]))
+  assert_eq(view.logical_compaction().to_array(), [Product(1L, 0L)])
+  assert_eq(view.physical_compaction().to_array(), [Product(1L, 0L)])
+  assert_eq(
+    view.batches_through(Antichain([Product(3L, 0L)])).unwrap().length(),
+    3,
+  )
+  assert_eq(slow.snapshot(Product(0L, 7L)), [((1, 7L), 1L)])
+  let bounded = slow.frontier(
+    Antichain([Product(1L, 0L)]),
+    Antichain([Product(2L, 0L)]),
+  )
+  assert_eq(bounded.cursor().times(), [
+    (Product(1L, 7L), 1L),
+    (Product(1L, 7L), 1L),
+  ])
+  slow.release()
+  bounded.release()
+  writer.close()
+  assert_eq(view.cursor().times(), [
+    (Product(1L, 7L), 1L),
+    (Product(1L, 7L), 1L),
+    (Product(2L, 7L), 1L),
+  ])
+  view.release()
+}

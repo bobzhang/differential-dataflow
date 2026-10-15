@@ -2,8 +2,8 @@
 /// Import a trace's retained state and subsequent sealed batches into a scope.
 /// The imported data represents snapshots at or beyond this reader's logical
 /// frontier. Its independent reader is released on closure or worker disposal.
-pub fn[D : Compare, T : Lattice, R : Semigroup, S] TraceAgent::import_into(
-  self : TraceAgent[D, T, R],
+pub fn[D : Compare, T : Lattice, R : Semigroup, S] TraceReader::import_into(
+  self : TraceReader[D, T, R],
   scope : Scope[T, S],
 ) -> Collection[D, T, R] {
   self.check()
@@ -17,26 +17,22 @@ pub fn[D : Compare, T : Lattice, R : Semigroup, S] TraceAgent::import_into(
     return { worker: scope.worker, channel: output, }
   }
   let reader = self.clone()
-  let shared = reader.shared
-  let listener = shared.next_listener
-  shared.next_listener += 1
+  let cancel : Ref[() -> Unit] = Ref(fn() { () })
   let held = Ref(Antichain([scope.minimum]))
   for time in held.val.elements {
     output.hold(time, 1)
   }
   let frames : Array[Frame[D, T, R]] = []
   let initial = []
-  for batch in shared.trace.batches {
-    for update in batch.updates {
-      initial.push(update)
-    }
-  }
+  reader.map_batches(fn(batch) {
+    batch.for_each(fn(data, time, diff) { initial.push((data, time, diff)) })
+  })
   frames.push(Data(initial))
-  frames.push(Progress(shared.trace.upper()))
+  frames.push(Progress(reader.upper()))
   let pending = scope.context.pending
   let port = output.port
   let cleanup = fn() {
-    shared.listeners.remove(listener)
+    (cancel.val)()
     for time in held.val.elements {
       pending.update((port, time), -1)
     }
@@ -78,12 +74,23 @@ pub fn[D : Compare, T : Lattice, R : Semigroup, S] TraceAgent::import_into(
     }
   })
   let scheduler = scope.worker.scheduler
-  shared.listeners[listener] = fn(batch) {
+  cancel.val = reader.subscribe(fn(batch) {
     frames.push(Data(batch.to_array()))
     frames.push(Progress(batch.description.upper()))
     scheduler.schedule(task)
-  }
+  })
   scheduler.schedule(task)
   scope.worker.cleanup.push(cleanup)
   { worker: scope.worker, channel: output, }
+}
+
+///|
+/// Import through an independent storage-neutral reader capability.
+pub fn[D : Compare, T : Lattice, R : Semigroup, S] TraceAgent::import_into(
+  self : TraceAgent[D, T, R],
+  scope : Scope[T, S],
+) -> Collection[D, T, R] {
+  let reader = self.reader()
+  defer reader.release()
+  reader.import_into(scope)
 }

@@ -19,6 +19,11 @@ moon = run(['node', 'validation/run.cjs', 'cursors'], input=cursor_inputs, captu
 assert len(rust) == len(moon) == len(cursor_seeds)
 for seed, r, m in zip(cursor_seeds, rust, moon):
     assert r == m, f'batch cursor navigation differs seed={seed}\nRust: {r}\nMoon: {m}'
+rust = run(['validation/rust/target/release/differential-reference-check', 'trace_views'], input=cursor_inputs, capture_output=True).stdout.splitlines()
+moon = run(['node', 'validation/run.cjs', 'trace_views'], input=cursor_inputs, capture_output=True).stdout.splitlines()
+assert len(rust) == len(moon) == len(cursor_seeds)
+for seed, r, m in zip(cursor_seeds, rust, moon):
+    assert r == m, f'frontier/assigned trace views differ seed={seed}\nRust: {r}\nMoon: {m}'
 seeds = range(1,257)
 inputs = ''.join(f'{s}\n' for s in seeds)
 rust = run(['validation/rust/target/release/differential-reference-check'],input=inputs,capture_output=True).stdout.splitlines()
@@ -53,6 +58,8 @@ arranged_join = run(['node','validation/run.cjs','arranged_join'],input=inputs,c
 assert arranged_join == moon, 'shared arranged join runtime differs'
 entered_join = run(['node', 'validation/run.cjs', 'entered_join'], input=inputs, capture_output=True).stdout.splitlines()
 assert entered_join == moon, 'twice-entered shared indexes differ'
+assigned_join = run(['node', 'validation/run.cjs', 'assigned_join'], input=inputs, capture_output=True).stdout.splitlines()
+assert assigned_join == moon, 'data-dependent entered shared indexes differ'
 assert len(rust) == len(moon) == len(join_seeds)
 join_cases = dict(zip(join_seeds, moon))
 for seed,r,m in zip(join_seeds,rust,moon):
@@ -386,6 +393,8 @@ for seed, r, m in zip(search_seeds, rust, moon):
     assert r == m == 'GRAPH_SEARCH|' + '/'.join(expected), f'graph search differential failure seed={seed}\nRust: {r}\nMoon: {m}\nOracle: {"/".join(expected)}'
 summary = {
     'references': pins,
+    'trace_view_seeds': len(cursor_seeds),
+    'trace_view_checks': ['frontier advancement and suppression', 'data-dependent timestamp entry', 'unchanged batch metadata and key navigation', '1024 entered-at join epochs'],
     'cursor_steps': len(cursor_seeds) * 128,
     'cursor_checks': ['merged batch navigation', 'seeks and rewinds', 'per-batch time enumeration'],
     'frontier_seeds': len(seeds),

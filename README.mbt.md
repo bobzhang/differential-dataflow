@@ -174,6 +174,12 @@ building consumers; the consumers retain their own readers until completion.
 `Arranged.enter` and `ArrangementView.enter_refined` retain the original index
 across nested scopes. `TraceReader` adapts timestamps and compaction capabilities
 without copying stored batches; `BatchView` maps immutable batches lazily.
+`BatchView.frontier` and `TraceReader.frontier` advance visible times by a since
+frontier and suppress updates at or beyond an until frontier. As in Rust, they
+preserve batch metadata and cursor keys even when all times for a key are hidden.
+`ArrangementView.enter_at` assigns inner times from the data, with an explicit
+conservative inverse for compaction. `TraceReader.import_into` supports these
+views for both retained history and future sealed batches.
 Views and readers own independent capabilities and require `release()`.
 `Scope.bfs_arranged`, `Scope.propagate_core`, and `Scope.bidijkstra_arranged`
 accept these views, allowing graph algorithms to share edge indexes. Collection

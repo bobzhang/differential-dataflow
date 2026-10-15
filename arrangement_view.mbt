@@ -70,3 +70,46 @@ pub fn[K, V, A : Lattice, B : Lattice, R, S, U] ArrangementView::enter_refined(
     }),
   }
 }
+
+///|
+/// Enter at a data-dependent inner time while retaining the original index.
+/// prior maps inner compaction capabilities conservatively into outer time.
+pub fn[K, V, A : Lattice, B : Lattice, R, S, U] ArrangementView::enter_at(
+  self : ArrangementView[K, V, A, R],
+  nested : NestedScope[A, B, S, U],
+  assign : ((K, V), A) -> B,
+  prior : (Product[A, B]) -> A,
+) -> ArrangementView[K, V, Product[A, B], R] {
+  let minimum = nested.minimum
+  {
+    collection: nested.enter_at(self.collection, assign),
+    trace: self.trace.refine_at(
+      lift=fn(time) { Product(time, minimum) },
+      project=fn(time) { time.outer },
+      assign=fn(data, time) { Product(time, assign(data, time)) },
+      prior~,
+    ),
+  }
+}
+
+///|
+pub fn[K : Compare, V : Compare, A : Lattice, B : Lattice, R : Semigroup, S, U] Arranged::enter_at(
+  self : Arranged[K, V, A, R],
+  nested : NestedScope[A, B, S, U],
+  assign : ((K, V), A) -> B,
+  prior : (Product[A, B]) -> A,
+) -> ArrangementView[K, V, Product[A, B], R] {
+  let view = self.view()
+  defer view.release()
+  view.enter_at(nested, assign, prior)
+}
+
+///|
+pub fn[K : Compare, V : Compare, A : Lattice, B : Lattice, R : Semigroup, S, U] Arranged::enter_refined(
+  self : Arranged[K, V, A, R],
+  nested : RefinedScope[A, B, S, U],
+) -> ArrangementView[K, V, B, R] {
+  let view = self.view()
+  defer view.release()
+  view.enter_refined(nested)
+}

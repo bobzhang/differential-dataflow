@@ -13,7 +13,7 @@ until resolved. A small core port does not satisfy this target.
 | Minimal/counted antichains | Implemented | 10,240 Rust and independent-oracle rounds |
 | Change batches | Implemented | Signed cancellation and frontier tests |
 | Difference algebra | Partial | All integer widths, Wrapping signed adapters, Present, singleton/tuple arities through four and VectorDiff; explicit multiplication callbacks adapt associated output types; tuple scaling conveniences remain |
-| Sealed traces | Initial implementation | Snapshots, compaction, closure, exact-cut cursors, empty-interval traversal and lazy entered trace views with independent reader pins; not all upstream trace interfaces/layouts |
+| Sealed traces | Initial implementation | Snapshots, compaction, closure, exact-cut cursors, empty-interval traversal and lazy entered/frontier-filtered trace views with independent reader pins; not all upstream trace interfaces/layouts |
 | Buffered input | Implemented callback and worker integration | Explicit close replaces Rust Drop |
 | Worker scheduling | Cooperative workers | Counted scopes, activation deduplication, re-entry guards, bounded queues, disposal tests |
 | Unary and binary collection operators | Implemented baseline | Map/filter/flat-map/explode/negate/concat/consolidate and weighted join family |
@@ -58,7 +58,9 @@ wrong peers and graph mismatches. Native workloads pass ASan and LSan locally.
 Reduction compacts history at arbitrary antichains but still enumerates a timestamp
 join-closure. Trace cursors merge retained batch indexes lazily; lookups still scan snapshots.
 16,384 cursor navigation steps match Rust, including seeks, rewinds and
-per-batch timestamp enumeration.
+per-batch timestamp enumeration. Composed frontier and data-dependent entry
+views match Rust in 128 seeds; another 1,024 join epochs cover assigned inner
+times across two nested scopes. Trace imports use the same retained views.
 Arranged joins reuse shared sorted batch indexes with binary key lookup; collection
 joins retain private keyed histories. Arranged reductions read shared key ranges and retain output corrections separately.
 Full trace layouts and fueled computation remain unfinished. Capture/replay currently has a synchronous

@@ -10,6 +10,8 @@ pub fn evaluate_arranged_reduce(Int) -> String
 
 pub fn evaluate_arrangement(Int) -> String
 
+pub fn evaluate_assigned_join(Int) -> String
+
 pub fn evaluate_cursors(Int) -> String
 
 pub fn evaluate_entered_join(Int) -> String
@@ -45,6 +47,8 @@ pub fn evaluate_search(Int) -> String
 pub fn evaluate_signed_feedback(Int) -> String
 
 pub fn evaluate_stream_reduce(Int) -> String
+
+pub fn evaluate_trace_views(Int) -> String
 
 pub fn evaluate_upsert(Int) -> String
 

@@ -3,6 +3,13 @@
     "differential-dataflow": "aa8745f93ea8abe131104fc7885ba4fd47e63902",
     "timely-dataflow": "eba4ae5298442cc2475e5ef82277bb135e4a7ea4"
   },
+  "trace_view_seeds": 128,
+  "trace_view_checks": [
+    "frontier advancement and suppression",
+    "data-dependent timestamp entry",
+    "unchanged batch metadata and key navigation",
+    "1024 entered-at join epochs"
+  ],
   "cursor_steps": 16384,
   "cursor_checks": [
     "merged batch navigation",

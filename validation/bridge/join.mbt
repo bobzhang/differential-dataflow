@@ -16,6 +16,7 @@ fn join_case(
   counted : Bool,
   arranged : Bool,
   entered~ : Bool = false,
+  assigned~ : Bool = false,
 ) -> String {
   let worker = @differential.Worker()
   let scope = worker.scope(0L, @differential.SummaryDomain::int64())
@@ -36,10 +37,22 @@ fn join_case(
       let second = first
         .scope()
         .nested(0L, @differential.SummaryDomain::int64())
-      let l1 = l.enter(first)
+      let l1 = if assigned {
+        l.enter_at(first, fn(data, _) { data.1.to_int64() }, fn(time) {
+          time.outer
+        })
+      } else {
+        l.enter(first)
+      }
       let r1 = r.enter(first)
       let l2 = l1.enter(second)
-      let r2 = r1.enter(second)
+      let r2 = if assigned {
+        r1.enter_at(second, fn(data, _) { data.1.to_int64() + 1 }, fn(time) {
+          time.outer
+        })
+      } else {
+        r1.enter(second)
+      }
       let result = first.leave(second.leave(l2.join(r2)))
       l1.release()
       r1.release()
@@ -109,4 +122,10 @@ pub fn evaluate_arranged_join(seed : Int32) -> String {
 #export_name("evaluate_entered_join")
 pub fn evaluate_entered_join(seed : Int32) -> String {
   join_case(seed, true, true, entered=true)
+}
+
+///|
+#export_name("evaluate_assigned_join")
+pub fn evaluate_assigned_join(seed : Int32) -> String {
+  join_case(seed, true, true, entered=true, assigned=true)
 }

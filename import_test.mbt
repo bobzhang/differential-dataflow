@@ -114,3 +114,40 @@ test "incomparable logical compaction does not become a stream capability fronti
   reader.release()
   worker.dispose()
 }
+
+///|
+test "frontier trace imports retain filters for historical and live batches" {
+  let (writer, root) : (
+    @differential.TraceWriter[(Int32, Int32), Int64, Int64],
+    @differential.TraceAgent[(Int32, Int32), Int64, Int64],
+  ) = @differential.shared_trace(0L)
+  writer.insert(
+    Batch([((1, 2), 0L, 1L)], lower=Antichain([0L]), upper=Antichain([1L])),
+  )
+  let reader = root.reader()
+  let view = reader.frontier(Antichain([1L]), Antichain([3L]))
+  let worker = @differential.Worker()
+  let scope = worker.scope(0L, @differential.SummaryDomain::int64())
+  let seen = []
+  let probe = view
+    .import_into(scope)
+    .consolidate()
+    .inspect(fn(data, time, diff) { seen.push((data, time, diff)) })
+  view.release()
+  reader.release()
+  root.release()
+  writer.insert(
+    Batch(
+      [((1, 2), 1L, -1L), ((2, 3), 2L, 2L), ((3, 4), 3L, 9L)],
+      lower=Antichain([1L]),
+      upper=Antichain([4L]),
+    ),
+  )
+  assert_true(worker.run() is Quiescent(_))
+  assert_eq(seen, [((2, 3), 2L, 2L)])
+  assert_eq(probe.frontier().to_array(), [4L])
+  writer.close()
+  assert_true(worker.run() is Quiescent(_))
+  assert_true(probe.done())
+  worker.dispose()
+}
