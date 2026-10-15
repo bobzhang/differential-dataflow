@@ -65,6 +65,14 @@ pub fn Worker::step(self : Worker) -> Bool {
   if self.scheduler.head == self.scheduler.queue.length() {
     self.scheduler.queue.clear()
     self.scheduler.head = 0
+  } else if self.scheduler.head >= 1024 &&
+    self.scheduler.head >= self.scheduler.queue.length() / 2 {
+    let retained = self.scheduler.queue[self.scheduler.head:].to_owned()
+    self.scheduler.queue.clear()
+    for task in retained {
+      self.scheduler.queue.push(task)
+    }
+    self.scheduler.head = 0
   }
   self.scheduler.stepping = true
   self.tasks[id]()

@@ -135,24 +135,8 @@ pub fn[
       }
     }
     // Compact each history only as far as the opposite input can no longer revisit.
-    if right_frontier.val.is_empty() {
-      left_state.clear()
-    } else {
-      for key, history in left_state {
-        left_state[key] = consolidate_updates(
-          history.map(fn(u) { (u.0, advance_by(u.1, right_frontier.val), u.2) }),
-        )
-      }
-    }
-    if left_frontier.val.is_empty() {
-      right_state.clear()
-    } else {
-      for key, history in right_state {
-        right_state[key] = consolidate_updates(
-          history.map(fn(u) { (u.0, advance_by(u.1, left_frontier.val), u.2) }),
-        )
-      }
-    }
+    compact_join_state(left_state, right_frontier.val)
+    compact_join_state(right_state, left_frontier.val)
     output.progress(
       Antichain(left_frontier.val.elements + right_frontier.val.elements),
     )
@@ -192,4 +176,29 @@ pub fn[K : Compare + Hash, V : Compare, T : Lattice] Collection::antijoin(
   keys : Collection[K, T, Int64],
 ) -> Collection[(K, V), T, Int64] {
   self.concat(self.semijoin(keys).negate())
+}
+
+///|
+fn[K : Eq + Hash, V : Compare, T : Lattice, R : Semigroup] compact_join_state(
+  state : Map[K, Array[(V, T, R)]],
+  frontier : Antichain[T],
+) -> Unit {
+  if frontier.is_empty() {
+    state.clear()
+    return
+  }
+  let empty = []
+  for key, history in state {
+    let compact = consolidate_updates(
+      history.map(fn(u) { (u.0, advance_by(u.1, frontier), u.2) }),
+    )
+    if compact.is_empty() {
+      empty.push(key)
+    } else {
+      state[key] = compact
+    }
+  }
+  for key in empty {
+    state.remove(key)
+  }
 }
