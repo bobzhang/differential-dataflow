@@ -26,7 +26,7 @@ def main():
     command = [compiler, '-O1', '-g', '-fsanitize=address', '-fno-omit-frame-pointer',
                '-DMOONBIT_ALLOCATOR=1', '-I', str(moon_home / 'include')]
     command += list(map(str, sources + libraries))
-    command += ['-lc++' if platform.system() == 'Darwin' else '-lstdc++', '-o', str(output)]
+    command += ['-lc++' if platform.system() == 'Darwin' else '-lstdc++', '-lm', '-o', str(output)]
     subprocess.run(command, cwd=ROOT, check=True)
     os.environ.setdefault('ASAN_OPTIONS', 'detect_leaks=1:fast_unwind_on_malloc=0')
     cluster_compare.BIN = output

@@ -123,10 +123,19 @@ produce more data. Probe frontiers determine whether a timestamp is complete.
 
 `WorkerGroup(peers)` coordinates workers in one process with globally counted
 progress and keyed exchange. It executes cooperatively on one thread; it does
-not yet provide parallel threads or network transport. Build identical operator
+not provide shared-memory parallel threads. Build identical operator
 graphs on each peer, and use `ScopeGroup.exchange` to colocate equal keys before
 keyed operations. `ScopeGroup.iterate` coordinates nested progress and exchange.
 Dispose the entire group with `group.dispose()`.
+
+`ClusterWorker` runs independent processes using ordered all-gather rounds.
+`DistributedScope.exchange` serializes updates and tracks records in transit;
+`DistributedScope.iterate` coordinates nested fixed points across processes.
+The native `transport` package supplies `TcpTransport` for POSIX hosts. All peers
+must build identical graphs, use compatible codecs, and call `run()` with the
+same round bound. Release the worker and close the transport separately. Transport
+errors terminate the runtime. This currently uses synchronous barriers and its own
+wire protocol. See `validation/cluster` for an executable two-process example.
 
 Tuples, timestamps, and weights must be immutable. Comparison and algebra traits
 must obey their mathematical laws. Callbacks must be deterministic and must not
@@ -140,11 +149,15 @@ exclusion. `distinct` represents any nonzero accumulated weight, including a
 negative weight, as one occurrence.
 
 Reduction enumerates the finite join-closure of retained timestamps. It compacts
-input and output history at singleton frontiers, and releases canceled keys.
-The 20,000-epoch retention test bounds this state for a total-order workload.
-General incomparable frontiers still retain history, and timestamp closure can
-grow exponentially for some lattices. This remains a reference algorithm, with
-further incremental optimization required.
+input and output history at arbitrary antichain frontiers and releases canceled
+keys. Retention tests cover 20,000 total-order and 5,000 incomparable-frontier
+epochs. Timestamp closure can still grow exponentially for some lattices;
+further incremental optimization remains necessary.
+
+`Arranged.join` and `Arranged.join_map` share existing sorted batch indexes, using
+binary key lookup and independent compaction capabilities. Multiple joins reuse
+one arrangement without copying its history. Release the arrangement handle after
+building consumers; the consumers retain their own readers until completion.
 
 Use `worker.scope(minimum, domain)` for counted progress and cyclic graphs;
 `worker.input(initial)` remains available for acyclic pipelines. Scope minimums
@@ -157,6 +170,11 @@ Capabilities and trace readers use explicit `release()` in place of Rust Drop.
 Cloning creates independent ownership; a plain MoonBit assignment aliases the same
 handle. Notification queues and capability sets transfer inserted handles.
 Custom unary data callbacks borrow their capability: clone it to retain it.
+`scope.operator()` builds heterogeneous multi-input/output operators. Its input
+capabilities are borrowed; `cap.delayed(output, time)` creates an owned output
+capability only when the declared connection summaries permit that timestamp.
+Empty summary sets disconnect a port pair. Release every initial output capability
+received by `builder.build` when it is no longer needed.
 Worker disposal cancels imports and lookups, unregisters listeners, and clears
 scoped progress and queued records.
 
@@ -177,19 +195,26 @@ moon check --target all --warn-list +unnecessary_annotation --deny-warn
 moon test --target all
 # Restore pinned references using UPSTREAM.md first:
 python3 validation/compare.py
+python3 validation/cluster_compare.py
+python3 validation/transport_failures.py
+# Optional Clang ASan/LSan validation:
+python3 validation/sanitize_cluster.py
 ```
 
 The pinned Rust comparisons cover:
 
 - 10,240 frontier/compaction rounds and 1,024 live weighted join epochs.
 - 128 product-time reduction cases, with 3,200 independent snapshot queries.
+- 768 streamed reduction epochs with independently advanced antichain capabilities.
 - 256 feedback epochs and 256 nested fixed-point epochs with a cyclic graph BFS oracle.
 - 1,024 shared-arrangement epochs with independent reader compaction.
 - 8,192 upsert records, including equal-time conflicts and deletion.
 - 256 reordered/duplicated capture-replay cases, comparing exact progress transitions.
 - 512 partitioned join epochs against Rust running two workers.
+- 128 TCP process join epochs and 64 cyclic fixed-point epochs with two/three peers.
 
-Local retention tests exercise 20,000 reduction epochs, 2,000 feedback epochs,
+Local retention tests exercise 20,000 total-order and 5,000 antichain reduction epochs,
+2,000 shared-index join epochs, 2,000 feedback epochs,
 2,000 shared-trace epochs, 10,000 replay intervals, and 1,000 exchange epochs. Tests run on native,
 JavaScript, Wasm, and Wasm GC. The CI workflow repeats backend tests on Linux and
 macOS and runs the Rust oracle separately; it has not yet run on GitHub for this

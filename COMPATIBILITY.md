@@ -17,12 +17,12 @@ until resolved. A small core port does not satisfy this target.
 | Buffered input | Implemented callback and worker integration | Explicit close replaces Rust Drop |
 | Worker scheduling | Cooperative workers | Counted scopes, activation deduplication, re-entry guards, bounded queues, disposal tests |
 | Unary and binary collection operators | Implemented baseline | Map/filter/flat-map/explode/negate/concat/consolidate and weighted join family |
-| Live weighted joins | Keyed histories with compaction | 1,024 Rust epochs in both runtime modes; joins do not yet reuse shared arrangement indexes |
-| Reduce/count/threshold/distinct | Reference algorithm with singleton compaction | Exact Rust product-time comparisons and 20,000-epoch retention test; general frontier compaction and incremental per-key optimization remain |
-| Shared arrangements/imports/lookups/upsert | Implemented baseline | 1,024 Rust reader-compaction epochs, 8,192 Rust upsert records; live imports and deferred lookups tested; indexed arranged operators remain |
-| General operator builders/notifications/capabilities | Partial | Scoped capabilities, unary builder, frontier notifications; multi-input/output builders and summary-aware connection APIs remain |
+| Live weighted joins | Shared indexed arrangements and collection joins | 1,024 Rust epochs in three runtime variants; shared-reader lifetime and self-join tests |
+| Reduce/count/threshold/distinct | Arbitrary-frontier compaction | 768 streamed Rust antichain epochs; 20,000 total-order and 5,000 incomparable-frontier retention epochs; incremental per-key optimization remains |
+| Shared arrangements/imports/lookups/upsert | Implemented baseline | 1,024 Rust reader-compaction epochs, 8,192 Rust upsert records; live imports, deferred lookups and shared indexed joins tested; arranged reductions remain |
+| General operator builders/notifications/capabilities | Heterogeneous builders implemented | Multiple input/output types, summary-aware connectivity, borrowed input capabilities, notifications; activators and broader scheduling interfaces remain |
 | Nested scopes and iteration | Product nesting and fixed points implemented | 256 Rust feedback epochs and 256 cyclic graph fixed-point epochs; general Refines and negative-summary cases remain |
-| Multi-worker/distributed runtime | Cooperative groups implemented; network runtime pending | Globally counted exchange, peer joins, nested iteration, and 512 Rust two-worker join epochs; parallel threads, serialization, TCP transport, and cross-process progress remain |
+| Multi-worker/distributed runtime | Cooperative groups and TCP process clusters | Globally counted serialized exchange and nested iteration tested in two and three native processes; shared-memory parallel threads and asynchronous transport scheduling remain |
 | Columnar/spilling/fueled trace variants | Pending | No compatibility or performance claim for these layouts |
 | Capture/replay, logging, diagnostics | Partial | Capture protocol and reordering iterator match Rust in 256 cases; async durable sources/sinks, distributed replay, logging and diagnostics remain |
 | Graph and auxiliary algorithms | Pending | Generic iteration is tested with cyclic graph reachability; dedicated upstream algorithm APIs remain |
@@ -45,18 +45,22 @@ until resolved. A small core port does not satisfy this target.
 
 ## Known implementation limits
 
-Counted scopes support feedback and product nesting within cooperative workers.
-Worker groups support keyed exchange and globally counted progress within one
-process, with cooperative execution on one thread. There is no parallel-thread
-or network runtime. Same-process global progress does not implement Timely's
-cross-process communication and progress protocol.
+Cooperative worker groups execute on one thread. ClusterWorker executes independent
+processes with globally counted progress; TcpTransport provides framed, bounded
+POSIX TCP I/O. Joins and nested fixed points pass against Rust and independent
+oracles in two and three processes. The cluster uses synchronous all-gather rounds
+and an independent wire protocol, not Timely wire interoperability. It does not
+yet offer shared-memory parallel threads or asynchronous peer-to-peer scheduling.
+Transport failures terminate the local runtime; reconnect/recovery is not implicit.
+Fault injection covers truncation, oversized frames, timeouts, malformed text,
+wrong peers and graph mismatches. Native workloads pass ASan and LSan locally.
 
-Reduction compacts at singleton frontiers; general incomparable frontiers retain
-history. It still enumerates a timestamp join-closure. Trace cursors materialize
-snapshots, lookups scan snapshots, and joins maintain their own keyed histories.
-Shared reader lifetimes are implemented, but the full trace layout family and
-arranged operator reuse remain unfinished. Capture/replay currently has a
-synchronous callback/message interface and no durable or distributed transport.
+Reduction compacts history at arbitrary antichains but still enumerates a timestamp
+join-closure. Trace cursors materialize snapshots and lookups scan snapshots.
+Arranged joins reuse shared sorted batch indexes with binary key lookup; collection
+joins retain private keyed histories. Full trace layouts, arranged reductions and
+fueled computation remain unfinished. Capture/replay currently has a synchronous
+callback/message interface and no durable or distributed replay protocol.
 
 Built-in String ordering follows MoonBit (length-first), so lexical Rust behavior
 requires a custom Compare implementation. Explicit release/close/dispose replace

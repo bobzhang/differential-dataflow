@@ -26,6 +26,7 @@ jobs:
       - run: moon test --target all
       - name: Verify generated API
         run: |
+          moon info --target native
           moon info
           git diff --exit-code
   differential:
@@ -52,4 +53,7 @@ jobs:
           curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
           echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
       - run: python3 validation/compare.py
-      - run: git diff --exit-code validation/results.json
+      - run: python3 validation/cluster_compare.py
+      - run: python3 validation/transport_failures.py
+      - run: python3 validation/sanitize_cluster.py
+      - run: git diff --exit-code validation/results.json validation/cluster_results.json

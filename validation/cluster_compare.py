@@ -86,6 +86,12 @@ def reachable(seed):
 
 
 def main():
+    pins = json.loads((ROOT / 'validation/pins.json').read_text())
+    for name, pin in pins.items():
+        actual = subprocess.check_output(['git', '-C', f'.repos/{name}', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip()
+        dirty = subprocess.check_output(['git', '-C', f'.repos/{name}', 'status', '--porcelain'], cwd=ROOT, text=True).strip()
+        assert actual == pin and not dirty, f'reference mismatch: {name}'
+    subprocess.run(['cargo', 'build', '--release', '--locked', '--manifest-path', 'validation/rust/Cargo.toml'], cwd=ROOT, check=True)
     subprocess.run(['moon', 'build', '--target', 'native', '--release', 'validation/cluster'], cwd=ROOT, check=True)
     seeds = [1, 7, 42, 2147483647]
     rust = subprocess.run(['validation/rust/target/release/differential-reference-check', 'group_join'],
