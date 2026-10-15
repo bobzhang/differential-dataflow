@@ -29,7 +29,7 @@ fn evaluate(seed: u32) -> String {
 }
 fn main() {
     let mode = std::env::args().nth(1).unwrap_or_default();
-    for line in io::stdin().lock().lines() { let seed = line.unwrap().parse().unwrap(); println!("{}", match mode.as_str() { "join" => evaluate_join(seed), "reduce" => evaluate_reduce(seed), "feedback" => evaluate_feedback(seed), "iteration" => evaluate_iteration(seed), _ => evaluate(seed) }); }
+    for line in io::stdin().lock().lines() { let seed = line.unwrap().parse().unwrap(); println!("{}", match mode.as_str() { "join" => evaluate_join(seed), "reduce" => evaluate_reduce(seed), "feedback" => evaluate_feedback(seed), "iteration" => evaluate_iteration(seed), "arrangement" => evaluate_arrangement(seed), _ => evaluate(seed) }); }
 }
 fn evaluate_join(seed: u32) -> String {
     use differential_dataflow::input::Input;
@@ -174,6 +174,54 @@ fn evaluate_iteration(seed: u32) -> String {
             result.push(observed.borrow().iter().filter(|(_,r)| **r!=0).map(|(d,r)| format!("{d},{r}")).collect::<Vec<_>>().join(";"));
         }
         input.close(); while !probe.done() { worker.step(); }
+        result.join("/")
+    })
+}
+
+fn evaluate_arrangement(seed: u32) -> String {
+    use differential_dataflow::{input::Input, trace::{TraceReader, Cursor}};
+    timely::execute_directly(move |worker| {
+        let (mut input, mut trace, probe) = worker.dataflow::<u64,_,_>(|scope| {
+            let (input, values) = scope.new_collection::<(u32,u32),i64>();
+            let arranged = values.arrange_by_key();
+            let trace = arranged.trace.clone();
+            let (probe,_) = arranged.as_collection(|k,v| (*k,*v)).probe();
+            (input,trace,probe)
+        });
+        let mut slow=trace.clone();
+        let mut random=seed;
+        let mut result=Vec::new();
+        for epoch in 0..16 {
+            for _ in 0..6 {
+                random=random.wrapping_mul(1664525).wrapping_add(1013904223);
+                let index=(random>>8)%12;
+                input.update((index/4,index%4),(random%5) as i64-2);
+            }
+            input.advance_to(epoch+1); input.flush();
+            while probe.less_than(input.time()) { worker.step(); }
+            let past=epoch/4*4;
+            trace.set_logical_compaction(Antichain::from_elem(epoch).borrow());
+            trace.set_physical_compaction(Antichain::from_elem(epoch+1).borrow());
+            slow.set_logical_compaction(Antichain::from_elem(past).borrow());
+            slow.set_physical_compaction(Antichain::from_elem(past).borrow());
+            let mut snapshots=Vec::new();
+            for query in [past,epoch] {
+                let (mut cursor, storage)=slow.cursor();
+                let mut records=Vec::new();
+                while cursor.key_valid(&storage) {
+                    while cursor.val_valid(&storage) {
+                        let mut count=0i64;
+                        cursor.map_times(&storage,|t,r| if *t<=query {count+=*r});
+                        if count!=0 { records.push(format!("{},{},{}",cursor.key(&storage),cursor.val(&storage),count)); }
+                        cursor.step_val(&storage);
+                    }
+                    cursor.step_key(&storage);
+                }
+                snapshots.push(records.join(";"));
+            }
+            result.push(snapshots.join("|"));
+        }
+        input.close(); while !probe.done() {worker.step();}
         result.join("/")
     })
 }

@@ -38,5 +38,12 @@
     "root insertions and retractions",
     "cyclic graph BFS oracle"
   ],
+  "arrangement_seeds": 64,
+  "arrangement_epochs_per_seed": 16,
+  "arrangement_checks": [
+    "independent readers",
+    "logical and physical compaction",
+    "past and current snapshots"
+  ],
   "status": "passed"
 }
