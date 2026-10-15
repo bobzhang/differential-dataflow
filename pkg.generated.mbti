@@ -150,6 +150,13 @@ pub struct Feedback[D, T, R, S] {
 }
 pub fn[D, T : Lattice, R, S] Feedback::connect(Self[D, T, R, S], Collection[D, T, R]) -> Unit
 
+pub struct InputCapability[T, S] {
+  // private fields
+}
+pub fn[D, T : Lattice, R, S] InputCapability::delayed(Self[T, S], Output[D, T, R, S], T) -> Capability[T, S]
+pub fn[T, S] InputCapability::time(Self[T, S]) -> T
+pub fn[D, T : Lattice, R, S] InputCapability::try_delayed(Self[T, S], Output[D, T, R, S], T) -> Capability[T, S]?
+
 pub struct InputSession[D, T, R] {
   // private fields
 }
@@ -196,10 +203,24 @@ pub fn[T : Lattice, S] Notificator::drain_ready(Self[T, S], Array[Antichain[T]])
 pub fn[T : Lattice, S] Notificator::release(Self[T, S]) -> Unit
 pub fn[T : Lattice, S] Notificator::request(Self[T, S], Capability[T, S]) -> Unit
 
+pub struct OperatorBuilder[T, S] {
+  // private fields
+}
+pub fn[T, S] OperatorBuilder::build(Self[T, S], (Array[Capability[T, S]]) -> () -> Unit) -> Unit
+pub fn[D, T : Lattice, R, S] OperatorBuilder::new_input(Self[T, S], Collection[D, T, R]) -> OperatorInput[D, T, R, S]
+pub fn[D, T : Lattice, R, S] OperatorBuilder::new_output(Self[T, S]) -> (Output[D, T, R, S], Collection[D, T, R])
+pub fn[D, E, T, R, U, S] OperatorBuilder::set_connection(Self[T, S], OperatorInput[D, T, R, S], Output[E, T, U, S], Array[S]) -> Unit
+
 pub(all) enum OperatorEvent[D, T, R, S] {
   Data(Capability[T, S], Array[(D, R)])
   Progress(Antichain[T])
 }
+
+pub struct OperatorInput[D, T, R, S] {
+  // private fields
+}
+pub fn[D, T : Lattice, R, S] OperatorInput::for_each(Self[D, T, R, S], (InputCapability[T, S], Array[(D, R)]) -> Unit) -> Unit
+pub fn[D, T : Lattice, R, S] OperatorInput::frontier(Self[D, T, R, S]) -> Antichain[T]
 
 pub struct Output[D, T, R, S] {
   // private fields
@@ -295,6 +316,7 @@ pub fn[D, T : Lattice, R, S] Scope::feedback(Self[T, S], S) -> (Feedback[D, T, R
 pub fn[D, T : Lattice, R, S] Scope::input(Self[T, S]) -> (InputSession[D, T, R], Collection[D, T, R])
 pub fn[D, T : Lattice, R : Abelian, S : Compare] Scope::iterate(Self[T, S], Collection[D, T, R], (Self[Product[T, Int64], Product[S, Int64]], Collection[D, Product[T, Int64], R]) -> Collection[D, Product[T, Int64], R]) -> Collection[D, T, R]
 pub fn[A : Lattice, B : Lattice, S : Compare, U : Compare] Scope::nested(Self[A, S], B, SummaryDomain[B, U]) -> NestedScope[A, B, S, U]
+pub fn[T, S] Scope::operator(Self[T, S]) -> OperatorBuilder[T, S]
 pub fn[D, T : Lattice, R, S] Scope::replay(Self[T, S]) -> (ReplayInput[D, T, R], Collection[D, T, R])
 pub fn[D, T : Lattice, R, S] Scope::source(Self[T, S]) -> (Output[D, T, R, S], Capability[T, S], Collection[D, T, R])
 pub fn[D, E, T : Lattice, R, U, S] Scope::unary(Self[T, S], Collection[D, T, R], (Output[E, T, U, S], Capability[T, S]) -> (OperatorEvent[D, T, R, S]) -> Unit) -> Collection[E, T, U]
