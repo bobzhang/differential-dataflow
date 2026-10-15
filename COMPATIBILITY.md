@@ -13,19 +13,19 @@ until resolved. A small core port does not satisfy this target.
 | Minimal/counted antichains | Implemented | 10,240 Rust and independent-oracle rounds |
 | Change batches | Implemented | Signed cancellation and frontier tests |
 | Difference algebra | Partial | All integer widths, Wrapping signed adapters, Present, singleton/tuple arities through four and VectorDiff; explicit multiplication callbacks adapt associated output types; tuple scaling conveniences remain |
-| Sealed traces | Initial implementation | Snapshots, compaction, cursors; not all upstream trace interfaces/layouts |
+| Sealed traces | Initial implementation | Snapshots, compaction, cursors and lazy entered trace views with independent reader pins; not all upstream trace interfaces/layouts |
 | Buffered input | Implemented callback and worker integration | Explicit close replaces Rust Drop |
 | Worker scheduling | Cooperative workers | Counted scopes, activation deduplication, re-entry guards, bounded queues, disposal tests |
 | Unary and binary collection operators | Implemented baseline | Map/filter/flat-map/explode/negate/concat/consolidate and weighted join family |
-| Live weighted joins | Shared indexed arrangements and collection joins | 1,024 Rust epochs in three runtime variants; shared-reader lifetime and self-join tests |
-| Reduce/count/threshold/distinct | Arbitrary-frontier compaction | 768 streamed Rust antichain epochs; 20,000 total-order and 5,000 incomparable-frontier retention epochs; unchanged keys cache pending corrections |
+| Live weighted joins | Shared indexed arrangements and collection joins | 1,024 Rust epochs in four runtime variants, including twice-entered shared indexes; shared-reader lifetime and self-join tests |
+| Reduce/count/threshold/distinct | Arbitrary-frontier compaction | 768 streamed Rust antichain epochs for collections, arrangements and entered views; 20,000 total-order and 5,000 incomparable-frontier retention epochs; unchanged keys cache pending corrections |
 | Shared arrangements/imports/lookups/upsert | Implemented baseline | 1,024 Rust reader-compaction epochs, 8,192 Rust upsert records; live imports, deferred lookups, shared indexed joins and reductions tested |
 | General operator builders/notifications/capabilities | Heterogeneous builders implemented | Multiple input/output types, summary-aware connectivity, borrowed input capabilities, notifications; activators and broader scheduling interfaces remain |
 | Nested scopes and iteration | Product nesting, custom refinements and identity regions implemented | 256 Rust feedback epochs and 256 cyclic graph fixed-point epochs; nested feedback cycles tested locally and across processes; 256 Rust epochs with signed-summary edges in advancing cycles |
 | Multi-worker/distributed runtime | Cooperative groups and TCP process clusters | Globally counted serialized exchange and nested iteration tested in two and three native processes; shared-memory parallel threads and asynchronous transport scheduling remain |
 | Columnar/spilling/fueled trace variants | Pending | No compatibility or performance claim for these layouts |
 | Capture/replay, logging, diagnostics | Partial | Capture protocol and reordering iterator match Rust in 256 cases; async durable sources/sinks, distributed replay, logging and diagnostics remain |
-| Graph and auxiliary algorithms | BFS, label propagation and SCC edges | 192 dynamic graph epochs against Rust and independent BFS/transitive closure, including duplicate edges and scheduled labels; generic Ring weights tested; arranged graph APIs, bidijkstra and sequential updates match 192 Rust epochs; prefix aggregate/broadcast match 192 Rust epochs; identifiers match 384 collision/retraction epochs |
+| Graph and auxiliary algorithms | BFS, label propagation and SCC edges | 192 dynamic graph epochs against Rust and independent BFS/transitive closure, including duplicate edges and scheduled labels; generic Ring weights tested; arranged graph APIs remain; bidijkstra and sequential updates match 192 Rust epochs; prefix aggregate/broadcast match 192 Rust epochs; identifiers match 384 collision/retraction epochs |
 
 ## Completion gates
 

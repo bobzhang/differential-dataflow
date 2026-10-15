@@ -11,7 +11,11 @@ pub fn evaluate_arranged_reduce(seed : Int32) -> String {
 }
 
 ///|
-fn stream_reduce_case(seed : Int32, arranged : Bool) -> String {
+fn stream_reduce_case(
+  seed : Int32,
+  arranged : Bool,
+  entered~ : Bool = false,
+) -> String {
   let worker = @differential.Worker()
   let scope = worker.scope(
     @differential.Product(0L, 0L),
@@ -44,7 +48,15 @@ fn stream_reduce_case(seed : Int32, arranged : Bool) -> String {
   }
   let reduced = if arranged {
     let index = source.arrange_by_key()
-    let result = index.reduce(logic)
+    let result = if entered {
+      let nested = scope.nested(0L, @differential.SummaryDomain::int64())
+      let view = index.enter(nested)
+      let result = nested.leave(view.reduce(logic))
+      view.release()
+      result
+    } else {
+      index.reduce(logic)
+    }
     index.release()
     result
   } else {
@@ -94,4 +106,10 @@ fn stream_reduce_case(seed : Int32, arranged : Bool) -> String {
   guard probe.done() else { abort("reduction did not close") }
   worker.dispose()
   results.join("/")
+}
+
+///|
+#export_name("evaluate_entered_reduce")
+pub fn evaluate_entered_reduce(seed : Int32) -> String {
+  stream_reduce_case(seed, true, entered=true)
 }

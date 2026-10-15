@@ -44,6 +44,8 @@ scope_join = run(['node','validation/run.cjs','scope_join'],input=inputs,capture
 assert scope_join == moon, 'counted scope join runtime differs'
 arranged_join = run(['node','validation/run.cjs','arranged_join'],input=inputs,capture_output=True).stdout.splitlines()
 assert arranged_join == moon, 'shared arranged join runtime differs'
+entered_join = run(['node', 'validation/run.cjs', 'entered_join'], input=inputs, capture_output=True).stdout.splitlines()
+assert entered_join == moon, 'twice-entered shared indexes differ'
 assert len(rust) == len(moon) == len(join_seeds)
 join_cases = dict(zip(join_seeds, moon))
 for seed,r,m in zip(join_seeds,rust,moon):
@@ -224,6 +226,8 @@ for seed,r,m in zip(stream_reduce_seeds,rust,moon):
     assert r == m, f'streamed incomparable reduction failure seed={seed}'
 arranged_reduce = run(['node','validation/run.cjs','arranged_reduce'],input=inputs,capture_output=True).stdout.splitlines()
 assert arranged_reduce == moon, 'shared arranged reduction differs'
+entered_reduce = run(['node', 'validation/run.cjs', 'entered_reduce'], input=inputs, capture_output=True).stdout.splitlines()
+assert entered_reduce == moon, 'entered incomparable reduction differs'
 numeric_seeds = range(1,33)
 inputs = ''.join(f'{s}\n' for s in numeric_seeds)
 rust = run(['validation/rust/target/release/differential-reference-check','numeric'],input=inputs,capture_output=True).stdout.splitlines()
@@ -381,13 +385,13 @@ summary = {
     'join_seeds': len(join_seeds),
     'join_epochs_per_seed': 16,
     'oracles': ['independent positive-count partial-order model', 'full weighted join recomputation each epoch'],
-    'runtimes': ['acyclic forwarding', 'counted pointstamp scopes', 'coordinated worker groups', 'shared arranged joins'],
+    'runtimes': ['acyclic forwarding', 'counted pointstamp scopes', 'coordinated worker groups', 'shared arranged joins', 'twice-entered shared joins'],
     'reduce_seeds': len(reduce_seeds),
     'reduce_queries_per_seed': 25,
     'reduce_checks': ['distinct', 'count', 'group minimum', 'exact product-timestamp corrections', 'independent grid snapshots'],
     'stream_reduce_seeds': len(stream_reduce_seeds),
     'stream_reduce_epochs_per_seed': 24,
-    'stream_reduce_checks': ['incomparable capability frontiers', 'exact incremental corrections', 'arbitrary-frontier compaction', 'shared arranged reduction'],
+    'stream_reduce_checks': ['incomparable capability frontiers', 'exact incremental corrections', 'arbitrary-frontier compaction', 'shared arranged reduction', 'entered shared reduction'],
     'feedback_seeds': len(feedback_seeds),
     'feedback_epochs_per_seed': 4,
     'signed_feedback_epochs': len(feedback_seeds) * 4,

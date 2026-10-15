@@ -11,7 +11,12 @@ pub fn evaluate_scope_join(seed : Int32) -> String {
 }
 
 ///|
-fn join_case(seed : Int32, counted : Bool, arranged : Bool) -> String {
+fn join_case(
+  seed : Int32,
+  counted : Bool,
+  arranged : Bool,
+  entered~ : Bool = false,
+) -> String {
   let worker = @differential.Worker()
   let scope = worker.scope(0L, @differential.SummaryDomain::int64())
   let (a, left) : (
@@ -26,7 +31,24 @@ fn join_case(seed : Int32, counted : Bool, arranged : Bool) -> String {
   let joined = if arranged {
     let l = left.arrange_by_key()
     let r = right.arrange_by_key()
-    let joined = l.join(r)
+    let joined = if entered {
+      let first = scope.nested(0L, @differential.SummaryDomain::int64())
+      let second = first
+        .scope()
+        .nested(0L, @differential.SummaryDomain::int64())
+      let l1 = l.enter(first)
+      let r1 = r.enter(first)
+      let l2 = l1.enter(second)
+      let r2 = r1.enter(second)
+      let result = first.leave(second.leave(l2.join(r2)))
+      l1.release()
+      r1.release()
+      l2.release()
+      r2.release()
+      result
+    } else {
+      l.join(r)
+    }
     l.release()
     r.release()
     joined
@@ -81,4 +103,10 @@ fn join_case(seed : Int32, counted : Bool, arranged : Bool) -> String {
 #export_name("evaluate_arranged_join")
 pub fn evaluate_arranged_join(seed : Int32) -> String {
   join_case(seed, true, true)
+}
+
+///|
+#export_name("evaluate_entered_join")
+pub fn evaluate_entered_join(seed : Int32) -> String {
+  join_case(seed, true, true, entered=true)
 }

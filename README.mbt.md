@@ -168,6 +168,10 @@ binary key lookup and independent compaction capabilities. Multiple joins reuse
 one arrangement without copying its history. `Arranged.reduce` also reuses shared
 key ranges and caches unchanged-key corrections. Release the arrangement handle after
 building consumers; the consumers retain their own readers until completion.
+`Arranged.enter` and `ArrangementView.enter_refined` retain the original index
+across nested scopes. `TraceReader` adapts timestamps and compaction capabilities
+without copying stored batches; `BatchView` maps immutable batches lazily.
+Views and readers own independent capabilities and require `release()`.
 
 Use `worker.scope(minimum, domain)` for counted progress and cyclic graphs;
 `worker.input(initial)` remains available for acyclic pipelines. Scope boundaries share one progress calculation seeded by real capabilities and

@@ -20,7 +20,8 @@
     "acyclic forwarding",
     "counted pointstamp scopes",
     "coordinated worker groups",
-    "shared arranged joins"
+    "shared arranged joins",
+    "twice-entered shared joins"
   ],
   "reduce_seeds": 128,
   "reduce_queries_per_seed": 25,
@@ -37,7 +38,8 @@
     "incomparable capability frontiers",
     "exact incremental corrections",
     "arbitrary-frontier compaction",
-    "shared arranged reduction"
+    "shared arranged reduction",
+    "entered shared reduction"
   ],
   "feedback_seeds": 64,
   "feedback_epochs_per_seed": 4,
