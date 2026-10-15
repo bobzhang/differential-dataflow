@@ -31,5 +31,12 @@
   ],
   "feedback_seeds": 64,
   "feedback_epochs_per_seed": 4,
+  "iteration_seeds": 32,
+  "iteration_epochs_per_seed": 8,
+  "iteration_checks": [
+    "nested fixed points",
+    "root insertions and retractions",
+    "cyclic graph BFS oracle"
+  ],
   "status": "passed"
 }

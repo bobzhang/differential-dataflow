@@ -5,7 +5,7 @@ import pathlib
 import subprocess
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 def run(args, **kwargs):
-    return subprocess.run(args, cwd=ROOT, check=True, text=True, **kwargs)
+    return subprocess.run(args, cwd=ROOT, check=True, text=True, timeout=180, **kwargs)
 pins = json.loads((ROOT/'validation/pins.json').read_text())
 for name, pin in pins.items():
     assert run(['git','-C',f'.repos/{name}','rev-parse','HEAD'],capture_output=True).stdout.strip() == pin
@@ -110,6 +110,33 @@ for seed,r,m in zip(feedback_seeds,rust,moon):
                 observed[key]=observed.get(key,0)+state%5-2
         expected.append(';'.join(f'{d},{t},{r}' for (d,t),r in sorted(observed.items()) if r))
     assert r==m=='/'.join(expected), f'feedback failure seed={seed}'
-summary={'references':pins,'frontier_seeds':len(seeds),'frontier_rounds_per_seed':40,'frontier_checks':['membership changes','minimal positive timestamps','lattice advance_by'],'join_seeds':len(join_seeds),'join_epochs_per_seed':16,'oracles':['independent positive-count partial-order model','full weighted join recomputation each epoch'],'runtimes':['acyclic forwarding','counted pointstamp scopes'],'reduce_seeds':len(reduce_seeds),'reduce_queries_per_seed':25,'reduce_checks':['distinct','count','group minimum','exact product-timestamp corrections','independent grid snapshots'],'feedback_seeds':len(feedback_seeds),'feedback_epochs_per_seed':4,'status':'passed'}
+iteration_seeds = range(1,33)
+inputs = ''.join(f'{s}\n' for s in iteration_seeds)
+rust = run(['validation/rust/target/release/differential-reference-check','iteration'],input=inputs,capture_output=True).stdout.splitlines()
+moon = run(['node','validation/run.cjs','iteration'],input=inputs,capture_output=True).stdout.splitlines()
+assert len(rust) == len(moon) == len(iteration_seeds)
+for seed,r,m in zip(iteration_seeds,rust,moon):
+    state=seed
+    edges=[[] for _ in range(6)]
+    for _ in range(12):
+        state=(state*1664525+1013904223)&0xffffffff
+        idx=(state>>8)%36
+        edges[idx//6].append(idx%6)
+    roots=set()
+    expected=[]
+    for epoch in range(8):
+        for _ in range(2):
+            state=(state*1664525+1013904223)&0xffffffff
+            roots.symmetric_difference_update({(state>>8)%6})
+        reachable=set(roots)
+        todo=list(roots)
+        while todo:
+            for target in edges[todo.pop()]:
+                if target not in reachable:
+                    reachable.add(target)
+                    todo.append(target)
+        expected.append(';'.join(f'{d},1' for d in sorted(reachable)))
+    assert r==m=='/'.join(expected), f'nested iteration failure seed={seed}'
+summary={'references':pins,'frontier_seeds':len(seeds),'frontier_rounds_per_seed':40,'frontier_checks':['membership changes','minimal positive timestamps','lattice advance_by'],'join_seeds':len(join_seeds),'join_epochs_per_seed':16,'oracles':['independent positive-count partial-order model','full weighted join recomputation each epoch'],'runtimes':['acyclic forwarding','counted pointstamp scopes'],'reduce_seeds':len(reduce_seeds),'reduce_queries_per_seed':25,'reduce_checks':['distinct','count','group minimum','exact product-timestamp corrections','independent grid snapshots'],'feedback_seeds':len(feedback_seeds),'feedback_epochs_per_seed':4,'iteration_seeds':len(iteration_seeds),'iteration_epochs_per_seed':8,'iteration_checks':['nested fixed points','root insertions and retractions','cyclic graph BFS oracle'],'status':'passed'}
 (ROOT/'validation/results.json').write_text(json.dumps(summary,indent=2)+'\n')
 print(json.dumps(summary))

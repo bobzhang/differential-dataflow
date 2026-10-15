@@ -29,7 +29,7 @@ fn evaluate(seed: u32) -> String {
 }
 fn main() {
     let mode = std::env::args().nth(1).unwrap_or_default();
-    for line in io::stdin().lock().lines() { let seed = line.unwrap().parse().unwrap(); println!("{}", match mode.as_str() { "join" => evaluate_join(seed), "reduce" => evaluate_reduce(seed), "feedback" => evaluate_feedback(seed), _ => evaluate(seed) }); }
+    for line in io::stdin().lock().lines() { let seed = line.unwrap().parse().unwrap(); println!("{}", match mode.as_str() { "join" => evaluate_join(seed), "reduce" => evaluate_reduce(seed), "feedback" => evaluate_feedback(seed), "iteration" => evaluate_iteration(seed), _ => evaluate(seed) }); }
 }
 fn evaluate_join(seed: u32) -> String {
     use differential_dataflow::input::Input;
@@ -135,6 +135,45 @@ fn evaluate_feedback(seed: u32) -> String {
         }
         input.close();
         while !probe.done() { worker.step(); }
+        result.join("/")
+    })
+}
+
+fn evaluate_iteration(seed: u32) -> String {
+    use differential_dataflow::{input::Input, operators::Iterate};
+    use std::{cell::RefCell, collections::BTreeMap, rc::Rc};
+    timely::execute_directly(move |worker| {
+        let mut random=seed;
+        let mut edges=vec![Vec::new();6];
+        for _ in 0..12 {
+            random=random.wrapping_mul(1664525).wrapping_add(1013904223);
+            let index=(random>>8)%36;
+            edges[(index/6) as usize].push(index%6);
+        }
+        let observed=Rc::new(RefCell::new(BTreeMap::<u32,i64>::new()));
+        let sink=observed.clone();
+        let (mut input,probe)=worker.dataflow::<u64,_,_>(|scope| {
+            let (input,source)=scope.new_collection::<u32,i64>();
+            let result=source.iterate(move |_,values| {
+                values.clone().concat(values.flat_map(move |x| edges[x as usize].clone())).distinct_core::<i64>()
+            });
+            let (probe,_)=result.consolidate().inspect(move |&(d,_,r)| { *sink.borrow_mut().entry(d).or_default()+=r; }).probe();
+            (input,probe)
+        });
+        let mut roots=[false;6];
+        let mut result=Vec::new();
+        for epoch in 0..8 {
+            for _ in 0..2 {
+                random=random.wrapping_mul(1664525).wrapping_add(1013904223);
+                let key=((random>>8)%6) as usize;
+                roots[key]=!roots[key];
+                input.update(key as u32,if roots[key] {1} else {-1});
+            }
+            input.advance_to(epoch+1); input.flush();
+            while probe.less_than(input.time()) { worker.step(); }
+            result.push(observed.borrow().iter().filter(|(_,r)| **r!=0).map(|(d,r)| format!("{d},{r}")).collect::<Vec<_>>().join(";"));
+        }
+        input.close(); while !probe.done() { worker.step(); }
         result.join("/")
     })
 }
