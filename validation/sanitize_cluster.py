@@ -56,6 +56,9 @@ def main():
     journal_check.check()
     for peers in (2, 3):
         assert cluster_compare.run_peers(42, peers) == cluster_compare.independent(42)
+        assert cluster_compare.run_peers(42, peers, 'async_join') == cluster_compare.independent(42)
+        assert cluster_compare.run_peers(42, peers, 'async_cancellation') == cluster_compare.cancellation_expected(42, peers)
+        assert cluster_compare.run_peers(42, peers, 'async_deep_iteration') == cluster_compare.reachable(42)
         assert cluster_compare.run_peers(42, peers, 'cancellation') == cluster_compare.cancellation_expected(42, peers)
         assert cluster_compare.run_peers(42, peers, 'replay') == cluster_compare.replay_expected(42)
         assert cluster_compare.run_peers(42, peers, 'dynamic_iteration') == '/'.join(cluster_compare.reachable(42 + i) for i in range(3))

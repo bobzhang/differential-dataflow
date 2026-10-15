@@ -32,7 +32,7 @@ fn replay(cluster : @differential.ClusterWorker, seed : Int32) -> String raise {
       ),
     )
     handle.activate()
-    let _ = cluster.run()
+    let _ = drive(cluster)
     guard probe.less_than(epoch + 1) else {
       abort("distributed replay advanced before its records")
     }
@@ -52,7 +52,7 @@ fn replay(cluster : @differential.ClusterWorker, seed : Int32) -> String raise {
       }
     }
     handle.activate()
-    let _ = cluster.run()
+    let _ = drive(cluster)
     guard !probe.less_than(epoch + 1) else {
       abort("distributed replay did not seal its records")
     }
@@ -64,7 +64,7 @@ fn replay(cluster : @differential.ClusterWorker, seed : Int32) -> String raise {
     inbox.push(Progress(CaptureProgress(Antichain([16L]), Antichain([]), [])))
     handle.activate()
   }
-  let _ = cluster.run()
+  let _ = drive(cluster)
   guard handle.is_complete() && probe.done() else {
     abort("distributed replay failed to close")
   }

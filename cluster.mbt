@@ -1,6 +1,7 @@
 ///|
 priv struct ClusterScopeCore {
   manifest : () -> Json
+  freeze : () -> Unit
   ready : () -> Bool
   cancelled : () -> Bool
   reclaim : () -> Unit
@@ -17,18 +18,21 @@ priv struct ClusterState {
   mut graph_shape : (Int32, Int32, Int32, Int32)?
   mut round : Int64
   mut closed : Bool
+  mut pending : ClusterRound?
+  mut running : Bool
 }
 
 ///|
-/// A worker in a synchronous distributed cluster. `exchange` is an ordered
+/// A worker in a collectively coordinated distributed cluster. The exchange is an ordered
 /// all-gather: every peer calls it once per round and receives one payload per
 /// peer, in peer-index order. Processes may run operators concurrently between
-/// barriers. Transport errors terminate this worker; replay is never implicit.
+/// barriers. Supply exchange for blocking I/O or async_exchange for host-polled
+/// I/O. Transport errors terminate this worker; replay is never implicit.
 pub struct ClusterWorker {
   priv worker : Worker
   priv index : Int32
   priv peers : Int32
-  priv exchange : (String) -> Array[String] raise
+  priv exchange : ExchangeDriver
   priv state : ClusterState
 }
 
@@ -36,16 +40,22 @@ pub struct ClusterWorker {
 pub fn ClusterWorker::ClusterWorker(
   index : Int32,
   peers : Int32,
-  exchange~ : (String) -> Array[String] raise,
+  exchange? : (String) -> Array[String] raise,
+  async_exchange? : AsyncExchange,
 ) -> ClusterWorker {
   guard peers > 0 && index >= 0 && index < peers else {
     abort("invalid cluster peer")
+  }
+  let driver = match (exchange, async_exchange) {
+    (Some(exchange), None) => Blocking(exchange)
+    (None, Some(exchange)) => Polling(exchange)
+    _ => abort("provide exactly one blocking or asynchronous exchange")
   }
   {
     worker: Worker(),
     index,
     peers,
-    exchange,
+    exchange: driver,
     state: {
       scopes: [],
       receivers: [],
@@ -54,6 +64,8 @@ pub fn ClusterWorker::ClusterWorker(
       round: 0,
       graph_shape: None,
       closed: false,
+      pending: None,
+      running: false,
     },
   }
 }
@@ -98,11 +110,15 @@ fn[T : Lattice, S : Compare] ClusterWorker::make_distributed_scope(
   summary_codec~ : WireCodec[S],
   family? : DataflowState,
 ) -> DistributedScope[T, S] {
+  guard !self.state.closed && !self.state.running && self.state.pending is None else {
+    abort("build distributed scopes between completed collective rounds")
+  }
   let scope = self.worker.make_scope(minimum, domain, false, family?)
   let progress = scope.progress
   let manifest_cache : Ref[Json?] = Ref(None)
   let scheduler = self.worker.scheduler
   let core : ClusterScopeCore = {
+    freeze: fn() { progress.frozen = true },
     manifest: fn() {
       if manifest_cache.val is Some(value) {
         return value
@@ -268,8 +284,11 @@ pub fn[D, T : Lattice, R, S] DistributedScope::exchange(
 }
 
 ///|
-fn ClusterWorker::round(self : ClusterWorker) -> Bool raise {
+fn ClusterWorker::prepare_round(self : ClusterWorker) -> ClusterRound {
   let state = self.state
+  for core in state.scopes {
+    (core.freeze)()
+  }
   let ready_to_reclaim = state.scopes.map(fn(core) { (core.ready)() })
   let changes = state.scopes.map(fn(core) { (core.drain)() })
   let busy = self.worker.scheduler.head < self.worker.scheduler.queue.length()
@@ -301,19 +320,31 @@ fn ClusterWorker::round(self : ClusterWorker) -> Bool raise {
     Json(ready_to_reclaim),
     Json(state.cancellations.to_array()),
   ]
-  let gathered = (self.exchange)(payload.stringify())
+  let payload = payload.stringify()
+  state.outgoing.clear()
+  state.cancellations.clear()
+  { payload, shape, manifest, }
+}
+
+///|
+fn ClusterWorker::apply_round(
+  self : ClusterWorker,
+  round : ClusterRound,
+  gathered : Array[String],
+) -> Bool raise {
+  let state = self.state
+  let shape = round.shape
+  let manifest = round.manifest
   guard gathered.length() == self.peers else {
     raise ClusterError("all-gather peer count mismatch")
   }
-  state.outgoing.clear()
-  state.cancellations.clear()
   let cancelled : Set[Int32] = Set([])
   let totals : Array[Array[Json]] = Array::makei(state.scopes.length(), fn(_) {
     []
   })
   let retire = Array::make(state.scopes.length(), true)
   let deliveries = []
-  let mut active = graph_changed
+  let mut active = state.graph_shape != Some(shape)
   for peer, message in gathered {
     let message = @json.parse(message) catch {
       _ => raise ClusterError("malformed cluster envelope")
@@ -421,6 +452,8 @@ fn ClusterWorker::round(self : ClusterWorker) -> Bool raise {
 ///|
 /// All peers must call with the same bound. Quiescent means no scheduled or
 /// in-flight work anywhere; open input capabilities may still hold frontiers.
+/// An asynchronous exchange returns StepLimit as soon as I/O is pending, even
+/// before the round budget is exhausted. Resume run/poll when the host is ready.
 pub fn ClusterWorker::run(
   self : ClusterWorker,
   max_rounds~ : Int32 = 100000,
@@ -433,8 +466,10 @@ pub fn ClusterWorker::run(
   }
   errdefer self.dispose()
   for round in 0..<max_rounds {
-    if !self.round() {
-      return Quiescent(round + 1)
+    match self.poll() {
+      Pending => return StepLimit(round)
+      Progress => ()
+      Quiescent => return Quiescent(round + 1)
     }
   }
   StepLimit(max_rounds)
@@ -445,6 +480,7 @@ pub fn ClusterWorker::run(
 pub fn ClusterWorker::dispose(self : ClusterWorker) -> Unit {
   if !self.state.closed {
     self.state.closed = true
+    self.state.pending = None
     self.worker.dispose()
     self.state.scopes.clear()
     self.state.receivers.clear()

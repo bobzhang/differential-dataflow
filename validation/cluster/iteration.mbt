@@ -73,7 +73,7 @@ fn iteration(
     }
     input.advance_to(epoch + 1)
     input.flush()
-    guard cluster.run(max_rounds=10000) is Quiescent(_) &&
+    guard drive(cluster, max_rounds=10000) is Quiescent(_) &&
       !probe.less_than(epoch + 1) else {
       abort("iteration failed to converge")
     }
@@ -82,7 +82,7 @@ fn iteration(
     results.push(snapshot.map(fn(x) { "\{x.0},\{x.1}" }).join(";"))
   }
   input.close()
-  let _ = cluster.run()
+  let _ = drive(cluster)
   guard probe.done() else { abort("iteration failed to close") }
   results.join("/")
 }

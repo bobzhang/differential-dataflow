@@ -66,7 +66,7 @@ fn cancellation(
     input.insert(seed % 1000 + epoch)
     input.advance_to(epoch.to_int64() + 1L)
     input.flush()
-    let _ = cluster.run()
+    let _ = drive(cluster)
     guard !probe.less_than(epoch.to_int64() + 1L) &&
       !cancelled.done() &&
       cluster.installed_dataflows() == [live.dataflow_index()] else {
@@ -78,7 +78,7 @@ fn cancellation(
     results.push(rows.map(fn(row) { "\{row.0},\{row.1}" }).join(";"))
   }
   input.close()
-  let _ = cluster.run()
+  let _ = drive(cluster)
   guard probe.done() && cluster.installed_dataflows().is_empty() else {
     abort("cancellation fixture did not finish")
   }

@@ -30,8 +30,10 @@
     "capture duplicates across peers",
     "progress before replay data",
     "unanimous completed-scope reclamation",
-    "any-peer nested dataflow cancellation with live siblings"
+    "any-peer nested dataflow cancellation with live siblings",
+    "nonblocking host polling for every distributed workload"
   ],
+  "async_host_polling_epochs": 784,
   "collective_cancellation_epochs": 128,
   "distributed_replay_epochs": 128,
   "dynamic_dataflow_epochs": 144,

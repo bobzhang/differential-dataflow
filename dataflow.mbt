@@ -114,6 +114,7 @@ pub fn[T, S] DistributedScope::dataflow_index(
 /// Local inputs remain usable until the collective decision is applied.
 pub fn ClusterWorker::drop_dataflow(self : ClusterWorker, id : Int32) -> Unit {
   guard !self.state.closed &&
+    !self.state.running &&
     self.worker.scheduler.active &&
     !self.worker.scheduler.stepping &&
     !self.worker.gate.val else {

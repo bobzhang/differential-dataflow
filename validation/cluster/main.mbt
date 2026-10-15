@@ -52,11 +52,38 @@ fn main raise {
     println("wire-ok")
     return
   }
-  let cluster = @differential.ClusterWorker(peer, peers, exchange=fn(
-    value,
-  ) raise {
-    transport.exchange(value)
-  })
+  let asynchronous = match mode {
+    "async_join"
+    | "async_iteration"
+    | "async_deep_iteration"
+    | "async_dynamic_iteration"
+    | "async_replay"
+    | "async_cancellation" => true
+    _ => false
+  }
+  let cluster = if asynchronous {
+    @differential.ClusterWorker(
+      peer,
+      peers,
+      async_exchange=AsyncExchange(
+        start=fn(value) raise { transport.start_exchange(value) },
+        poll=fn() raise { transport.poll_exchange() },
+      ),
+    )
+  } else {
+    ClusterWorker(peer, peers, exchange=fn(value) raise {
+      transport.exchange(value)
+    })
+  }
+  let mode = match mode {
+    "async_join" => "join"
+    "async_iteration" => "iteration"
+    "async_deep_iteration" => "deep_iteration"
+    "async_dynamic_iteration" => "dynamic_iteration"
+    "async_replay" => "replay"
+    "async_cancellation" => "cancellation"
+    mode => mode
+  }
   defer cluster.dispose()
   if mode == "cancellation" {
     println(cancellation(cluster, seed))
@@ -142,7 +169,7 @@ fn main raise {
     b.advance_to(epoch + 1)
     a.flush()
     b.flush()
-    guard cluster.run(max_rounds=1000) is Quiescent(_) else {
+    guard drive(cluster, max_rounds=1000) is Quiescent(_) else {
       abort("cluster join round limit")
     }
     guard !probe.less_than(epoch + 1) else {
@@ -156,7 +183,7 @@ fn main raise {
   }
   a.close()
   b.close()
-  let _ = cluster.run()
+  let _ = drive(cluster)
   guard probe.done() else { abort("cluster did not close") }
   println(results.join("/"))
 }

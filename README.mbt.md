@@ -294,6 +294,17 @@ synchronous. Do not overlap exchanges or mix a pending asynchronous exchange wit
 `exchange`. Native validation checks host control before peer input, fragmented
 frames, 11 failure cases, and repeated large exchanges across two/three peers.
 
+For host-polled cluster execution, construct `AsyncExchange(start=..., poll=...)`
+and pass it as `ClusterWorker(..., async_exchange=adapter)`. Bind these callbacks
+to the transport's `start_exchange` and `poll_exchange`. `cluster.poll()` reports
+`Pending`, `Progress`, or `Quiescent`; schedule a later host callback for Pending.
+`run()` also yields as `StepLimit` when I/O is pending. It freezes the submitted
+graph and keeps frontiers open until the complete peer response is applied.
+Build graphs and submit input epochs before driving all peers to quiescence.
+This removes blocking waits from round I/O; progress still uses collective rounds,
+not decentralized peer-to-peer scheduling. Native comparisons repeat all six
+workload families through the asynchronous adapter (784 epochs).
+
 ## Dataflow lifecycle
 
 Each root `worker.scope(...)` gets a monotone `dataflow_index`; nested scopes and

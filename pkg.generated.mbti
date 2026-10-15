@@ -85,6 +85,11 @@ pub fn[K : Compare + Hash, V : Compare, W : Compare, T : Lattice, R : Semigroup,
 pub fn[K, V, T, R] ArrangementView::release(Self[K, V, T, R]) -> Unit
 pub fn[K, V, T, R] ArrangementView::trace(Self[K, V, T, R]) -> TraceReader[(K, V), T, R]
 
+pub struct AsyncExchange {
+  // private fields
+}
+pub fn AsyncExchange::AsyncExchange(start~ : (String) -> Unit raise, poll~ : () -> Array[String]? raise) -> Self
+
 pub struct Batch[D, T, R] {
   // private fields
 }
@@ -215,16 +220,26 @@ pub fn[T : Compare] ChangeBatch::to_array(Self[T]) -> Array[(T, Int64)]
 pub fn[T : Compare] ChangeBatch::update(Self[T], T, Int64) -> Unit
 pub fn[T : Compare] ChangeBatch::update_all(Self[T], Array[(T, Int64)]) -> Unit
 
+pub(all) enum ClusterPoll {
+  Pending
+  Progress
+  Quiescent
+} derive(Eq, @debug.Debug)
+pub fn ClusterPoll::equal(Self, Self) -> Bool
+pub fn ClusterPoll::not_equal(Self, Self) -> Bool
+pub fn ClusterPoll::to_repr(Self) -> @debug.Repr
+
 pub struct ClusterWorker {
   // private fields
 }
-pub fn ClusterWorker::ClusterWorker(Int, Int, exchange~ : (String) -> Array[String] raise) -> Self
+pub fn ClusterWorker::ClusterWorker(Int, Int, exchange? : (String) -> Array[String] raise, async_exchange? : AsyncExchange) -> Self
 pub fn ClusterWorker::dispose(Self) -> Unit
 pub fn ClusterWorker::drop_dataflow(Self, Int) -> Unit
 pub fn ClusterWorker::index(Self) -> Int
 pub fn ClusterWorker::installed_dataflows(Self) -> Array[Int]
 pub fn ClusterWorker::next_dataflow_index(Self) -> Int
 pub fn ClusterWorker::peers(Self) -> Int
+pub fn ClusterWorker::poll(Self) -> ClusterPoll raise
 pub fn ClusterWorker::run(Self, max_rounds? : Int) -> RunResult raise
 pub fn[T : Lattice, S : Compare] ClusterWorker::scope(Self, T, SummaryDomain[T, S], time_codec~ : WireCodec[T], summary_codec~ : WireCodec[S]) -> DistributedScope[T, S]
 
