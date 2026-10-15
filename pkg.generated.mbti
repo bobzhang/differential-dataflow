@@ -501,7 +501,9 @@ pub struct Scope[T, S] {
 }
 pub fn[K : Compare + Hash, D : Compare, T : Lattice, S : Compare] Scope::aggregate_ranges(Self[T, S], Collection[((UInt64, K), D), T, Int64], (K, D, D) -> D) -> Collection[((UInt64, Int, K), D), T, Int64]
 pub fn[N : Compare + Hash, T : Lattice, S : Compare] Scope::bfs(Self[T, S], Collection[(N, N), T, Int64], Collection[N, T, Int64]) -> Collection[(N, UInt), T, Int64]
+pub fn[N : Compare + Hash, T : Lattice, S : Compare] Scope::bfs_arranged(Self[T, S], ArrangementView[N, N, T, Int64], Collection[N, T, Int64]) -> Collection[(N, UInt), T, Int64]
 pub fn[N : Compare + Hash, T : Lattice, S : Compare] Scope::bidijkstra(Self[T, S], Collection[(N, N), T, Int64], Collection[(N, N), T, Int64]) -> Collection[((N, N), UInt), T, Int64]
+pub fn[N : Compare + Hash, T : Lattice, S : Compare] Scope::bidijkstra_arranged(Self[T, S], ArrangementView[N, N, T, Int64], ArrangementView[N, N, T, Int64], Collection[(N, N), T, Int64]) -> Collection[((N, N), UInt), T, Int64]
 pub fn[K : Compare + Hash, D : Compare + Hash, T : Lattice, S : Compare] Scope::broadcast_prefix(Self[T, S], Collection[((UInt64, Int, K), D), T, Int64], Collection[(UInt64, K), T, Int64], D, (K, D, D) -> D) -> Collection[((UInt64, K), D), T, Int64]
 pub fn[D, T : Lattice, R, S] Scope::feedback(Self[T, S], S) -> (Feedback[D, T, R, S], Collection[D, T, R])
 pub fn[D : Compare + RustHash, T : Lattice, R : Abelian, S : Compare] Scope::identifiers(Self[T, S], Collection[D, T, R]) -> Collection[(D, UInt64), T, R]
@@ -514,6 +516,7 @@ pub fn[K : Compare + Hash, D : Compare + Hash, T : Lattice, S : Compare] Scope::
 pub fn[K : Compare + Hash, D : Compare + Hash, T : Lattice, S : Compare] Scope::prefix_sum_at(Self[T, S], Collection[((UInt64, K), D), T, Int64], Collection[(UInt64, K), T, Int64], D, (K, D, D) -> D) -> Collection[((UInt64, K), D), T, Int64]
 pub fn[N : Compare + Hash, L : Compare, T : Lattice, S : Compare, R : Ring] Scope::propagate(Self[T, S], Collection[(N, N), T, R], Collection[(N, L), T, R]) -> Collection[(N, L), T, R]
 pub fn[N : Compare + Hash, L : Compare, T : Lattice, S : Compare, R : Ring] Scope::propagate_at(Self[T, S], Collection[(N, N), T, R], Collection[(N, L), T, R], (L) -> UInt64) -> Collection[(N, L), T, R]
+pub fn[N : Compare + Hash, L : Compare, T : Lattice, S : Compare, R : Ring] Scope::propagate_core(Self[T, S], ArrangementView[N, N, T, R], Collection[(N, L), T, R], (L) -> UInt64) -> Collection[(N, L), T, R]
 pub fn[A, B : Lattice, S, U : Compare] Scope::refine(Self[A, S], SummaryDomain[B, U], Refinement[A, B, S, U]) -> RefinedScope[A, B, S, U]
 pub fn[T : Lattice, S : Compare] Scope::region(Self[T, S]) -> RefinedScope[T, T, S, S]
 pub fn[D, T : Lattice, R, S] Scope::replay(Self[T, S]) -> (ReplayInput[D, T, R], Collection[D, T, R])

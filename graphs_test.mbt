@@ -10,20 +10,24 @@ test "graph algorithms retract distances labels and SCC edges after a cycle brea
     @differential.InputSession[Int32, Int64, Int64],
     @differential.Collection[Int32, Int64, Int64],
   ) = scope.input()
+  let index = graph.arrange_by_key()
+  let view = index.view()
   let distance : Map[(Int32, UInt32), Int64] = Map([])
   let scc : Map[(Int32, Int32), Int64] = Map([])
   let labels : Map[(Int32, Int32), Int64] = Map([])
   let p0 = scope
-    .bfs(graph, root_stream)
+    .bfs_arranged(view, root_stream)
     .inspect(fn(d, _, r) { distance[d] = distance.get(d).unwrap_or(0L) + r })
   let p1 = scope
     .strongly_connected(graph)
     .inspect(fn(d, _, r) { scc[d] = scc.get(d).unwrap_or(0L) + r })
   let p2 = scope
-    .propagate_at(graph, root_stream.map(fn(x) { (x, x) }), fn(label) {
+    .propagate_core(view, root_stream.map(fn(x) { (x, x) }), fn(label) {
       label.to_uint64()
     })
     .inspect(fn(d, _, r) { labels[d] = labels.get(d).unwrap_or(0L) + r })
+  view.release()
+  index.release()
   for edge in [(0, 1), (1, 2), (2, 1), (2, 3)] {
     edges.insert(edge)
   }

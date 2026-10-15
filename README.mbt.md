@@ -172,6 +172,9 @@ building consumers; the consumers retain their own readers until completion.
 across nested scopes. `TraceReader` adapts timestamps and compaction capabilities
 without copying stored batches; `BatchView` maps immutable batches lazily.
 Views and readers own independent capabilities and require `release()`.
+`Scope.bfs_arranged`, `Scope.propagate_core`, and `Scope.bidijkstra_arranged`
+accept these views, allowing graph algorithms to share edge indexes. Collection
+convenience methods build those indexes once and delegate to the same algorithms.
 
 Use `worker.scope(minimum, domain)` for counted progress and cyclic graphs;
 `worker.input(initial)` remains available for acyclic pipelines. Scope boundaries share one progress calculation seeded by real capabilities and

@@ -112,6 +112,7 @@
   "search_seeds": 16,
   "search_epochs_per_seed": 12,
   "search_checks": [
+    "shared forward and reversed indexes",
     "bidirectional shortest paths",
     "goal multiplicities",
     "sequential neighbor updates",

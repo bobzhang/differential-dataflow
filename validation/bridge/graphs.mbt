@@ -11,15 +11,21 @@ pub fn evaluate_graphs(seed : Int32) -> String {
     @differential.InputSession[Int32, Int64, Int64],
     @differential.Collection[Int32, Int64, Int64],
   ) = scope.input()
+  let edges_index = graph.arrange_by_key()
+  let view = edges_index.view()
   let streams = [
-    scope.bfs(graph, source).map(fn(x) { (x.0, x.1.reinterpret_as_int()) }),
-    scope.propagate(graph, source.map(fn(x) { (x, x) })),
+    scope
+    .bfs_arranged(view, source)
+    .map(fn(x) { (x.0, x.1.reinterpret_as_int()) }),
+    scope.propagate_core(view, source.map(fn(x) { (x, x) }), fn(_) { 0UL }),
     scope.strongly_connected(graph),
-    scope.propagate_at(graph, source.map(fn(x) { (x, x) }), fn(x) {
+    scope.propagate_core(view, source.map(fn(x) { (x, x) }), fn(x) {
       1UL << (x * 15)
     }),
     scope.strongly_connected_at(graph, fn(x) { 1UL << (x * 15) }),
   ]
+  view.release()
+  edges_index.release()
   let observed : Map[(Int32, Int32, Int32), Int64] = Map([])
   let probes = Array::makei(streams.length(), fn(op) {
     streams[op].inspect(fn(data, _, diff) {

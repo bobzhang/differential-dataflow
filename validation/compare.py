@@ -422,7 +422,7 @@ summary = {
     'identifier_checks': ['FNV byte encodings', 'forced collisions', 'weighted records', 'winner deletions', 'independent uniqueness and hash verification'],
     'search_seeds': len(search_seeds),
     'search_epochs_per_seed': 12,
-    'search_checks': ['bidirectional shortest paths', 'goal multiplicities', 'sequential neighbor updates', 'edge and goal retractions', 'independent BFS and ordered node evaluation'],
+    'search_checks': ['shared forward and reversed indexes', 'bidirectional shortest paths', 'goal multiplicities', 'sequential neighbor updates', 'edge and goal retractions', 'independent BFS and ordered node evaluation'],
     'status': 'passed',
 }
 (ROOT/'validation/results.json').write_text(json.dumps(summary,indent=2)+'\n')
