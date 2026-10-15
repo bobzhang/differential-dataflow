@@ -28,7 +28,8 @@
     "root retractions",
     "independent BFS",
     "capture duplicates across peers",
-    "progress before replay data"
+    "progress before replay data",
+    "unanimous completed-scope reclamation"
   ],
   "distributed_replay_epochs": 128,
   "dynamic_dataflow_epochs": 144,

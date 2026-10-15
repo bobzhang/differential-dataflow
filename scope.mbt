@@ -187,20 +187,15 @@ fn[T : Lattice, S : Compare] Worker::make_scope(
     seed: fn() { progress.seed() },
     publish: fn() { progress.publish() },
     reclaim: fn() {
-      if !local_progress ||
-        progress.disposed ||
-        !progress.notified ||
-        !progress.pending.is_empty() ||
-        progress.tasks.iter().any(fn(task) { scheduler.live[task] }) {
-        return false
+      if progress.disposed {
+        return true
       }
-      guard progress.tracker is Some(tracker) else { return false }
-      if !tracker.counts.is_empty() ||
-        tracker.frontiers.iter().any(fn(f) { !f.is_empty() }) {
-        return false
+      if local_progress && progress.ready_to_reclaim(scheduler) {
+        progress.dispose()
+        true
+      } else {
+        false
       }
-      progress.dispose()
-      true
     },
   })
   self.cleanup.push(fn() { progress.dispose() })
@@ -249,4 +244,22 @@ fn[T, S] ScopeProgress::dispose(self : ScopeProgress[T, S]) -> Unit {
   self.pending.clear()
   self.tasks.clear()
   self.tracker = None
+}
+
+///|
+fn[T : Compare, S] ScopeProgress::ready_to_reclaim(
+  self : ScopeProgress[T, S],
+  scheduler : Scheduler,
+) -> Bool {
+  if self.disposed {
+    return true
+  }
+  if !self.notified ||
+    !self.pending.is_empty() ||
+    self.tasks.iter().any(fn(task) { scheduler.live[task] }) {
+    return false
+  }
+  guard self.tracker is Some(tracker) else { return false }
+  tracker.counts.is_empty() &&
+  tracker.frontiers.iter().all(fn(frontier) { frontier.is_empty() })
 }

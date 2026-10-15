@@ -138,7 +138,8 @@ def main():
               'checks': ['TCP startup retry', 'keyed exchange', 'shared arrangement joins',
                          'global progress each epoch', 'closure', 'nested product timestamps',
                          'cyclic fixed points', 'two nested feedback loops', 'root retractions', 'independent BFS',
-                         'capture duplicates across peers', 'progress before replay data'],
+                         'capture duplicates across peers', 'progress before replay data',
+                         'unanimous completed-scope reclamation'],
               'distributed_replay_epochs': 128, 'dynamic_dataflow_epochs': 144, 'iteration_epochs_per_seed': 8, 'status': 'passed'}
     (ROOT / 'validation/cluster_results.json').write_text(json.dumps(result, indent=2) + '\n')
     print(json.dumps(result))

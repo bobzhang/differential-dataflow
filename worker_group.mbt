@@ -94,6 +94,28 @@ priv struct GroupProgress[T, S] {
 fn[T : Lattice, S : Compare] GroupProgress::pump(
   self : GroupProgress[T, S],
 ) -> Unit {
+  if self.members.is_empty() {
+    return
+  }
+  let mut finished = true
+  for index, core in self.members {
+    if !core.ready_to_reclaim(self.schedulers[index]) {
+      finished = false
+      break
+    }
+  }
+  if finished {
+    // Local positive and negative counts can cancel across peers. Remove all
+    // members together only after the global frontier and every task finish.
+    for core in self.members {
+      core.dispose()
+    }
+    self.tracker = None
+    self.local_counts.clear()
+    self.members.clear()
+    self.schedulers.clear()
+    return
+  }
   let first = self.tracker is None
   let tracker = match self.tracker {
     Some(tracker) => tracker
@@ -201,7 +223,8 @@ pub fn[T, S] ScopeGroup::scope(
   self : ScopeGroup[T, S],
   index : Int32,
 ) -> Scope[T, S] {
-  guard !self.coordinator.members.is_empty() else {
+  guard !self.coordinator.members.is_empty() ||
+    self.scopes[index].worker.scheduler.active else {
     abort("worker group is disposed")
   }
   self.scopes[index]

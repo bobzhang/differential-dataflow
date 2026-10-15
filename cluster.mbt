@@ -1,6 +1,8 @@
 ///|
 priv struct ClusterScopeCore {
   manifest : () -> Json
+  ready : () -> Bool
+  reclaim : () -> Unit
   drain : () -> Json
   apply : (Array[Json]) -> Unit raise ClusterError
 }
@@ -83,9 +85,14 @@ pub fn[T : Lattice, S : Compare] ClusterWorker::scope(
 ) -> DistributedScope[T, S] {
   let scope = self.worker.make_scope(minimum, domain, false)
   let progress = scope.progress
+  let manifest_cache : Ref[Json?] = Ref(None)
+  let scheduler = self.worker.scheduler
   let core : ClusterScopeCore = {
     manifest: fn() {
-      [
+      if manifest_cache.val is Some(value) {
+        return value
+      }
+      let value : Json = [
         (time_codec.encode)(minimum),
         Json(
           progress.graph.edges.map(fn(edges) {
@@ -97,6 +104,15 @@ pub fn[T : Lattice, S : Compare] ClusterWorker::scope(
           }),
         ),
       ]
+      manifest_cache.val = Some(value)
+      value
+    },
+    ready: fn() { progress.ready_to_reclaim(scheduler) },
+    reclaim: fn() {
+      progress.dispose()
+      // Every peer makes the same decision. Future graph manifests retain a
+      // small completed-scope slot, not the old graph's edges.
+      manifest_cache.val = Some(Json::null())
     },
     drain: fn() {
       Json(
@@ -110,6 +126,12 @@ pub fn[T : Lattice, S : Compare] ClusterWorker::scope(
       )
     },
     apply: fn(changes) raise ClusterError {
+      if progress.disposed {
+        guard changes.is_empty() else {
+          raise ClusterError("progress arrived for a completed scope")
+        }
+        return
+      }
       progress.frozen = true
       if !changes.is_empty() {
         progress.dirty = true
@@ -229,6 +251,7 @@ pub fn[D, T : Lattice, R, S] DistributedScope::exchange(
 ///|
 fn ClusterWorker::round(self : ClusterWorker) -> Bool raise {
   let state = self.state
+  let ready_to_reclaim = state.scopes.map(fn(core) { (core.ready)() })
   let changes = state.scopes.map(fn(core) { (core.drain)() })
   let busy = self.worker.scheduler.head < self.worker.scheduler.queue.length()
   let shape = (
@@ -248,7 +271,7 @@ fn ClusterWorker::round(self : ClusterWorker) -> Bool raise {
     Json::null()
   }
   let payload : Json = [
-    "moon-differential/1",
+    "moon-differential/2",
     Json(state.round),
     Json(self.index),
     Json(self.peers),
@@ -256,6 +279,7 @@ fn ClusterWorker::round(self : ClusterWorker) -> Bool raise {
     Json(changes),
     Json(state.outgoing),
     Json(busy),
+    Json(ready_to_reclaim),
   ]
   let gathered = (self.exchange)(payload.stringify())
   guard gathered.length() == self.peers else {
@@ -265,6 +289,7 @@ fn ClusterWorker::round(self : ClusterWorker) -> Bool raise {
   let totals : Array[Array[Json]] = Array::makei(state.scopes.length(), fn(_) {
     []
   })
+  let retire = Array::make(state.scopes.length(), true)
   let deliveries = []
   let mut active = graph_changed
   for peer, message in gathered {
@@ -273,7 +298,7 @@ fn ClusterWorker::round(self : ClusterWorker) -> Bool raise {
     }
     guard message
       is [
-        String("moon-differential/1"),
+        String("moon-differential/2"),
         round,
         sender,
         peers,
@@ -281,6 +306,7 @@ fn ClusterWorker::round(self : ClusterWorker) -> Bool raise {
         Array(changes),
         Array(messages),
         ready,
+        Array(completed),
       ] else {
       raise ClusterError("invalid cluster protocol envelope")
     }
@@ -292,8 +318,13 @@ fn ClusterWorker::round(self : ClusterWorker) -> Bool raise {
       sender == peer &&
       peers == self.peers &&
       other_manifest == manifest &&
-      changes.length() == totals.length() else {
+      changes.length() == totals.length() &&
+      completed.length() == retire.length() else {
       raise ClusterError("cluster round, peer identity or graph mismatch")
+    }
+    for index, completed in completed {
+      let completed : Bool = wire_read(completed)
+      retire[index] = retire[index] && completed
     }
     active = active || ready || !messages.is_empty()
     for index, changes in changes {
@@ -335,6 +366,12 @@ fn ClusterWorker::round(self : ClusterWorker) -> Bool raise {
   state.graph_shape = Some(shape)
   state.round += 1
   let ran = self.worker.step()
+  for index, completed in retire {
+    if completed {
+      (state.scopes[index].reclaim)()
+    }
+  }
+  self.worker.network.reclaim_completed()
   active || ran
 }
 

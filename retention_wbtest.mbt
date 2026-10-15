@@ -287,7 +287,7 @@ test "global exchange progress remains bounded over one thousand epochs" {
     source.0.close()
   }
   let _ = group.run()
-  assert_true(scopes.coordinator.tracker.unwrap().counts.is_empty())
+  assert_true(scopes.coordinator.tracker is None)
   for probe in probes {
     assert_true(probe.done())
   }
