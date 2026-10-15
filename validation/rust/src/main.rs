@@ -28,5 +28,43 @@ fn evaluate(seed: u32) -> String {
     result.join("/")
 }
 fn main() {
-    for line in io::stdin().lock().lines() { println!("{}", evaluate(line.unwrap().parse().unwrap())); }
+    let join = std::env::args().nth(1).as_deref() == Some("join");
+    for line in io::stdin().lock().lines() { let seed = line.unwrap().parse().unwrap(); println!("{}", if join { evaluate_join(seed) } else { evaluate(seed) }); }
+}
+fn evaluate_join(seed: u32) -> String {
+    use differential_dataflow::input::Input;
+    use std::cell::RefCell;
+    use std::collections::BTreeMap;
+    use std::rc::Rc;
+    timely::execute_directly(move |worker| {
+        let observed = Rc::new(RefCell::new(BTreeMap::<(u32,u32,u32),i64>::new()));
+        let sink = observed.clone();
+        let (mut a, mut b, probe) = worker.dataflow::<u64,_,_>(|scope| {
+            let (a,left) = scope.new_collection::<(u32,u32),i64>();
+            let (b,right) = scope.new_collection::<(u32,u32),i64>();
+            let (probe,_) = left.join(right).consolidate().inspect(move |&((k,(v,w)),_,diff)| {
+                *sink.borrow_mut().entry((k,v,w)).or_default() += diff;
+            }).probe();
+            (a,b,probe)
+        });
+        let mut random = seed;
+        let mut results = Vec::new();
+        for epoch in 0..16 {
+            for side in 0..2 {
+                for _ in 0..4 {
+                    random = random.wrapping_mul(1664525).wrapping_add(1013904223);
+                    let index = (random >> 8) % 20;
+                    let diff = (random % 5) as i64 - 2;
+                    let data = (index / 5, index % 5);
+                    if side == 0 { a.update(data,diff); } else { b.update(data,diff); }
+                }
+            }
+            a.advance_to(epoch+1); b.advance_to(epoch+1); a.flush(); b.flush();
+            while probe.less_than(a.time()) { worker.step(); }
+            results.push(observed.borrow().iter().filter(|(_,d)| **d != 0).map(|(&(k,v,w),d)| format!("{k},{v},{w},{d}")).collect::<Vec<_>>().join(";"));
+        }
+        a.close(); b.close();
+        while !probe.done() { worker.step(); }
+        results.join("/")
+    })
 }

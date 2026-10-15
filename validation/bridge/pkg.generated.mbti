@@ -4,6 +4,8 @@ package "bobzhang/differential/validation/bridge"
 // Values
 pub fn evaluate(Int) -> String
 
+pub fn evaluate_join(Int) -> String
+
 // Errors
 
 // Types and methods

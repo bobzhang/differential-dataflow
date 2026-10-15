@@ -36,6 +36,28 @@ for seed, r, m in zip(seeds,rust,moon):
         expected.append(';'.join(f'{t[0]},{t[1]},{d}' for t,d in changes)+'|'+';'.join(f'{a},{b}' for a,b in sorted(minimal))+f'|{advanced[0]},{advanced[1]}')
         old=minimal
     assert r==m=='/'.join(expected), f'frontier differential failure at seed {seed}'
-summary={'references':pins,'seeds':len(seeds),'rounds_per_seed':40,'checks_per_round':['frontier membership changes','minimal positive timestamps','lattice advance_by'],'oracle':'independent Python positive-count partial-order model','status':'passed'}
+join_seeds = range(1,65)
+inputs = ''.join(f'{s}\n' for s in join_seeds)
+rust = run(['validation/rust/target/release/differential-reference-check','join'],input=inputs,capture_output=True).stdout.splitlines()
+moon = run(['node','validation/run.cjs','join'],input=inputs,capture_output=True).stdout.splitlines()
+assert len(rust) == len(moon) == len(join_seeds)
+for seed,r,m in zip(join_seeds,rust,moon):
+    state=seed
+    sides=[[0]*20,[0]*20]
+    expected=[]
+    for epoch in range(16):
+        for side in range(2):
+            for _ in range(4):
+                state=(state*1664525+1013904223)&0xffffffff
+                sides[side][(state>>8)%20] += state%5-2
+        values=[]
+        for k in range(4):
+            for v in range(5):
+                for w in range(5):
+                    count=sides[0][k*5+v]*sides[1][k*5+w]
+                    if count: values.append(f'{k},{v},{w},{count}')
+        expected.append(';'.join(values))
+    assert r==m=='/'.join(expected), f'weighted join differential failure at seed {seed}'
+summary={'references':pins,'frontier_seeds':len(seeds),'frontier_rounds_per_seed':40,'frontier_checks':['membership changes','minimal positive timestamps','lattice advance_by'],'join_seeds':len(join_seeds),'join_epochs_per_seed':16,'oracles':['independent positive-count partial-order model','full weighted join recomputation each epoch'],'status':'passed'}
 (ROOT/'validation/results.json').write_text(json.dumps(summary,indent=2)+'\n')
 print(json.dumps(summary))
