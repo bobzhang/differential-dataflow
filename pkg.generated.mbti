@@ -1,0 +1,48 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "bobzhang/differential"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn[T : Lattice] advance_by(T, Antichain[T]) -> T
+
+// Errors
+
+// Types and methods
+pub struct Antichain[T] {
+  // private fields
+}
+pub fn[T : Lattice] Antichain::Antichain(Array[T]) -> Self[T]
+pub fn[T : Lattice] Antichain::less_equal(Self[T], T) -> Bool
+pub fn[T : Lattice] Antichain::precedes(Self[T], Self[T]) -> Bool
+pub fn[T] Antichain::to_array(Self[T]) -> Array[T]
+
+pub(all) struct Product[A, B] {
+  outer : A
+  inner : B
+} derive(Compare, Eq, @debug.Debug)
+pub fn[A, B] Product::Product(A, B) -> Self[A, B]
+pub fn[A : Compare, B : Compare] Product::compare(Self[A, B], Self[A, B]) -> Int
+pub fn[A : Eq, B : Eq] Product::equal(Self[A, B], Self[A, B]) -> Bool
+pub fn[A : Lattice, B : Lattice] Product::join(Self[A, B], Self[A, B]) -> Self[A, B]
+pub fn[A : Lattice, B : Lattice] Product::less_equal(Self[A, B], Self[A, B]) -> Bool
+pub fn[A : Lattice, B : Lattice] Product::meet(Self[A, B], Self[A, B]) -> Self[A, B]
+pub fn[A : Eq, B : Eq] Product::not_equal(Self[A, B], Self[A, B]) -> Bool
+pub fn[A : Compare, B : Compare] Product::op_ge(Self[A, B], Self[A, B]) -> Bool
+pub fn[A : Compare, B : Compare] Product::op_gt(Self[A, B], Self[A, B]) -> Bool
+pub fn[A : Compare, B : Compare] Product::op_le(Self[A, B], Self[A, B]) -> Bool
+pub fn[A : Compare, B : Compare] Product::op_lt(Self[A, B], Self[A, B]) -> Bool
+pub fn[A : @debug.Debug, B : @debug.Debug] Product::to_repr(Self[A, B]) -> @debug.Repr
+pub impl[A : Lattice, B : Lattice] Lattice for Product[A, B]
+
+// Type aliases
+
+// Traits
+pub(open) trait Lattice : Compare {
+  fn less_equal(Self, Self) -> Bool
+  fn join(Self, Self) -> Self
+  fn meet(Self, Self) -> Self
+}
+pub impl Lattice for Int64
