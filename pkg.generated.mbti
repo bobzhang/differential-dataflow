@@ -16,6 +16,14 @@ pub fn[D : Compare, T : Compare, R : Semigroup] consolidate_updates(Array[(D, T,
 
 pub fn[T : RustHash] rust_hash(T) -> UInt64
 
+pub fn[A, B, S, X, Y] scale_pair((A, B), S, first~ : (A, S) -> X, second~ : (B, S) -> Y) -> (X, Y)
+
+pub fn[A, B, C, D, S, X, Y, Z, W] scale_quad((A, B, C, D), S, first~ : (A, S) -> X, second~ : (B, S) -> Y, third~ : (C, S) -> Z, fourth~ : (D, S) -> W) -> (X, Y, Z, W)
+
+pub fn[A, B, C, S, X, Y, Z] scale_triple((A, B, C), S, first~ : (A, S) -> X, second~ : (B, S) -> Y, third~ : (C, S) -> Z) -> (X, Y, Z)
+
+pub fn[S] scale_unit(Unit, S) -> Unit
+
 pub fn[D, T : Lattice, R] shared_spine(T) -> (TraceWriter[D, T, R], TraceAgent[D, T, R])
 
 pub fn[D, T : Lattice, R] shared_trace(T) -> (TraceWriter[D, T, R], TraceAgent[D, T, R])

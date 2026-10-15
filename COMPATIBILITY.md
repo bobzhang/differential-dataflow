@@ -12,7 +12,7 @@ until resolved. A small core port does not satisfy this target.
 | Lattice joins/meets and advance-by | Common built-ins and products | Signed/unsigned 8/16/32/64/128-bit integers, Duration, Unit and generic products; Int8 pairs tested exhaustively |
 | Minimal/counted antichains | Implemented | 10,240 Rust and independent-oracle rounds |
 | Change batches | Implemented | Signed cancellation and frontier tests |
-| Difference algebra | Partial | All integer widths, Wrapping signed adapters, Present, singleton/tuple arities through four and VectorDiff; explicit multiplication callbacks adapt associated output types; tuple scaling conveniences remain |
+| Difference algebra | Upstream built-ins implemented with typed adapters | All integer widths, Wrapping signed adapters, Present, singleton/tuple arities through four and VectorDiff; explicit multiplication callbacks adapt associated output types; scale_unit/pair/triple/quad support heterogeneous associated outputs |
 | Sealed traces | Initial implementation | Snapshots, compaction, closure, exact-cut cursors, empty-interval traversal and lazy entered/frontier-filtered trace views with independent reader pins; not all upstream trace interfaces/layouts |
 | Buffered input | Implemented callback and worker integration | Explicit close replaces Rust Drop |
 | Worker scheduling | Cooperative workers | Counted scopes, local/timed activators with explicit monotonic host clock, activation deduplication, re-entry guards, bounded queues, disposal tests; 8,192 activation rounds match Rust; fresh scopes and live trace queries can be added between runs |

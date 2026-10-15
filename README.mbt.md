@@ -160,6 +160,10 @@ all peers; their graph manifests are checked before processing them. Release the
 errors terminate the runtime. This currently uses synchronous barriers and its own
 wire protocol. See `validation/cluster` for an executable two-process example.
 
+`scale_pair`, `scale_triple` and `scale_quad` apply independent multiplication
+callbacks to tuple fields; result types may differ by field. `scale_unit` covers
+the empty tuple, and singleton/vector differences provide `scale` methods.
+
 Tuples, timestamps, and weights must be immutable. Comparison and algebra traits
 must obey their mathematical laws. Callbacks must be deterministic and must not
 re-enter the worker or mutate the graph. Signed weights use MoonBit integer
