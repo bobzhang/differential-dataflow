@@ -500,3 +500,9 @@ trace batches. It supports raw grouped columns, streaming consolidation, partial
 merges, split/meld, and frontier extraction. Canonical chunks become immutable
 indexed batches without flattening through `chunk.batch(description)`; they work
 with the same trace, cursor, import and spill APIs.
+
+For Rust columnar storage interoperability, construct `ColumnarCodec(key, value,
+time, difference)` from `ColumnCodec` schemas. Its encoding matches the pinned
+Rust `Updates<U>` representation byte for byte; decoding returns a validated
+owned trie. Schemas compose for products, pairs, vectors, strings and other
+standard types, or can be supplied for application-specific column layouts.

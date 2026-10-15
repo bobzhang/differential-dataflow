@@ -313,6 +313,29 @@ pub(all) enum CollectionEvent[D, T, R] {
   Frontier(Antichain[T])
 }
 
+pub struct ColumnCodec[A] {
+  // private fields
+}
+pub fn[A] ColumnCodec::ColumnCodec(slices~ : Int, encode~ : (Array[A]) -> Array[Bytes], decode~ : (Array[BytesView], Int) -> Array[A]?) -> Self[A]
+pub fn ColumnCodec::bool() -> Self[Bool]
+pub fn ColumnCodec::byte() -> Self[Byte]
+pub fn ColumnCodec::bytes() -> Self[Bytes]
+pub fn ColumnCodec::double() -> Self[Double]
+pub fn ColumnCodec::duration() -> Self[Duration]
+pub fn ColumnCodec::int16() -> Self[Int16]
+pub fn ColumnCodec::int32() -> Self[Int]
+pub fn ColumnCodec::int64() -> Self[Int64]
+pub fn ColumnCodec::int8() -> Self[Int8]
+pub fn[A, B] ColumnCodec::map(Self[A], (B) -> A, (A) -> B?) -> Self[B]
+pub fn[A, B] ColumnCodec::pair(Self[A], Self[B]) -> Self[(A, B)]
+pub fn[A, B] ColumnCodec::product(Self[A], Self[B]) -> Self[Product[A, B]]
+pub fn ColumnCodec::string() -> Self[String]
+pub fn ColumnCodec::uint16() -> Self[UInt16]
+pub fn ColumnCodec::uint32() -> Self[UInt]
+pub fn ColumnCodec::uint64() -> Self[UInt64]
+pub fn ColumnCodec::unit() -> Self[Unit]
+pub fn[A] ColumnCodec::vector(Self[A]) -> Self[Array[A]]
+
 pub struct ColumnLists[A] {
   // private fields
 }
@@ -332,6 +355,13 @@ pub fn[K : Compare, V : Compare, T : Lattice, R : Semigroup] ColumnarBatch::Colu
 pub fn[K : Eq, V : Eq, T, R] ColumnarBatch::batch(Self[K, V, T, R]) -> Batch[(K, V), T, R]
 pub fn[K, V, T, R] ColumnarBatch::storage_counts(Self[K, V, T, R]) -> (Int, Int, Int)
 pub fn[K, V, T, R] ColumnarBatch::updates(Self[K, V, T, R]) -> UpdatesTyped[K, V, T, R]
+
+pub struct ColumnarCodec[K, V, T, R] {
+  // private fields
+}
+pub fn[K, V, T, R] ColumnarCodec::ColumnarCodec(ColumnCodec[K], ColumnCodec[V], ColumnCodec[T], ColumnCodec[R]) -> Self[K, V, T, R]
+pub fn[K, V, T, R] ColumnarCodec::decode(Self[K, V, T, R], BytesView, max_values? : Int) -> UpdatesTyped[K, V, T, R]?
+pub fn[K, V, T, R] ColumnarCodec::encode(Self[K, V, T, R], UpdatesTyped[K, V, T, R]) -> Bytes
 
 pub struct Cursor[K, V, T, R] {
   // private fields

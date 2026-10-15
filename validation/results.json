@@ -172,6 +172,7 @@
   ],
   "cancelled_nested_dataflows": 1024,
   "example_epochs": 384,
+  "rust_columnar_binary_fixtures": 256,
   "columnar_chunk_snapshots": 11264,
   "diagnostic_accounting_snapshots": 1600,
   "shared_probe_progress_snapshots": 896,

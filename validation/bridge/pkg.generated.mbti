@@ -26,6 +26,8 @@ pub fn evaluate_chunks(Int) -> String
 
 pub fn evaluate_columnar_batches(Int) -> String
 
+pub fn evaluate_columnar_bytes(Int) -> String
+
 pub fn evaluate_columnar_cursors(Int) -> String
 
 pub fn evaluate_columnar_join(Int) -> String

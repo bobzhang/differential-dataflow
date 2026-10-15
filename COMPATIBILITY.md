@@ -74,8 +74,7 @@ Arranged joins reuse shared sorted batch indexes with binary key lookup; collect
 joins retain private keyed histories. Arranged reductions read shared key ranges and retain output corrections separately.
 Arranged joins now expose a per-activation fuel budget and retain immutable views
 for unfinished work. The four-level columnar trie, streaming construction, partial merge, suffix,
-split/meld and frontier extraction operations are implemented. Rust columnar byte
-layouts, specialized chunk-channel containers and bounded computation for the
+split/meld and frontier extraction operations are implemented. Specialized chunk-channel containers and bounded computation for the
 remaining operator families remain unfinished. Capture/replay supports nonblocking writer retries, explicit commit completion, cancellation,
 and bounded activated sources. POSIX capture journals persist versioned checksummed frames and can replay complete
 prefixes after interruption; missing terminal progress keeps replay incomplete.
@@ -139,3 +138,13 @@ without building row arrays; meld streams leaves without flattening whole chunks
 Columnar arrangements now seal through this builder directly. 11,264 snapshots
 across 1,024 randomized chunk cases match upstream's experimental columnar code
 and independent sorted-multiset recomputation, including incomparable frontiers.
+
+`ColumnarCodec` implements the pinned Rust `Updates<U>` byte framing and indexed
+`Stash` columns, including compressed stride offsets. Built-in schemas cover
+8/16/32/64-bit integers, UTF-8 strings/bytes, packed booleans, unit, vectors,
+pairs/products, duration and double bit patterns; custom value layouts use
+`ColumnCodec` callbacks. 256 fixtures are byte-identical to Rust, with both
+decoders round-tripping and independent framing checks. Decoding validates bounds,
+child counts and UTF-8, and bounds column counts; it currently materializes owned
+columns rather than Rust's zero-copy byte views. This format targets the pinned
+little-endian Rust layout, not a version-independent interchange standard.

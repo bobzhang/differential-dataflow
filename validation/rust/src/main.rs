@@ -1,3 +1,4 @@
+mod columnar_bytes;
 mod chunks;
 mod diagnostics;
 mod probes;
@@ -98,6 +99,7 @@ fn main() {
                 "probes" => probes::evaluate(seed),
                 "diagnostics" => diagnostics::evaluate(seed),
                 "chunks" => chunks::evaluate(seed),
+                "columnar_bytes" => columnar_bytes::evaluate(seed),
                 "feedback" => evaluate_feedback(seed, false),
                 "signed_feedback" => evaluate_feedback(seed, true),
                 "iteration" => evaluate_iteration(seed),
