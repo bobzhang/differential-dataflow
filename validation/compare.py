@@ -24,6 +24,8 @@ from envelope_compare import compare as compare_envelopes
 compare_envelopes(build=False)
 from diagnostics_compare import compare as compare_diagnostics
 compare_diagnostics(build=False)
+from chunks_compare import compare as compare_chunks
+compare_chunks(build=False)
 probe_inputs = ''.join(f'{seed}\n' for seed in range(1,65))
 rust = run(['validation/rust/target/release/differential-reference-check', 'probes'], input=probe_inputs, capture_output=True).stdout.splitlines()
 moon = run(['node', 'validation/run.cjs', 'probes'], input=probe_inputs, capture_output=True).stdout.splitlines()
@@ -585,6 +587,7 @@ summary = {
     'search_checks': ['shared forward and reversed indexes', 'bidirectional shortest paths', 'goal multiplicities', 'sequential neighbor updates', 'edge and goal retractions', 'independent BFS and ordered node evaluation'],
     'cancelled_nested_dataflows': 1024,
     'example_epochs': 384,
+    'columnar_chunk_snapshots': 11264,
     'diagnostic_accounting_snapshots': 1600,
     'shared_probe_progress_snapshots': 896,
     'external_trace_reduction_epochs': 768,

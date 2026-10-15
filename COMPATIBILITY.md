@@ -73,8 +73,10 @@ times across two nested scopes. Trace imports use the same retained views.
 Arranged joins reuse shared sorted batch indexes with binary key lookup; collection
 joins retain private keyed histories. Arranged reductions read shared key ranges and retain output corrections separately.
 Arranged joins now expose a per-activation fuel budget and retain immutable views
-for unfinished work. Full trace layouts, columnar chunk transducers and bounded
-computation for the remaining operator families remain unfinished. Capture/replay supports nonblocking writer retries, explicit commit completion, cancellation,
+for unfinished work. The four-level columnar trie, streaming construction, partial merge, suffix,
+split/meld and frontier extraction operations are implemented. Rust columnar byte
+layouts, specialized chunk-channel containers and bounded computation for the
+remaining operator families remain unfinished. Capture/replay supports nonblocking writer retries, explicit commit completion, cancellation,
 and bounded activated sources. POSIX capture journals persist versioned checksummed frames and can replay complete
 prefixes after interruption; missing terminal progress keeps replay incomplete.
 Creation is exclusive and append calls fsync; automatic crashed-writer resumption
@@ -127,3 +129,13 @@ Pending record counts and reader shares are exact. Optional byte, capacity and
 allocation fields remain `None` on managed backends rather than reporting invented
 measurements. Event variants use descriptive names (`BatchCreated`, `MergeProgress`,
 `BatchDropped`, `BatcherSize`) to avoid MoonBit constructor namespace collisions.
+
+Columnar chunks use immutable `ColumnLists` and `UpdatesTyped` snapshots. Raw
+four-level layouts support repeated and empty groups; canonical construction
+streams sorted updates into columns. `merge_pair` returns the consumed prefix and
+at most one suffix, removing cancellations immediately (upstream `merge_pair`
+followed by `filter_zero`). Splitting and extraction copy selected column ranges
+without building row arrays; meld streams leaves without flattening whole chunks.
+Columnar arrangements now seal through this builder directly. 11,264 snapshots
+across 1,024 randomized chunk cases match upstream's experimental columnar code
+and independent sorted-multiset recomputation, including incomparable frontiers.

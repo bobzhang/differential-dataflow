@@ -1,3 +1,4 @@
+mod chunks;
 mod diagnostics;
 mod probes;
 mod envelopes;
@@ -96,6 +97,7 @@ fn main() {
                 "envelopes" => envelopes::evaluate(seed),
                 "probes" => probes::evaluate(seed),
                 "diagnostics" => diagnostics::evaluate(seed),
+                "chunks" => chunks::evaluate(seed),
                 "feedback" => evaluate_feedback(seed, false),
                 "signed_feedback" => evaluate_feedback(seed, true),
                 "iteration" => evaluate_iteration(seed),

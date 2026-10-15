@@ -494,3 +494,9 @@ from your host event loop. Trace events include sealed batch sizes, merge
 start/completion, retained-batch release, pending record deltas and reader shares.
 Supply a monotone clock to the logger; managed-memory byte counts are reported as
 unavailable rather than estimated.
+
+`UpdatesTyped` exposes columnar key/value/time/difference tries independently of
+trace batches. It supports raw grouped columns, streaming consolidation, partial
+merges, split/meld, and frontier extraction. Canonical chunks become immutable
+indexed batches without flattening through `chunk.batch(description)`; they work
+with the same trace, cursor, import and spill APIs.

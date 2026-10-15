@@ -76,8 +76,13 @@ pub fn[K : Compare, V : Compare, T : Lattice, R : Semigroup] Collection::arrange
           pending.val = retained
           let lower = writer.upper()
           if lower.elements != frontier.elements {
-            let batch = Batch(ready, lower~, upper=frontier)
-            let batch = if columnar { batch.columnar().batch() } else { batch }
+            let batch = if columnar {
+              UpdatesTyped::form_unsorted(
+                ready.iter().map(fn(row) { (row.0.0, row.0.1, row.1, row.2) }),
+              ).batch(Description(lower, frontier, lower))
+            } else {
+              Batch(ready, lower~, upper=frontier)
+            }
             let batch = match spill {
               Some(policy) => batch.spill(policy)
               None => batch

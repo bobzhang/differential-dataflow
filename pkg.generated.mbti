@@ -15,6 +15,8 @@ pub fn[D : Compare, R : Semigroup] consolidate(Array[(D, R)]) -> Array[(D, R)]
 
 pub fn[D : Compare, T : Compare, R : Semigroup] consolidate_updates(Array[(D, T, R)]) -> Array[(D, T, R)]
 
+pub fn[K, V, T : Lattice, R] extract_update_chunks(Iter[UpdatesTyped[K, V, T, R]], Antichain[T], Antichain[T], ship~ : (UpdatesTyped[K, V, T, R]) -> Unit, kept~ : (UpdatesTyped[K, V, T, R]) -> Unit) -> Unit
+
 pub fn[T : RustHash] rust_hash(T) -> UInt64
 
 pub fn[A, B, S, X, Y] scale_pair((A, B), S, first~ : (A, S) -> X, second~ : (B, S) -> Y) -> (X, Y)
@@ -311,12 +313,25 @@ pub(all) enum CollectionEvent[D, T, R] {
   Frontier(Antichain[T])
 }
 
+pub struct ColumnLists[A] {
+  // private fields
+}
+pub fn[A] ColumnLists::ColumnLists(Array[A], Array[Int]) -> Self[A]
+pub fn[A] ColumnLists::bounds(Self[A], Int) -> (Int, Int)
+pub fn[A] ColumnLists::get(Self[A], Int) -> A
+pub fn[A] ColumnLists::length(Self[A]) -> Int
+pub fn[A] ColumnLists::offsets(Self[A]) -> Array[Int]
+pub fn[A] ColumnLists::retain_items(Self[A], Array[Bool]) -> (Self[A], Array[Bool])
+pub fn[A] ColumnLists::value_count(Self[A]) -> Int
+pub fn[A] ColumnLists::values(Self[A]) -> Array[A]
+
 pub struct ColumnarBatch[K, V, T, R] {
   // private fields
 }
 pub fn[K : Compare, V : Compare, T : Lattice, R : Semigroup] ColumnarBatch::ColumnarBatch(Array[((K, V), T, R)], lower~ : Antichain[T], upper~ : Antichain[T]) -> Self[K, V, T, R]
 pub fn[K : Eq, V : Eq, T, R] ColumnarBatch::batch(Self[K, V, T, R]) -> Batch[(K, V), T, R]
 pub fn[K, V, T, R] ColumnarBatch::storage_counts(Self[K, V, T, R]) -> (Int, Int, Int)
+pub fn[K, V, T, R] ColumnarBatch::updates(Self[K, V, T, R]) -> UpdatesTyped[K, V, T, R]
 
 pub struct Cursor[K, V, T, R] {
   // private fields
@@ -1017,6 +1032,35 @@ pub impl RustHash for UInt128
 pub impl Semigroup for UInt128
 pub impl Timestamp for UInt128
 pub impl TotalOrder for UInt128
+
+pub struct UpdatesBuilder[K, V, T, R] {
+  // private fields
+}
+pub fn[K, V, T, R] UpdatesBuilder::UpdatesBuilder() -> Self[K, V, T, R]
+pub fn[K, V, T, R] UpdatesBuilder::done(Self[K, V, T, R]) -> UpdatesTyped[K, V, T, R]
+pub fn[K : Compare, V : Compare, T : Compare, R : Semigroup] UpdatesBuilder::meld(Self[K, V, T, R], UpdatesTyped[K, V, T, R]) -> Unit
+pub fn[K : Compare, V : Compare, T : Compare, R : Semigroup] UpdatesBuilder::push(Self[K, V, T, R], (K, V, T, R)) -> Unit
+
+pub struct UpdatesTyped[K, V, T, R] {
+  // private fields
+}
+pub fn[K, V, T, R] UpdatesTyped::UpdatesTyped(Array[(K, V, T, R)]) -> Self[K, V, T, R]
+pub fn[K : Eq, V : Eq, T : Lattice, R] UpdatesTyped::batch(Self[K, V, T, R], Description[T]) -> Batch[(K, V), T, R]
+pub fn[K, V, T, R] UpdatesTyped::columns(Self[K, V, T, R]) -> (ColumnLists[K], ColumnLists[V], ColumnLists[T], ColumnLists[R])
+pub fn[K : Compare, V : Compare, T : Compare, R : Semigroup] UpdatesTyped::consolidate(Self[K, V, T, R]) -> Self[K, V, T, R]
+pub fn[K, V, T : Lattice, R] UpdatesTyped::extract(Self[K, V, T, R], Antichain[T]) -> (Self[K, V, T, R], Self[K, V, T, R], Antichain[T])
+pub fn[K, V, T, R] UpdatesTyped::filter_zero(Self[K, V, T, R]) -> Self[K, V, T, R]
+pub fn[K : Compare, V : Compare, T : Compare, R : Semigroup] UpdatesTyped::form(Iter[(K, V, T, R)]) -> Self[K, V, T, R]
+pub fn[K : Compare, V : Compare, T : Compare, R : Semigroup] UpdatesTyped::form_unsorted(Iter[(K, V, T, R)]) -> Self[K, V, T, R]
+pub fn[K, V, T, R] UpdatesTyped::from_columns(ColumnLists[K], ColumnLists[V], ColumnLists[T], ColumnLists[R]) -> Self[K, V, T, R]
+pub fn[K, V, T, R] UpdatesTyped::is_empty(Self[K, V, T, R]) -> Bool
+pub fn[K, V, T, R] UpdatesTyped::iter(Self[K, V, T, R]) -> Iter[(K, V, T, R)]
+pub fn[K, V, T, R] UpdatesTyped::length(Self[K, V, T, R]) -> Int
+pub fn[K : Compare, V : Compare, T : Compare, R : Semigroup] UpdatesTyped::merge_pair(Self[K, V, T, R], Self[K, V, T, R]) -> (Self[K, V, T, R], Self[K, V, T, R]?, Self[K, V, T, R]?)
+pub fn[K, V, T, R] UpdatesTyped::split_at(Self[K, V, T, R], Int) -> (Self[K, V, T, R], Self[K, V, T, R])
+pub fn[K, V, T, R] UpdatesTyped::suffix_chunk(Self[K, V, T, R], (Int, Int, Int)) -> Self[K, V, T, R]
+pub fn[K, V, T, R] UpdatesTyped::times_bounds(Self[K, V, T, R], Int, Int) -> (Int, Int)
+pub fn[K, V, T, R] UpdatesTyped::vals_bounds(Self[K, V, T, R], Int, Int) -> (Int, Int)
 
 pub struct Variable[D, T, R, S] {
   // private fields
