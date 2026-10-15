@@ -66,3 +66,57 @@ test "panic negative spill budget" {
     codec=@differential.WireCodec::json(),
   )
 }
+
+///|
+test "binary columnar spill stores real Rust-format pages and preserves merge views" {
+  let stored = []
+  let loads = Ref(0)
+  let codec = @differential.ColumnarCodec(
+    @differential.ColumnCodec::int32(),
+    @differential.ColumnCodec::int32(),
+    @differential.ColumnCodec::uint64(),
+    @differential.ColumnCodec::int64(),
+  )
+  let policy = codec.spill_policy(
+    3L,
+    chunk_size=3,
+    store=BytesStore(fn(bytes) {
+      stored.push(bytes)
+      BytesSource(fn() {
+        loads.val += 1
+        bytes
+      })
+    }),
+  )
+  let batch = @differential.ColumnarBatch(
+    Array::makei(10, fn(i) { ((i / 3, i % 3), 0UL, i.to_int64() + 1L) }),
+    lower=Antichain([0UL]),
+    upper=Antichain([1UL]),
+  ).batch()
+  let paged = batch.spill(policy)
+  assert_eq((stored.length(), loads.val), (3, 0))
+  assert_eq(policy.stats().resident_records, 3L)
+  assert_eq(policy.stats().spilled_records, 7L)
+  let decoded = []
+  for bytes in stored {
+    let trie = codec.decode(bytes[:]).unwrap()
+    for (k, v, t, r) in trie.iter() {
+      decoded.push(((k, v), t, r))
+    }
+    assert_eq(codec.encode(trie), bytes)
+  }
+  assert_eq(decoded, batch.to_array()[3:].to_owned())
+  assert_eq(loads.val, 0)
+  let view = paged.view()
+  assert_eq(view.get(6), Some(((2, 0), 0UL, 7L)))
+  assert_eq(loads.val, 1)
+  assert_eq(view.get(7), Some(((2, 1), 0UL, 8L)))
+  assert_eq(loads.val, 1)
+  let old = view.cursor()
+  old.seek_key(2)
+  assert_eq(old.times(), [(0UL, 7L)])
+  let compacted = paged.compact(Antichain([5UL]))
+  assert_eq(compacted.to_array(), batch.compact(Antichain([5UL])).to_array())
+  assert_eq(old.times(), [(0UL, 7L)])
+  assert_true(policy.stats().fetched_chunks > 0L)
+}

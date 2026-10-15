@@ -18,10 +18,14 @@ fn spines_case(
 ) -> String {
   let spill : @differential.SpillPolicy[(Int32, Int32), Int64, Int64]? = if spilled {
     Some(
-      SpillPolicy(
+      @differential.ColumnarCodec(
+        @differential.ColumnCodec::int32(),
+        @differential.ColumnCodec::int32(),
+        @differential.ColumnCodec::int64(),
+        @differential.ColumnCodec::int64(),
+      ).spill_policy(
         0L,
         store=BytesStore(fn(bytes) { BytesSource(fn() { bytes }) }),
-        codec=@differential.WireCodec::json(),
         chunk_size=3,
       ),
     )

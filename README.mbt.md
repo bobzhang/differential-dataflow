@@ -506,3 +506,8 @@ time, difference)` from `ColumnCodec` schemas. Its encoding matches the pinned
 Rust `Updates<U>` representation byte for byte; decoding returns a validated
 owned trie. Schemas compose for products, pairs, vectors, strings and other
 standard types, or can be supplied for application-specific column layouts.
+
+Use `columnar_codec.spill_policy(budget, store=..., chunk_size=...)` to page
+arrangement storage in the same Rust columnar format. `SpillPolicy.binary` accepts
+other application-defined byte formats; the existing JSON constructor remains
+available. Both policies preserve lazy page loading and checksum validation.

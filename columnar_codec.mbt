@@ -487,3 +487,34 @@ pub fn ColumnCodec::int16() -> ColumnCodec[Int16] {
     fn(v) { Some(Int16::from_int(v.to_int())) },
   )
 }
+
+///|
+/// Page trace batches using the exact Rust columnar Updates<U> encoding. The
+/// policy keeps the same high-water budget and one-page-per-reader cache.
+pub fn[K : Compare, V : Compare, T : Compare, R : Semigroup] ColumnarCodec::spill_policy(
+  self : ColumnarCodec[K, V, T, R],
+  budget_records : Int64,
+  store~ : BytesStore,
+  chunk_size~ : Int32 = 8192,
+) -> SpillPolicy[(K, V), T, R] {
+  SpillPolicy::binary(
+    budget_records,
+    store~,
+    chunk_size~,
+    encode=fn(rows) {
+      self.encode(
+        UpdatesTyped::form(
+          rows.iter().map(fn(row) { (row.0.0, row.0.1, row.1, row.2) }),
+        ),
+      )
+    },
+    decode=fn(bytes) {
+      guard self.decode(bytes, max_values=chunk_size) is Some(trie) else {
+        return None
+      }
+      Some(
+        trie.iter().map(fn(row) { ((row.0, row.1), row.2, row.3) }).to_array(),
+      )
+    },
+  )
+}

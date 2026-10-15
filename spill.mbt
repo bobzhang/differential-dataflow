@@ -53,7 +53,8 @@ pub struct SpillPolicy[D, T, R] {
   priv budget : Int64
   priv chunk_size : Int32
   priv store : BytesStore
-  priv codec : WireCodec[Array[(D, T, R)]]
+  priv encode : (Array[(D, T, R)]) -> Bytes
+  priv decode : (BytesView) -> Array[(D, T, R)]?
   priv mut resident : Int64
   priv mut spilled_chunks : Int64
   priv mut spilled_records : Int64
@@ -68,6 +69,29 @@ pub fn[D, T, R] SpillPolicy::SpillPolicy(
   codec~ : WireCodec[Array[(D, T, R)]],
   chunk_size~ : Int32 = 8192,
 ) -> SpillPolicy[D, T, R] {
+  SpillPolicy::binary(
+    budget_records,
+    store~,
+    chunk_size~,
+    encode=fn(rows) { @utf8.encode((codec.encode)(rows).stringify()) },
+    decode=fn(bytes) {
+      let text = @utf8.decode(bytes) catch { _ => return None }
+      let json = @json.parse(text) catch { _ => return None }
+      (codec.decode)(json)
+    },
+  )
+}
+
+///|
+/// Install an application-selected binary page codec. Encode/decode must preserve
+/// sorted consolidated updates exactly; paging still validates length/checksum.
+pub fn[D, T, R] SpillPolicy::binary(
+  budget_records : Int64,
+  store~ : BytesStore,
+  encode~ : (Array[(D, T, R)]) -> Bytes,
+  decode~ : (BytesView) -> Array[(D, T, R)]?,
+  chunk_size~ : Int32 = 8192,
+) -> SpillPolicy[D, T, R] {
   guard budget_records >= 0 && chunk_size > 0 else {
     abort("invalid spill budget or chunk size")
   }
@@ -75,7 +99,8 @@ pub fn[D, T, R] SpillPolicy::SpillPolicy(
     budget: budget_records,
     chunk_size,
     store,
-    codec,
+    encode,
+    decode,
     resident: 0L,
     spilled_chunks: 0L,
     spilled_records: 0L,
@@ -122,7 +147,7 @@ fn[D, T, R] SpillPolicy::pack(
       let storage = resident_pack(chunk)
       pages.push(fn() { storage.reader() })
     } else {
-      let bytes = @utf8.encode((self.codec.encode)(chunk).stringify())
+      let bytes = (self.encode)(chunk)
       let checksum = spill_checksum(bytes)
       let byte_length = bytes.length()
       let source = self.store.store(bytes)
@@ -134,15 +159,7 @@ fn[D, T, R] SpillPolicy::pack(
         guard bytes.length() == byte_length && spill_checksum(bytes) == checksum else {
           abort("spill store payload changed")
         }
-        let json = @json.parse(
-          @utf8.decode(bytes) catch {
-            _ => abort("spill page is not UTF-8")
-          },
-        ) catch {
-          _ => abort("spill page is not JSON")
-        }
-        guard (self.codec.decode)(json) is Some(chunk) &&
-          chunk.length() == length else {
+        guard (self.decode)(bytes[:]) is Some(chunk) && chunk.length() == length else {
           abort("spill page decoding failed")
         }
         self.fetched_chunks += 1

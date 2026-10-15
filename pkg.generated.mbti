@@ -362,6 +362,7 @@ pub struct ColumnarCodec[K, V, T, R] {
 pub fn[K, V, T, R] ColumnarCodec::ColumnarCodec(ColumnCodec[K], ColumnCodec[V], ColumnCodec[T], ColumnCodec[R]) -> Self[K, V, T, R]
 pub fn[K, V, T, R] ColumnarCodec::decode(Self[K, V, T, R], BytesView, max_values? : Int) -> UpdatesTyped[K, V, T, R]?
 pub fn[K, V, T, R] ColumnarCodec::encode(Self[K, V, T, R], UpdatesTyped[K, V, T, R]) -> Bytes
+pub fn[K : Compare, V : Compare, T : Compare, R : Semigroup] ColumnarCodec::spill_policy(Self[K, V, T, R], Int64, store~ : BytesStore, chunk_size? : Int) -> SpillPolicy[(K, V), T, R]
 
 pub struct Cursor[K, V, T, R] {
   // private fields
@@ -876,6 +877,7 @@ pub struct SpillPolicy[D, T, R] {
   // private fields
 }
 pub fn[D, T, R] SpillPolicy::SpillPolicy(Int64, store~ : BytesStore, codec~ : WireCodec[Array[(D, T, R)]], chunk_size? : Int) -> Self[D, T, R]
+pub fn[D, T, R] SpillPolicy::binary(Int64, store~ : BytesStore, encode~ : (Array[(D, T, R)]) -> Bytes, decode~ : (BytesView) -> Array[(D, T, R)]?, chunk_size? : Int) -> Self[D, T, R]
 pub fn[D, T, R] SpillPolicy::stats(Self[D, T, R]) -> SpillStats
 
 pub(all) struct SpillStats {

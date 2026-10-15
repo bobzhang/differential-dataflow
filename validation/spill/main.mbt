@@ -2,12 +2,12 @@
 fn main {
   for _ in 0..<4 {
     let file = @spill_file.SpillFile()
-    let policy : @differential.SpillPolicy[(Int32, Int32), Int64, Int64] = SpillPolicy(
-      8L,
-      store=file.store(),
-      codec=@differential.WireCodec::json(),
-      chunk_size=8,
-    )
+    let policy : @differential.SpillPolicy[(Int32, Int32), Int64, Int64] = @differential.ColumnarCodec(
+      @differential.ColumnCodec::int32(),
+      @differential.ColumnCodec::int32(),
+      @differential.ColumnCodec::int64(),
+      @differential.ColumnCodec::int64(),
+    ).spill_policy(8L, store=file.store(), chunk_size=8)
     let spine : @differential.Spine[(Int32, Int32), Int64, Int64] = Spine(0L)
     let expected : Map[(Int32, Int32), Int64] = Map([])
     let mut random = 42U
