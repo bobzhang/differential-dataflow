@@ -36,6 +36,29 @@ pub fn[D : Compare, T : Lattice, R : Semigroup] Batch::compact(Self[D, T, R], An
 pub fn[D, T, R] Batch::description(Self[D, T, R]) -> Description[T]
 pub fn[D, T, R] Batch::to_array(Self[D, T, R]) -> Array[(D, T, R)]
 
+pub struct Capability[T, S] {
+  // private fields
+}
+pub fn[T : Lattice, S] Capability::clone(Self[T, S]) -> Self[T, S]
+pub fn[T : Lattice, S] Capability::delayed(Self[T, S], T) -> Self[T, S]
+pub fn[T : Lattice, S] Capability::downgrade(Self[T, S], T) -> Unit
+pub fn[T, S] Capability::is_live(Self[T, S]) -> Bool
+pub fn[T : Lattice, S] Capability::release(Self[T, S]) -> Unit
+pub fn[T, S] Capability::time(Self[T, S]) -> T
+pub fn[T : Lattice, S] Capability::try_delayed(Self[T, S], T) -> Self[T, S]?
+pub fn[T : Lattice, S] Capability::try_downgrade(Self[T, S], T) -> Bool
+pub fn[T, S] Capability::valid_for(Self[T, S], ProgressTracker[T, S], Int) -> Bool
+
+pub struct CapabilitySet[T, S] {
+  // private fields
+}
+pub fn[T : Lattice, S] CapabilitySet::CapabilitySet(Capability[T, S]) -> Self[T, S]
+pub fn[T : Lattice, S] CapabilitySet::insert(Self[T, S], Capability[T, S]) -> Unit
+pub fn[T : Lattice, S] CapabilitySet::release(Self[T, S]) -> Unit
+pub fn[T : Lattice, S] CapabilitySet::times(Self[T, S]) -> Array[T]
+pub fn[T : Lattice, S] CapabilitySet::try_delayed(Self[T, S], T) -> Capability[T, S]?
+pub fn[T : Lattice, S] CapabilitySet::try_downgrade(Self[T, S], Array[T]) -> Bool
+
 pub struct ChangeBatch[T] {
   // private fields
 }
@@ -165,6 +188,7 @@ pub struct ProgressTracker[T, S] {
   // private fields
 }
 pub fn[T : Lattice, S] ProgressTracker::ProgressTracker(Reachability[T, S]) -> Self[T, S]
+pub fn[T : Lattice, S] ProgressTracker::capability(Self[T, S], Int, T) -> Capability[T, S]
 pub fn[T : Lattice, S] ProgressTracker::frontier(Self[T, S], Int) -> Antichain[T]
 pub fn[T : Lattice, S] ProgressTracker::propagate(Self[T, S]) -> Array[(Int, T, Int64)]
 pub fn[T : Lattice, S] ProgressTracker::update(Self[T, S], Int, T, Int64) -> Unit
