@@ -15,14 +15,14 @@ until resolved. A small core port does not satisfy this target.
 | Difference algebra | Partial | All integer widths, Wrapping signed adapters, Present, singleton/tuple arities through four and VectorDiff; explicit multiplication callbacks adapt associated output types; tuple scaling conveniences remain |
 | Sealed traces | Initial implementation | Snapshots, compaction, closure, exact-cut cursors, empty-interval traversal and lazy entered/frontier-filtered trace views with independent reader pins; not all upstream trace interfaces/layouts |
 | Buffered input | Implemented callback and worker integration | Explicit close replaces Rust Drop |
-| Worker scheduling | Cooperative workers | Counted scopes, local/timed activators with explicit monotonic host clock, activation deduplication, re-entry guards, bounded queues, disposal tests; 8,192 activation rounds match Rust |
+| Worker scheduling | Cooperative workers | Counted scopes, local/timed activators with explicit monotonic host clock, activation deduplication, re-entry guards, bounded queues, disposal tests; 8,192 activation rounds match Rust; fresh scopes and live trace queries can be added between runs |
 | Unary and binary collection operators | Implemented baseline | Map/filter/flat-map/explode/negate/concat/consolidate and weighted join family |
 | Live weighted joins | Shared indexed arrangements and collection joins | 1,024 Rust epochs in four runtime variants, including twice-entered shared indexes; shared-reader lifetime and self-join tests |
 | Reduce/count/threshold/distinct | Arbitrary-frontier compaction | 768 streamed Rust antichain epochs for collections, arrangements and entered views; 20,000 total-order and 5,000 incomparable-frontier retention epochs; unchanged keys cache pending corrections |
 | Shared arrangements/imports/lookups/upsert | Implemented baseline | 1,024 Rust reader-compaction epochs, 8,192 Rust upsert records; live imports, deferred lookups, shared indexed joins and reductions tested |
 | General operator builders/notifications/capabilities | Heterogeneous builders implemented | Multiple input/output types, summary-aware connectivity, borrowed input capabilities, notifications, local activators, build_reschedule and automatic callback retirement; 6,144 lifecycle rounds match Rust resource-lifetime behavior; thread-safe activators and broader scheduling interfaces remain |
 | Nested scopes and iteration | Product nesting, custom refinements and identity regions implemented | 256 Rust feedback epochs and 256 cyclic graph fixed-point epochs; nested feedback cycles tested locally and across processes; 256 Rust epochs with signed-summary edges in advancing cycles |
-| Multi-worker/distributed runtime | Cooperative groups and TCP process clusters | Globally counted serialized exchange and nested iteration tested in two and three native processes; shared-memory parallel threads and asynchronous transport scheduling remain |
+| Multi-worker/distributed runtime | Cooperative groups and TCP process clusters | Globally counted serialized exchange and nested iteration tested in two and three native processes; 144 repeated nested-dataflow epochs across two/three processes; shared-memory parallel threads and asynchronous transport scheduling remain |
 | Columnar/spilling/fueled trace variants | Fueled spine and resident columnar arrangements implemented | 1,024 partial-order batching epochs and 2,048 fueled spine epochs match Rust; columnar storage also checked against upstream columnar spines, 16,384 cursor steps, 1,024 nested join and 768 partial-order reduction epochs; trie-native chunk transducers, spilling and columnar binary codecs remain |
 | Capture/replay, logging, diagnostics | Partial | Capture protocol and reordering iterator match Rust in 256 cases; async durable sources/sinks, distributed replay, logging and diagnostics remain |
 | Graph and auxiliary algorithms | BFS, label propagation and SCC edges | 192 dynamic graph epochs against Rust and independent BFS/transitive closure, including duplicate edges and scheduled labels; generic Ring weights tested; arranged graph APIs reuse shared indexes across feedback; bidijkstra and sequential updates match 192 Rust epochs; prefix aggregate/broadcast match 192 Rust epochs; identifiers match 384 collision/retraction epochs |
@@ -74,3 +74,8 @@ Rust Drop semantics; APIs document ownership transfers and borrowed capabilities
 The pinned Rust spine rejects noncontiguous and zero-width insertions, despite
 the generic Trace trait documentation describing automatic gap filling. The port
 follows the pinned implementation: callers explicitly seal empty intervals.
+
+Dynamic scopes preserve existing graph immutability. Completed built-in dataflow
+tasks and topology metadata currently remain until worker disposal; automatic
+whole-dataflow reclamation is still pending. Custom operator callbacks retire
+independently once their completion conditions hold.

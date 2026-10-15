@@ -74,6 +74,21 @@ for seed, r, m in zip(cursor_seeds, rust, moon):
     last = max(seed % 24, (seed // 3) % 24)
     expected = ';'.join(f'{int(i <= last)},{int(i >= last)}' for i in range(48))
     assert r == m == expected, f'operator lifecycle differs seed={seed}'
+dynamic_seeds = range(1, 33)
+dynamic_inputs = ''.join(f'{seed}\n' for seed in dynamic_seeds)
+rust = run(['validation/rust/target/release/differential-reference-check', 'dynamic'], input=dynamic_inputs, capture_output=True).stdout.splitlines()
+moon = run(['node', 'validation/run.cjs', 'dynamic'], input=dynamic_inputs, capture_output=True).stdout.splitlines()
+assert len(rust) == len(moon) == len(dynamic_seeds)
+for seed, r, m in zip(dynamic_seeds, rust, moon):
+    state, counts, expected = seed, {}, []
+    for epoch in range(16):
+        for _ in range(6):
+            state = (state * 1664525 + 1013904223) & 0xffffffff
+            index = (state >> 8) % 16
+            key = (index // 4, index % 4)
+            counts[key] = counts.get(key, 0) + state % 5 - 2
+        expected.append('|'.join(';'.join(f'{k},{v+query},{weight}' for (k,v),weight in sorted(counts.items()) if weight) for query in range(epoch+1)))
+    assert r == m == '/'.join(expected), f'dynamic trace imports differ seed={seed}'
 seeds = range(1,257)
 inputs = ''.join(f'{s}\n' for s in seeds)
 rust = run(['validation/rust/target/release/differential-reference-check'],input=inputs,capture_output=True).stdout.splitlines()
@@ -446,6 +461,8 @@ for seed, r, m in zip(search_seeds, rust, moon):
 summary = {
     'references': pins,
     'columnar_checks': ['16384 cursor steps', '1024 partial-order batch epochs', '2048 fueled spine epochs', '1024 nested join epochs', '768 partial-order reduction epochs'], 'activation_rounds': len(cursor_seeds) * 64,
+    'dynamic_dataflows': len(dynamic_seeds) * 16,
+    'dynamic_import_snapshots': len(dynamic_seeds) * 136,
     'operator_lifecycle_rounds': len(cursor_seeds) * 48,
     'activation_checks': ['coalesced external wakeups', 'zero-delay timers', 'independent scheduling model'],
     'spine_epochs': len(spine_seeds) * 32,

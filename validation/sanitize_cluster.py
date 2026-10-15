@@ -41,6 +41,7 @@ def main():
     subprocess.run([str(lifetime_output)], cwd=ROOT, check=True)
     for peers in (2, 3):
         assert cluster_compare.run_peers(42, peers) == cluster_compare.independent(42)
+        assert cluster_compare.run_peers(42, peers, 'dynamic_iteration') == '/'.join(cluster_compare.reachable(42 + i) for i in range(3))
         for mode in ('iteration', 'deep_iteration'):
             assert cluster_compare.run_peers(42, peers, mode) == cluster_compare.reachable(42)
     transport_failures.main()

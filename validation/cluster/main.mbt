@@ -30,6 +30,14 @@ fn main raise {
     transport.exchange(value)
   })
   defer cluster.dispose()
+  if mode == "dynamic_iteration" {
+    let results = []
+    for offset in 0..<3 {
+      results.push(iteration(cluster, seed + offset, deep=true))
+    }
+    println(results.join("/"))
+    return
+  }
   if mode == "iteration" || mode == "deep_iteration" {
     println(iteration(cluster, seed, deep=mode == "deep_iteration"))
     return

@@ -11,7 +11,7 @@ BIN = ROOT / '_build/native/release/build/validation/cluster/cluster.exe'
 
 
 def run_peers(seed, peers, mode="join"):
-    epochs = 8 if mode in ("iteration", "deep_iteration") else 16
+    epochs = 24 if mode == "dynamic_iteration" else 8 if mode in ("iteration", "deep_iteration") else 16
     with socket.socket() as reserved:
         reserved.bind(('127.0.0.1', 0))
         port = reserved.getsockname()[1]
@@ -110,12 +110,16 @@ def main():
         for seed, expected in zip(seeds, iteration_rust):
             for mode in ('iteration', 'deep_iteration'):
                 assert run_peers(seed, peer_count, mode) == expected == reachable(seed), (seed, peer_count, mode)
+    for peer_count in (2, 3):
+        for seed in (1, 7, 42):
+            expected = '/'.join(reachable(seed + offset) for offset in range(3))
+            assert run_peers(seed, peer_count, 'dynamic_iteration') == expected
     result = {'process_counts': [2, 3], 'seeds': seeds, 'epochs_per_seed': 16,
               'oracles': ['pinned Rust two-worker join', 'independent full weighted join'],
               'checks': ['TCP startup retry', 'keyed exchange', 'shared arrangement joins',
                          'global progress each epoch', 'closure', 'nested product timestamps',
                          'cyclic fixed points', 'two nested feedback loops', 'root retractions', 'independent BFS'],
-              'iteration_epochs_per_seed': 8, 'status': 'passed'}
+              'dynamic_dataflow_epochs': 144, 'iteration_epochs_per_seed': 8, 'status': 'passed'}
     (ROOT / 'validation/cluster_results.json').write_text(json.dumps(result, indent=2) + '\n')
     print(json.dumps(result))
 

@@ -26,6 +26,7 @@
     "root retractions",
     "independent BFS"
   ],
+  "dynamic_dataflow_epochs": 144,
   "iteration_epochs_per_seed": 8,
   "status": "passed"
 }

@@ -118,7 +118,9 @@ test "fixed point updates after a root changes" {
 
 ## Current contracts
 
-Build a worker graph before running it or flushing input. `advance_to()` changes
+Build each scope graph before running the worker or flushing that scope's input.
+Fresh scopes can be created between worker runs, including imports of existing
+live traces; already executed scope graphs remain frozen. `advance_to()` changes
 an input's local timestamp; `flush()` publishes buffered data and progress.
 Call `close()` explicitly to release the input capability. `run()` returning
 `Quiescent` means no operator is currently activated; open inputs can still
@@ -144,7 +146,7 @@ portable contract.
 `WorkerGroup(peers)` coordinates workers in one process with globally counted
 progress and keyed exchange. It executes cooperatively on one thread; it does
 not provide shared-memory parallel threads. Build identical operator
-graphs on each peer, and use `ScopeGroup.exchange` to colocate equal keys before
+graphs on each peer (including newly added scope groups), and use `ScopeGroup.exchange` to colocate equal keys before
 keyed operations. `ScopeGroup.iterate` coordinates nested progress and exchange.
 Dispose the entire group with `group.dispose()`.
 
@@ -153,7 +155,8 @@ Dispose the entire group with `group.dispose()`.
 `DistributedScope.iterate` coordinates nested fixed points across processes.
 The native `transport` package supplies `TcpTransport` for POSIX hosts. All peers
 must build identical graphs, use compatible codecs, and call `run()` with the
-same round bound. Release the worker and close the transport separately. Transport
+same round bound. New scopes must be added in the same order between runs on
+all peers; their graph manifests are checked before processing them. Release the worker and close the transport separately. Transport
 errors terminate the runtime. This currently uses synchronous barriers and its own
 wire protocol. See `validation/cluster` for an executable two-process example.
 

@@ -1,3 +1,4 @@
+mod dynamic;
 mod lifecycle;
 mod columnar;
 mod activators;
@@ -56,6 +57,7 @@ fn main() {
             "{}",
             match mode.as_str() {
                 "columnar_spines" => columnar::evaluate(seed),
+                "dynamic" => dynamic::evaluate(seed),
                 "lifecycle" => lifecycle::evaluate(seed),
                 "activators" => activators::evaluate(seed),
                 "spines" => spines::evaluate(seed),
