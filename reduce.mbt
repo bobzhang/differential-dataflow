@@ -58,12 +58,11 @@ pub fn[
   self : Collection[(K, V), T, R],
   logic : (K, Array[(V, R)]) -> Array[(W, S)],
 ) -> Collection[(K, W), T, S] {
-  let output : Channel[(K, W), T, S] = {
-    scheduler: self.worker.scheduler,
-    subscribers: [],
-    frontier: Antichain(self.channel.frontier.elements),
-  }
-  let input : Mailbox[(K, V), T, R] = { frames: [], task: -1, }
+  let output : Channel[(K, W), T, S] = Channel(
+    self.worker.scheduler,
+    Antichain(self.channel.frontier.val.elements),
+  )
+  let input : Mailbox[(K, V), T, R] = Mailbox()
   let histories : Map[K, Array[(V, T, R)]] = Map([])
   let emitted : Map[K, Array[(W, T, S)]] = Map([])
   input.task = self.worker.register(fn() {

@@ -14,17 +14,14 @@ pub fn[D, T : Lattice, R] Collection::concat(
   other : Collection[D, T, R],
 ) -> Collection[D, T, R] {
   same_worker(self, other)
-  let left_frontier = Ref(Antichain(self.channel.frontier.elements))
-  let right_frontier = Ref(Antichain(other.channel.frontier.elements))
-  let output : Channel[D, T, R] = {
-    scheduler: self.worker.scheduler,
-    subscribers: [],
-    frontier: Antichain(
-      left_frontier.val.elements + right_frontier.val.elements,
-    ),
-  }
-  let left : Mailbox[D, T, R] = { frames: [], task: -1, }
-  let right : Mailbox[D, T, R] = { frames: [], task: -1, }
+  let left_frontier = Ref(Antichain(self.channel.frontier.val.elements))
+  let right_frontier = Ref(Antichain(other.channel.frontier.val.elements))
+  let output : Channel[D, T, R] = Channel(
+    self.worker.scheduler,
+    Antichain(left_frontier.val.elements + right_frontier.val.elements),
+  )
+  let left : Mailbox[D, T, R] = Mailbox()
+  let right : Mailbox[D, T, R] = Mailbox()
   let task = self.worker.register(fn() {
     for frame in left.drain() {
       match frame {
@@ -68,17 +65,14 @@ pub fn[
   multiply~ : (R, S) -> O,
 ) -> Collection[D, T, O] {
   same_worker(self, other)
-  let left_frontier = Ref(Antichain(self.channel.frontier.elements))
-  let right_frontier = Ref(Antichain(other.channel.frontier.elements))
-  let output : Channel[D, T, O] = {
-    scheduler: self.worker.scheduler,
-    subscribers: [],
-    frontier: Antichain(
-      left_frontier.val.elements + right_frontier.val.elements,
-    ),
-  }
-  let left : Mailbox[(K, V), T, R] = { frames: [], task: -1, }
-  let right : Mailbox[(K, W), T, S] = { frames: [], task: -1, }
+  let left_frontier = Ref(Antichain(self.channel.frontier.val.elements))
+  let right_frontier = Ref(Antichain(other.channel.frontier.val.elements))
+  let output : Channel[D, T, O] = Channel(
+    self.worker.scheduler,
+    Antichain(left_frontier.val.elements + right_frontier.val.elements),
+  )
+  let left : Mailbox[(K, V), T, R] = Mailbox()
+  let right : Mailbox[(K, W), T, S] = Mailbox()
   let left_state : Map[K, Array[(V, T, R)]] = Map([])
   let right_state : Map[K, Array[(W, T, S)]] = Map([])
   let task = self.worker.register(fn() {

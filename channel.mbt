@@ -14,7 +14,7 @@ priv struct Mailbox[D, T, R] {
 priv struct Channel[D, T, R] {
   scheduler : Scheduler
   subscribers : Array[Mailbox[D, T, R]]
-  mut frontier : Antichain[T]
+  frontier : Ref[Antichain[T]]
 }
 
 ///|
@@ -24,7 +24,7 @@ fn[D, T : Lattice, R] Channel::data(
 ) -> Unit {
   guard self.scheduler.active else { abort("worker is disposed") }
   for (_, time, _) in updates {
-    guard self.frontier.less_equal(time) else {
+    guard self.frontier.val.less_equal(time) else {
       abort("update precedes channel frontier")
     }
   }
@@ -44,14 +44,14 @@ fn[D, T : Lattice, R] Channel::progress(
   frontier : Antichain[T],
 ) -> Unit {
   guard self.scheduler.active else { abort("worker is disposed") }
-  guard self.frontier.precedes(frontier) else {
+  guard self.frontier.val.precedes(frontier) else {
     abort("channel frontier cannot move backward")
   }
-  if self.frontier.elements == frontier.elements {
+  if self.frontier.val.elements == frontier.elements {
     return
   }
   self.scheduler.started = true
-  self.frontier = Antichain(frontier.elements)
+  self.frontier.val = Antichain(frontier.elements)
   for mailbox in self.subscribers {
     mailbox.frames.push(Progress(Antichain(frontier.elements)))
     self.scheduler.schedule(mailbox.task)
@@ -64,7 +64,7 @@ fn[D, T : Lattice, R] Channel::subscribe(
   mailbox : Mailbox[D, T, R],
 ) -> Unit {
   self.subscribers.push(mailbox)
-  mailbox.frames.push(Progress(Antichain(self.frontier.elements)))
+  mailbox.frames.push(Progress(Antichain(self.frontier.val.elements)))
   self.scheduler.schedule(mailbox.task)
 }
 
@@ -73,4 +73,17 @@ fn[D, T, R] Mailbox::drain(self : Mailbox[D, T, R]) -> Array[Frame[D, T, R]] {
   let frames = self.frames.copy()
   self.frames.clear()
   frames
+}
+
+///|
+fn[D, T : Lattice, R] Channel::Channel(
+  scheduler : Scheduler,
+  frontier : Antichain[T],
+) -> Channel[D, T, R] {
+  { scheduler, subscribers: [], frontier: Ref(Antichain(frontier.elements)), }
+}
+
+///|
+fn[D, T, R] Mailbox::Mailbox() -> Mailbox[D, T, R] {
+  { frames: [], task: -1, }
 }

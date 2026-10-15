@@ -13,11 +13,7 @@ pub fn[D, T : Lattice, R] Worker::input(
   guard self.scheduler.active && !self.scheduler.started else {
     abort("build graph before running or sending input")
   }
-  let channel = {
-    scheduler: self.scheduler,
-    subscribers: [],
-    frontier: Antichain([initial]),
-  }
+  let channel = Channel(self.scheduler, Antichain([initial]))
   let input = InputSession(initial, deliver=fn(data, frontier) {
     channel.data(data)
     channel.progress(frontier)
@@ -30,12 +26,11 @@ pub fn[D, E, T : Lattice, R] Collection::flat_map(
   self : Collection[D, T, R],
   logic : (D) -> Array[E],
 ) -> Collection[E, T, R] {
-  let output : Channel[E, T, R] = {
-    scheduler: self.worker.scheduler,
-    subscribers: [],
-    frontier: Antichain(self.channel.frontier.elements),
-  }
-  let input : Mailbox[D, T, R] = { frames: [], task: -1, }
+  let output : Channel[E, T, R] = Channel(
+    self.worker.scheduler,
+    Antichain(self.channel.frontier.val.elements),
+  )
+  let input : Mailbox[D, T, R] = Mailbox()
   input.task = self.worker.register(fn() {
     for frame in input.drain() {
       match frame {
@@ -85,12 +80,11 @@ pub fn[D, E, T : Lattice, R, S] Collection::explode(
   self : Collection[D, T, R],
   logic : (D) -> Array[(E, (R) -> S)],
 ) -> Collection[E, T, S] {
-  let output : Channel[E, T, S] = {
-    scheduler: self.worker.scheduler,
-    subscribers: [],
-    frontier: Antichain(self.channel.frontier.elements),
-  }
-  let input : Mailbox[D, T, R] = { frames: [], task: -1, }
+  let output : Channel[E, T, S] = Channel(
+    self.worker.scheduler,
+    Antichain(self.channel.frontier.val.elements),
+  )
+  let input : Mailbox[D, T, R] = Mailbox()
   input.task = self.worker.register(fn() {
     for frame in input.drain() {
       match frame {
@@ -115,12 +109,11 @@ pub fn[D, E, T : Lattice, R, S] Collection::explode(
 pub fn[D : Compare, T : Lattice, R : Semigroup] Collection::consolidate(
   self : Collection[D, T, R],
 ) -> Collection[D, T, R] {
-  let output : Channel[D, T, R] = {
-    scheduler: self.worker.scheduler,
-    subscribers: [],
-    frontier: Antichain(self.channel.frontier.elements),
-  }
-  let input : Mailbox[D, T, R] = { frames: [], task: -1, }
+  let output : Channel[D, T, R] = Channel(
+    self.worker.scheduler,
+    Antichain(self.channel.frontier.val.elements),
+  )
+  let input : Mailbox[D, T, R] = Mailbox()
   let pending : Ref[Array[(D, T, R)]] = Ref([])
   input.task = self.worker.register(fn() {
     for frame in input.drain() {
@@ -180,8 +173,8 @@ pub fn[D, T : Lattice, R] Collection::inspect(
   self : Collection[D, T, R],
   logic : (D, T, R) -> Unit,
 ) -> Probe[T] {
-  let state = Ref(Antichain(self.channel.frontier.elements))
-  let input : Mailbox[D, T, R] = { frames: [], task: -1, }
+  let state = Ref(Antichain(self.channel.frontier.val.elements))
+  let input : Mailbox[D, T, R] = Mailbox()
   input.task = self.worker.register(fn() {
     for frame in input.drain() {
       match frame {
