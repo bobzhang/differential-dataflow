@@ -9,7 +9,7 @@ until resolved. A small core port does not satisfy this target.
 
 | Area | Status | Evidence / remaining work |
 | --- | --- | --- |
-| Lattice joins/meets and advance-by | Implemented for Int64 and generic products | Rust differential oracle; complete built-in timestamp family and summaries remain |
+| Lattice joins/meets and advance-by | Implemented for Int64 and generic products | Rust differential oracle; complete built-in timestamp family remains; Int64/product summary domains are implemented |
 | Minimal/counted antichains | Implemented | 10,240 Rust and independent-oracle rounds |
 | Change batches | Implemented | Signed cancellation and frontier tests |
 | Difference algebra | Partial | Int/Int64, Present, custom semigroup/monoid/Abelian traits; remaining built-ins and convenience products remain |
@@ -20,8 +20,8 @@ until resolved. A small core port does not satisfy this target.
 | Live weighted joins | Implemented with keyed histories and compaction | 1,024 Rust epochs plus independent recomputation; reusable arrangements still needed |
 | Reduce/count/threshold/distinct | Reference implementation | Partial-order synthetic-time and snapshot tests; optimized incremental implementation and Rust operator differential checks remain |
 | Shared arrangements/imports/lookups/upsert | Pending | Must preserve trace reader capabilities, compaction, and reuse |
-| General operator builders/notifications/capabilities | Pending | Existing source progress alone is insufficient for arbitrary user operators |
-| Nested scopes and iteration | Pending | Must implement full progress reachability, timestamp summaries, feedback, and nested fixed points |
+| General operator builders/notifications/capabilities | Partial | Standalone counted capabilities and capability sets are tested; worker integration, builders and notifications remain |
+| Nested scopes and iteration | Partial foundations | Cyclic pointstamp reachability and summary composition pass example/randomized tests; integration, scope refinement, feedback and nested fixed points remain |
 | Multi-worker/distributed runtime | Pending | Worker allocation, partitioning/exchange, serialization, TCP transport, distributed progress |
 | Columnar/spilling/fueled trace variants | Pending | No compatibility or performance claim for these layouts |
 | Capture/replay, logging, diagnostics | Pending | Structured probes alone do not cover upstream facilities |

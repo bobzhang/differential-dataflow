@@ -8,6 +8,8 @@ work; [UPSTREAM.md](UPSTREAM.md) pins both reference checkouts.
 The implemented foundations currently run on JavaScript, native, Wasm, and Wasm GC:
 
 - Timestamp lattices, product partial orders, antichains, and counted frontiers.
+- Path-summary composition, cyclic pointstamp reachability, and counted capability
+  handles/sets (not yet integrated into the worker’s nested-scope execution).
 - Signed and presence-only differences and generic update consolidation.
 - Sealed trace batches, logical/physical compaction, and snapshot cursors.
 - Buffered input sessions, a cooperative worker, progress probes, and fanout.
