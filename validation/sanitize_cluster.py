@@ -39,6 +39,12 @@ def main():
     lifetime_command = [str(lifetime_source) if arg == str(sources[0]) else str(lifetime_output) if arg == str(output) else arg for arg in command]
     subprocess.run(lifetime_command, cwd=ROOT, check=True)
     subprocess.run([str(lifetime_output)], cwd=ROOT, check=True)
+    subprocess.run(['moon', 'build', '--target', 'native', '--release', 'validation/spill'], cwd=ROOT, check=True)
+    spill_output = output.with_name('spill.exe')
+    spill_source = ROOT / '_build/native/release/build/validation/spill/spill.c'
+    spill_command = [str(spill_source) if arg == str(sources[0]) else str(ROOT / 'spill_file/file.c') if arg == str(sources[1]) else str(spill_output) if arg == str(output) else arg for arg in command]
+    subprocess.run(spill_command, cwd=ROOT, check=True)
+    subprocess.run([str(spill_output)], cwd=ROOT, check=True)
     for peers in (2, 3):
         assert cluster_compare.run_peers(42, peers) == cluster_compare.independent(42)
         assert cluster_compare.run_peers(42, peers, 'dynamic_iteration') == '/'.join(cluster_compare.reachable(42 + i) for i in range(3))
