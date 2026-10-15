@@ -32,20 +32,23 @@ pub struct TraceAgent[D, T, R] {
 ///|
 pub fn[D, T : Lattice, R] shared_trace(
   minimum : T,
+  logger? : TraceLogger,
 ) -> (TraceWriter[D, T, R], TraceAgent[D, T, R]) {
-  shared_trace_at(Antichain([minimum]))
+  shared_trace_at(Antichain([minimum]), logger?)
 }
 
 ///|
 fn[D, T : Lattice, R] shared_trace_at(
   frontier : Antichain[T],
   fueled~ : Bool = false,
+  logger? : TraceLogger,
 ) -> (TraceWriter[D, T, R], TraceAgent[D, T, R]) {
   guard !frontier.is_empty() else {
     abort("trace requires a nonempty initial frontier")
   }
   let shared : SharedTrace[D, T, R] = {
     trace: {
+      logger,
       batches: [],
       upper: Antichain(frontier.elements),
       logical: Antichain(frontier.elements),
@@ -76,6 +79,9 @@ fn[D, T : Lattice, R] shared_trace_at(
       exert_logic: fn(_) { Some(1024) },
     })
   }
+  if logger is Some(logger) {
+    logger.share(1)
+  }
   ({ shared, }, { shared, id: 0, live: true, })
 }
 
@@ -95,6 +101,9 @@ pub fn[D, T : Lattice, R] TraceAgent::clone(
   self.shared.readers[id] = {
     logical: Antichain(bounds.logical.elements),
     physical: Antichain(bounds.physical.elements),
+  }
+  if self.shared.trace.logger is Some(logger) {
+    logger.share(1)
   }
   { shared: self.shared, id, live: true, }
 }
@@ -128,7 +137,7 @@ fn[D : Compare, T : Lattice, R : Semigroup] SharedTrace::compact(
     if self.spine is Some(spine) {
       spine.merging = None
     }
-    self.trace.batches.clear()
+    self.trace.drop_batches()
   }
 }
 
@@ -139,6 +148,9 @@ pub fn[D : Compare, T : Lattice, R : Semigroup] TraceAgent::release(
   if self.live {
     self.shared.readers.remove(self.id)
     self.live = false
+    if self.shared.trace.logger is Some(logger) {
+      logger.share(-1)
+    }
     self.shared.compact()
   }
 }
@@ -294,8 +306,9 @@ pub fn[K : Compare, V : Compare, T : Lattice, R] TraceAgent::cursor_through(
 /// Shared trace with a fueled spine backend and independently pinned readers.
 pub fn[D, T : Lattice, R] shared_spine(
   minimum : T,
+  logger? : TraceLogger,
 ) -> (TraceWriter[D, T, R], TraceAgent[D, T, R]) {
-  shared_trace_at(Antichain([minimum]), fueled=true)
+  shared_trace_at(Antichain([minimum]), fueled=true, logger?)
 }
 
 ///|

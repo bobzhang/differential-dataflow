@@ -24,7 +24,7 @@ until resolved. A small core port does not satisfy this target.
 | Nested scopes and iteration | Product nesting, custom refinements and identity regions implemented | 256 Rust feedback epochs and 256 cyclic graph fixed-point epochs; nested feedback cycles tested locally and across processes; 256 Rust epochs with signed-summary edges in advancing cycles |
 | Multi-worker/distributed runtime | Cooperative groups and TCP process clusters | Globally counted serialized exchange and nested iteration tested in two and three native processes; 144 repeated nested-dataflow epochs across two/three processes; host-polled nonblocking transport and cluster execution match 784 process epochs; shared-memory parallel threads and decentralized peer scheduling remain |
 | Columnar/spilling/fueled trace variants | Fueled spine, columnar arrangements and pluggable spilling implemented | 1,024 partial-order batching epochs and 2,048 fueled spine epochs match Rust; columnar storage also checked against upstream columnar spines, 16,384 cursor steps, 1,024 nested join and 768 partial-order reduction epochs; 2,048 upstream spilled spine epochs, paged cursors/joins, corruption checks and native disk compaction tests; trie-native chunk transducers and columnar binary codecs remain |
-| Capture/replay, logging, diagnostics | Partial | Capture protocol matches Rust in 256 cases; retryable capture writers and activated replay sources compare with Rust across 1,536 epochs; POSIX capture journals provide fsynced persistence and tailing with 268 truncation and 7 corruption checks; partitioned distributed replay matches upstream three-worker sources across 128 two/three-process epochs; 128 eager-source cases distinguish record availability from sealed progress; logging and diagnostics remain |
+| Capture/replay, logging, diagnostics | Partial | Capture protocol matches Rust in 256 cases; retryable capture writers and activated replay sources compare with Rust across 1,536 epochs; POSIX capture journals provide fsynced persistence and tailing with 268 truncation and 7 corruption checks; partitioned distributed replay matches upstream three-worker sources across 128 two/three-process epochs; 128 eager-source cases distinguish record availability from sealed progress; typed logger registry, batch/merge/drop events, pending-record deltas and reader-share diagnostics are implemented; 1,600 accounting snapshots match Rust; native managed allocator byte metrics and Timely scheduler event instrumentation remain |
 | Runtime-defined iteration scopes | Implemented | Canonical PointStamp coordinates, partial-order lattice, truncating/composed summaries, dynamic enter/leave and distributed codecs; 4,096 Rust/model cases and 512 fixed-point epochs at runtime-selected depths; two/three-process sync and host-polled coverage |
 | Graph and auxiliary algorithms | BFS, label propagation and SCC edges | 192 dynamic graph epochs against Rust and independent BFS/transitive closure, including duplicate edges and scheduled labels; generic Ring weights tested; arranged graph APIs reuse shared indexes across feedback; bidijkstra and sequential updates match 192 Rust epochs; prefix aggregate/broadcast match 192 Rust epochs; identifiers match 384 collision/retraction epochs |
 
@@ -116,3 +116,14 @@ incomparable times, staggered closure and reuse after completion. 896 progress
 snapshots match Rust and an independent model. Collection utilities include
 mutable record mapping, stream concatenation (including an empty source list),
 and consolidated equality/emptiness assertions.
+
+Trace diagnostics use `Logger[DifferentialEvent]` and `Worker.differential_logs()`.
+Register `differential/arrange` before constructing arrangements, then flush at
+host polling boundaries. Logger replacement leaves existing operators attached
+to their original sink. Standalone traces, spines and batchers accept a
+`TraceLogger` and provide explicit disposal. Batch/merge/drop totals describe
+this implementation's storage operations; exact merge schedules differ from Rust.
+Pending record counts and reader shares are exact. Optional byte, capacity and
+allocation fields remain `None` on managed backends rather than reporting invented
+measurements. Event variants use descriptive names (`BatchCreated`, `MergeProgress`,
+`BatchDropped`, `BatcherSize`) to avoid MoonBit constructor namespace collisions.

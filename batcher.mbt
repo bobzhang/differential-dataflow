@@ -2,6 +2,7 @@
 /// Collect updates in geometrically sized sorted chains, then seal intervals at
 /// arbitrary antichain frontiers. The explicit minimum adapts Rust Timestamp.
 pub struct Batcher[D, T, R] {
+  priv logger : TraceLogger?
   priv chains : Array[Array[(D, T, R)]]
   priv minimum : T
   priv mut lower : Antichain[T]
@@ -9,8 +10,12 @@ pub struct Batcher[D, T, R] {
 }
 
 ///|
-pub fn[D, T : Lattice, R] Batcher::Batcher(minimum : T) -> Batcher[D, T, R] {
+pub fn[D, T : Lattice, R] Batcher::Batcher(
+  minimum : T,
+  logger? : TraceLogger,
+) -> Batcher[D, T, R] {
   {
+    logger,
     chains: [],
     minimum,
     lower: Antichain([minimum]),
@@ -30,6 +35,7 @@ pub fn[D : Compare, T : Lattice, R : Semigroup] Batcher::push(
       abort("batcher update precedes sealed frontier")
     }
   }
+  let before = self.record_count()
   let sorted = consolidate_updates(chunk)
   chunk.clear()
   if !sorted.is_empty() {
@@ -46,6 +52,9 @@ pub fn[D : Compare, T : Lattice, R : Semigroup] Batcher::push(
     if !merged.is_empty() {
       self.chains.push(merged)
     }
+  }
+  if self.logger is Some(logger) {
+    logger.batcher(self.record_count() - before)
   }
 }
 
@@ -66,6 +75,7 @@ pub fn[D : Compare, T : Lattice, R : Semigroup] Batcher::seal(
   guard !self.lower.is_empty() && self.lower.precedes(upper) else {
     abort("batcher frontier must advance monotonically")
   }
+  let before = self.record_count()
   while self.chains.length() > 1 {
     let right = self.chains.pop().unwrap()
     let left = self.chains.pop().unwrap()
@@ -89,6 +99,9 @@ pub fn[D : Compare, T : Lattice, R : Semigroup] Batcher::seal(
   let description = Description(self.lower, upper, Antichain([self.minimum]))
   self.lower = Antichain(upper.elements)
   self.retained_frontier = frontier
+  if self.logger is Some(logger) {
+    logger.batcher(self.record_count() - before)
+  }
   (if ready.is_empty() { [] } else { [ready] }, description)
 }
 
@@ -126,4 +139,20 @@ fn[D : Compare, T : Compare, R : Semigroup] merge_update_chains(
     result.push(right[i])
   }
   result
+}
+
+///|
+fn[D, T, R] Batcher::record_count(self : Batcher[D, T, R]) -> Int32 {
+  self.chains.iter().fold(init=0, fn(sum, chain) { sum + chain.length() })
+}
+
+///|
+/// Abandon pending records and release storage without sealing an output batch.
+pub fn[D, T : Lattice, R] Batcher::dispose(self : Batcher[D, T, R]) -> Unit {
+  if self.logger is Some(logger) {
+    logger.batcher(-self.record_count())
+  }
+  self.chains.clear()
+  self.lower = Antichain([])
+  self.retained_frontier = Antichain([])
 }

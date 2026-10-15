@@ -1,6 +1,7 @@
 ///|
 /// Ordered batches with independent logical and physical compaction frontiers.
 pub struct Trace[D, T, R] {
+  priv logger : TraceLogger?
   priv mut batches : Array[Batch[D, T, R]]
   priv mut upper : Antichain[T]
   priv mut logical : Antichain[T]
@@ -8,8 +9,12 @@ pub struct Trace[D, T, R] {
 }
 
 ///|
-pub fn[D, T : Lattice, R] Trace::Trace(minimum : T) -> Trace[D, T, R] {
+pub fn[D, T : Lattice, R] Trace::Trace(
+  minimum : T,
+  logger? : TraceLogger,
+) -> Trace[D, T, R] {
   {
+    logger,
     batches: [],
     upper: Antichain([minimum]),
     logical: Antichain([minimum]),
@@ -30,6 +35,9 @@ pub fn[D, T : Lattice, R] Trace::insert(
     abort("trace batch must advance the frontier")
   }
   self.batches.push(batch)
+  if self.logger is Some(logger) {
+    logger.batch(batch.length())
+  }
   self.upper = batch.description.upper()
 }
 
@@ -65,7 +73,12 @@ pub fn[D : Compare, T : Lattice, R : Semigroup] Trace::set_logical_compaction(
   for index, batch in self.batches {
     // A newly sealed batch can begin later than the requested frontier.
     let since = batch.description.since.join(frontier)
-    self.batches[index] = batch.compact(since)
+    let compacted = batch.compact(since)
+    if compacted.length() != batch.length() && self.logger is Some(logger) {
+      logger.merge(batch.length(), 0, None)
+      logger.merge(batch.length(), 0, Some(compacted.length()))
+    }
+    self.batches[index] = compacted
   }
 }
 
@@ -94,6 +107,9 @@ pub fn[D : Compare, T : Lattice, R : Semigroup] Trace::set_physical_compaction(
             previous.description.since.elements +
             batch.description.since.elements,
           )
+          if self.logger is Some(logger) {
+            logger.merge(previous.length(), batch.length(), None)
+          }
           pending = Some({
             updates: previous.updates.merge_packer(batch.updates)(
               consolidate_updates(combined),
@@ -104,6 +120,13 @@ pub fn[D : Compare, T : Lattice, R : Semigroup] Trace::set_physical_compaction(
               since,
             ),
           })
+          if self.logger is Some(logger) {
+            logger.merge(
+              previous.length(),
+              batch.length(),
+              Some(pending.unwrap().length()),
+            )
+          }
         }
       }
     } else {
@@ -200,4 +223,24 @@ pub fn[D, T : Lattice, R] Trace::advance_upper(
     }
   })
   result
+}
+
+///|
+fn[D, T, R] Trace::drop_batches(self : Trace[D, T, R]) -> Unit {
+  if self.logger is Some(logger) {
+    for batch in self.batches {
+      logger.drop_batch(batch.length())
+    }
+  }
+  self.batches.clear()
+}
+
+///|
+/// Release retained batches and close a standalone trace. Shared traces instead
+/// release storage through their independently owned TraceAgent handles.
+pub fn[D, T : Lattice, R] Trace::dispose(self : Trace[D, T, R]) -> Unit {
+  self.drop_batches()
+  self.upper = Antichain([])
+  self.logical = Antichain([])
+  self.physical = Antichain([])
 }

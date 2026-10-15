@@ -172,6 +172,7 @@
   ],
   "cancelled_nested_dataflows": 1024,
   "example_epochs": 384,
+  "diagnostic_accounting_snapshots": 1600,
   "shared_probe_progress_snapshots": 896,
   "external_trace_reduction_epochs": 768,
   "message_capability_operator_snapshots": 2496,

@@ -35,18 +35,31 @@ pub fn[K : Compare, V : Compare, T : Lattice, R : Semigroup] Collection::arrange
   columnar~ : Bool = false,
   spill? : SpillPolicy[(K, V), T, R],
 ) -> Arranged[K, V, T, R] {
-  let (writer, trace) = shared_trace_at(self.channel.frontier.val, fueled~)
+  let logger = self.worker.logs
+    .get("differential/arrange")
+    .map(fn(logger) {
+      TraceLogger(logger, operator=self.worker.scheduler.next_task)
+    })
+  let (writer, trace) = shared_trace_at(
+    self.channel.frontier.val,
+    fueled~,
+    logger?,
+  )
   let output : Channel[(K, V), T, R] = self.channel.output()
   let pending : Ref[Array[((K, V), T, R)]] = Ref([])
   let input : Mailbox[(K, V), T, R] = Mailbox()
   input.task = self.worker.register(fn() {
     for frame in input.drain() {
       match frame {
-        Records(_, updates) =>
+        Records(_, updates) => {
+          if logger is Some(logger) {
+            logger.batcher(updates.length())
+          }
           for update in updates {
             pending.val.push(update)
             output.hold(update.1, 1)
           }
+        }
         Progress(frontier) => {
           let ready = []
           let retained = []
@@ -56,6 +69,9 @@ pub fn[K : Compare, V : Compare, T : Lattice, R : Semigroup] Collection::arrange
             } else {
               ready.push(update)
             }
+          }
+          if logger is Some(logger) {
+            logger.batcher(-ready.length())
           }
           pending.val = retained
           let lower = writer.upper()
@@ -82,6 +98,9 @@ pub fn[K : Compare, V : Compare, T : Lattice, R : Semigroup] Collection::arrange
   // Rust TraceWriter::drop seals an empty final batch. Surviving imports must
   // receive the same closure even when the producer is explicitly disposed.
   self.worker.on_task_shutdown(input.task, fn() {
+    if logger is Some(logger) {
+      logger.batcher(-pending.val.length())
+    }
     pending.val.clear()
     writer.close()
   })

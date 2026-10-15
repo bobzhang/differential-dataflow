@@ -26,6 +26,7 @@ priv struct Scheduler {
 /// Cooperative worker. Each scope is frozen on first execution or input flush;
 /// fresh scopes can be built between worker steps.
 pub struct Worker {
+  priv logs : LogRegistry[DifferentialEvent]
   priv network : ProgressNetwork
   priv gate : Ref[Bool]
   priv scheduler : Scheduler
@@ -50,6 +51,7 @@ fn Worker::with_gate(
 ) -> Worker {
   network.workers += 1
   {
+    logs: LogRegistry(),
     network,
     gate,
     scheduler: {

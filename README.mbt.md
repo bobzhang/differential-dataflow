@@ -485,3 +485,12 @@ MIT licensed; both upstream notices are retained. Module: `bobzhang/differential
 Collection utilities include `map_in_place`, `concatenate`, `assert_eq` and
 `assert_empty`. Use `Probe()` with `collection.probe_with(handle)` to wait on
 several collections through one combined progress frontier.
+
+To observe arrangement growth and reader retention, insert a
+`Logger[DifferentialEvent]` into `worker.differential_logs()` under
+`"differential/arrange"` before building the graph. Its callback receives monotone
+wall-clock timestamps and owned event batches. Call the registry's `flush()`
+from your host event loop. Trace events include sealed batch sizes, merge
+start/completion, retained-batch release, pending record deltas and reader shares.
+Supply a monotone clock to the logger; managed-memory byte counts are reported as
+unavailable rather than estimated.

@@ -25,9 +25,9 @@ pub fn[A, B, C, S, X, Y, Z] scale_triple((A, B, C), S, first~ : (A, S) -> X, sec
 
 pub fn[S] scale_unit(Unit, S) -> Unit
 
-pub fn[D, T : Lattice, R] shared_spine(T) -> (TraceWriter[D, T, R], TraceAgent[D, T, R])
+pub fn[D, T : Lattice, R] shared_spine(T, logger? : TraceLogger) -> (TraceWriter[D, T, R], TraceAgent[D, T, R])
 
-pub fn[D, T : Lattice, R] shared_trace(T) -> (TraceWriter[D, T, R], TraceAgent[D, T, R])
+pub fn[D, T : Lattice, R] shared_trace(T, logger? : TraceLogger) -> (TraceWriter[D, T, R], TraceAgent[D, T, R])
 
 // Errors
 pub suberror ClusterError {
@@ -118,6 +118,14 @@ pub fn[D, T, R] BatchBuilder::done(Self[D, T, R], Description[T]) -> Batch[D, T,
 pub fn[D : Compare, T : Compare, R : Semigroup] BatchBuilder::push(Self[D, T, R], Array[(D, T, R)]) -> Unit
 pub fn[D : Compare, T : Compare, R : Semigroup] BatchBuilder::seal(Array[Array[(D, T, R)]], Description[T]) -> Batch[D, T, R]
 
+pub(all) struct BatchEvent {
+  operator : Int
+  length : Int
+} derive(Eq, @debug.Debug)
+pub fn BatchEvent::equal(Self, Self) -> Bool
+pub fn BatchEvent::not_equal(Self, Self) -> Bool
+pub fn BatchEvent::to_repr(Self) -> @debug.Repr
+
 pub struct BatchMerger[D, T, R] {
   // private fields
 }
@@ -145,10 +153,22 @@ pub fn[D, T, R] BatchView::to_array(Self[D, T, R]) -> Array[(D, T, R)]
 pub struct Batcher[D, T, R] {
   // private fields
 }
-pub fn[D, T : Lattice, R] Batcher::Batcher(T) -> Self[D, T, R]
+pub fn[D, T : Lattice, R] Batcher::Batcher(T, logger? : TraceLogger) -> Self[D, T, R]
+pub fn[D, T : Lattice, R] Batcher::dispose(Self[D, T, R]) -> Unit
 pub fn[D, T : Lattice, R] Batcher::frontier(Self[D, T, R]) -> Antichain[T]
 pub fn[D : Compare, T : Lattice, R : Semigroup] Batcher::push(Self[D, T, R], Array[(D, T, R)]) -> Unit
 pub fn[D : Compare, T : Lattice, R : Semigroup] Batcher::seal(Self[D, T, R], Antichain[T]) -> (Array[Array[(D, T, R)]], Description[T])
+
+pub(all) struct BatcherEvent {
+  operator : Int
+  records_diff : Int
+  size_diff : Int64?
+  capacity_diff : Int64?
+  allocations_diff : Int64?
+} derive(Eq, @debug.Debug)
+pub fn BatcherEvent::equal(Self, Self) -> Bool
+pub fn BatcherEvent::not_equal(Self, Self) -> Bool
+pub fn BatcherEvent::to_repr(Self) -> @debug.Repr
 
 pub struct BytesSource {
   // private fields
@@ -323,6 +343,18 @@ pub fn[T : Lattice] Description::lower(Self[T]) -> Antichain[T]
 pub fn[T : Lattice] Description::since(Self[T]) -> Antichain[T]
 pub fn[T : Lattice] Description::upper(Self[T]) -> Antichain[T]
 
+pub(all) enum DifferentialEvent {
+  BatchCreated(BatchEvent)
+  MergeProgress(MergeEvent)
+  BatchDropped(DropEvent)
+  MergeShortfall(MergeShortfall)
+  TraceShare(TraceShare)
+  BatcherSize(BatcherEvent)
+} derive(Eq, @debug.Debug)
+pub fn DifferentialEvent::equal(Self, Self) -> Bool
+pub fn DifferentialEvent::not_equal(Self, Self) -> Bool
+pub fn DifferentialEvent::to_repr(Self) -> @debug.Repr
+
 pub struct DistributedNestedScope[A, B, S, U] {
   // private fields
 }
@@ -340,6 +372,14 @@ pub fn[D, T : Lattice, R : Abelian, S : Compare] DistributedScope::iterate(Self[
 pub fn[A : Lattice, B : Lattice, S : Compare, U : Compare] DistributedScope::nested(Self[A, S], B, SummaryDomain[B, U], time_codec~ : WireCodec[B], summary_codec~ : WireCodec[U]) -> DistributedNestedScope[A, B, S, U]
 pub fn[D : Compare, T : Lattice, R : Compare, S] DistributedScope::replay_from(Self[T, S], (Activator) -> () -> CaptureMessage[D, T, R]?, codec~ : WireCodec[CaptureMessage[D, T, R]], hash~ : (D) -> UInt64, time_hash? : (T) -> UInt64, messages_per_turn? : Int) -> (CaptureHandle, Collection[D, T, R])
 pub fn[T, S] DistributedScope::scope(Self[T, S]) -> Scope[T, S]
+
+pub(all) struct DropEvent {
+  operator : Int
+  length : Int
+} derive(Eq, @debug.Debug)
+pub fn DropEvent::equal(Self, Self) -> Bool
+pub fn DropEvent::not_equal(Self, Self) -> Bool
+pub fn DropEvent::to_repr(Self) -> @debug.Repr
 
 pub struct Duration {
   // private fields
@@ -475,6 +515,44 @@ pub impl RustHash for Int8
 pub impl Semigroup for Int8
 pub impl Timestamp for Int8
 pub impl TotalOrder for Int8
+
+pub struct LogRegistry[E] {
+  // private fields
+}
+pub fn[E] LogRegistry::LogRegistry() -> Self[E]
+pub fn[E] LogRegistry::flush(Self[E]) -> Unit
+pub fn[E] LogRegistry::get(Self[E], String) -> Logger[E]?
+pub fn[E] LogRegistry::insert(Self[E], String, Logger[E]) -> Logger[E]?
+pub fn[E] LogRegistry::remove(Self[E], String) -> Logger[E]?
+
+pub struct Logger[E] {
+  // private fields
+}
+pub fn[E] Logger::Logger(clock~ : () -> Duration, publish~ : (Duration, Array[(Duration, E)]) -> Unit, capacity? : Int) -> Self[E]
+pub fn[E] Logger::flush(Self[E]) -> Unit
+pub fn[E] Logger::log(Self[E], E) -> Unit
+pub fn[E] Logger::log_many(Self[E], Array[E]) -> Unit
+pub fn[E] Logger::pending(Self[E]) -> Int
+
+pub(all) struct MergeEvent {
+  operator : Int
+  scale : Int
+  length1 : Int
+  length2 : Int
+  complete : Int?
+} derive(Eq, @debug.Debug)
+pub fn MergeEvent::equal(Self, Self) -> Bool
+pub fn MergeEvent::not_equal(Self, Self) -> Bool
+pub fn MergeEvent::to_repr(Self) -> @debug.Repr
+
+pub(all) struct MergeShortfall {
+  operator : Int
+  scale : Int
+  shortfall : Int
+} derive(Eq, @debug.Debug)
+pub fn MergeShortfall::equal(Self, Self) -> Bool
+pub fn MergeShortfall::not_equal(Self, Self) -> Bool
+pub fn MergeShortfall::to_repr(Self) -> @debug.Repr
 
 pub struct MutableAntichain[T] {
   // private fields
@@ -769,12 +847,13 @@ pub fn SpillStats::to_repr(Self) -> @debug.Repr
 pub struct Spine[D, T, R] {
   // private fields
 }
-pub fn[D, T : Lattice, R] Spine::Spine(T) -> Self[D, T, R]
+pub fn[D, T : Lattice, R] Spine::Spine(T, logger? : TraceLogger) -> Self[D, T, R]
 pub fn[D, T : Lattice, R] Spine::advance_upper(Self[D, T, R], Antichain[T]) -> Antichain[T]
 pub fn[D, T : Lattice, R] Spine::batches_through(Self[D, T, R], Antichain[T]) -> Array[Batch[D, T, R]]?
 pub fn[D : Compare, T : Lattice, R : Semigroup] Spine::close(Self[D, T, R]) -> Unit
 pub fn[K : Compare, V : Compare, T : Lattice, R] Spine::cursor(Self[(K, V), T, R]) -> Cursor[K, V, T, R]
 pub fn[K : Compare, V : Compare, T : Lattice, R] Spine::cursor_through(Self[(K, V), T, R], Antichain[T]) -> Cursor[K, V, T, R]?
+pub fn[D, T : Lattice, R] Spine::dispose(Self[D, T, R]) -> Unit
 pub fn[D : Compare, T : Lattice, R : Semigroup] Spine::exert(Self[D, T, R]) -> Unit
 pub fn[D : Compare, T : Lattice, R : Semigroup] Spine::exert_with_fuel(Self[D, T, R], Int) -> Int
 pub fn[D : Compare, T : Lattice, R : Semigroup] Spine::insert(Self[D, T, R], Batch[D, T, R]) -> Unit
@@ -814,12 +893,13 @@ pub fn SummaryDomain::unit() -> Self[Unit, Unit]
 pub struct Trace[D, T, R] {
   // private fields
 }
-pub fn[D, T : Lattice, R] Trace::Trace(T) -> Self[D, T, R]
+pub fn[D, T : Lattice, R] Trace::Trace(T, logger? : TraceLogger) -> Self[D, T, R]
 pub fn[D, T : Lattice, R] Trace::advance_upper(Self[D, T, R], Antichain[T]) -> Antichain[T]
 pub fn[D, T : Lattice, R] Trace::batches_through(Self[D, T, R], Antichain[T]) -> Array[Batch[D, T, R]]?
 pub fn[D, T : Lattice, R] Trace::close(Self[D, T, R]) -> Unit
 pub fn[K : Compare, V : Compare, T : Lattice, R] Trace::cursor(Self[(K, V), T, R]) -> Cursor[K, V, T, R]
 pub fn[K : Compare, V : Compare, T : Lattice, R] Trace::cursor_through(Self[(K, V), T, R], Antichain[T]) -> Cursor[K, V, T, R]?
+pub fn[D, T : Lattice, R] Trace::dispose(Self[D, T, R]) -> Unit
 pub fn[D, T : Lattice, R] Trace::insert(Self[D, T, R], Batch[D, T, R]) -> Unit
 pub fn[D, T : Lattice, R] Trace::logical_compaction(Self[D, T, R]) -> Antichain[T]
 pub fn[D, T, R] Trace::map_batches(Self[D, T, R], (Batch[D, T, R]) -> Unit) -> Unit
@@ -856,6 +936,11 @@ pub struct TraceBackend[D, T, R] {
 }
 pub fn[D : Compare, T : Lattice, R : Semigroup] TraceBackend::TraceBackend(TraceReader[D, T, R], insert~ : (BatchView[D, T, R]) -> Unit, close~ : () -> Unit, build? : (Array[(D, T, R)], Description[T]) -> BatchView[D, T, R]) -> Self[D, T, R]
 
+pub struct TraceLogger {
+  // private fields
+}
+pub fn TraceLogger::TraceLogger(Logger[DifferentialEvent], operator~ : Int) -> Self
+
 pub struct TraceReader[D, T, R] {
   // private fields
 }
@@ -880,6 +965,14 @@ pub fn[D, T, R] TraceReader::set_physical_compaction(Self[D, T, R], Antichain[T]
 pub fn[D : Compare, T : Lattice, R : Semigroup] TraceReader::snapshot(Self[D, T, R], T) -> Array[(D, R)]
 pub fn[D, T, R] TraceReader::subscribe(Self[D, T, R], (BatchView[D, T, R]) -> Unit) -> () -> Unit
 pub fn[D, T, R] TraceReader::upper(Self[D, T, R]) -> Antichain[T]
+
+pub(all) struct TraceShare {
+  operator : Int
+  diff : Int
+} derive(Eq, @debug.Debug)
+pub fn TraceShare::equal(Self, Self) -> Bool
+pub fn TraceShare::not_equal(Self, Self) -> Bool
+pub fn TraceShare::to_repr(Self) -> @debug.Repr
 
 pub struct TraceWriter[D, T, R] {
   // private fields
@@ -967,6 +1060,7 @@ pub struct Worker {
   // private fields
 }
 pub fn Worker::Worker(clock? : () -> Duration) -> Self
+pub fn Worker::differential_logs(Self) -> LogRegistry[DifferentialEvent]
 pub fn Worker::dispose(Self) -> Unit
 pub fn Worker::drop_dataflow(Self, Int) -> Unit
 pub fn Worker::has_dataflows(Self) -> Bool

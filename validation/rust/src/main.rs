@@ -1,3 +1,4 @@
+mod diagnostics;
 mod probes;
 mod envelopes;
 mod monoid_bfs;
@@ -94,6 +95,7 @@ fn main() {
                 "monoid_bfs" => monoid_bfs::evaluate(seed),
                 "envelopes" => envelopes::evaluate(seed),
                 "probes" => probes::evaluate(seed),
+                "diagnostics" => diagnostics::evaluate(seed),
                 "feedback" => evaluate_feedback(seed, false),
                 "signed_feedback" => evaluate_feedback(seed, true),
                 "iteration" => evaluate_iteration(seed),

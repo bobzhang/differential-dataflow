@@ -10,9 +10,12 @@ pub struct Spine[D, T, R] {
 }
 
 ///|
-pub fn[D, T : Lattice, R] Spine::Spine(minimum : T) -> Spine[D, T, R] {
+pub fn[D, T : Lattice, R] Spine::Spine(
+  minimum : T,
+  logger? : TraceLogger,
+) -> Spine[D, T, R] {
   {
-    trace: Trace(minimum),
+    trace: Trace(minimum, logger?),
     minimum,
     merging: None,
     exert_logic: fn(_) { Some(1024) },
@@ -158,7 +161,7 @@ fn[D : Compare, T : Lattice, R : Semigroup] Spine::work(
   let mut remaining = fuel
   if self.trace.logical.is_empty() && self.trace.physical.is_empty() {
     self.merging = None
-    self.trace.batches.clear()
+    self.trace.drop_batches()
     return remaining
   }
   while remaining > 0 {
@@ -178,6 +181,13 @@ fn[D : Compare, T : Lattice, R : Semigroup] Spine::work(
         }
       }
       guard choice is Some(index) else { break }
+      if self.trace.logger is Some(logger) {
+        logger.merge(
+          self.trace.batches[index].length(),
+          self.trace.batches[index + 1].length(),
+          None,
+        )
+      }
       self.merging = Some(
         (
           index,
@@ -192,6 +202,13 @@ fn[D : Compare, T : Lattice, R : Semigroup] Spine::work(
     remaining = merger.work(remaining)
     if merger.is_complete() {
       let merged = merger.done()
+      if self.trace.logger is Some(logger) {
+        logger.merge(
+          self.trace.batches[index].length(),
+          self.trace.batches[index + 1].length(),
+          Some(merged.length()),
+        )
+      }
       let batches = []
       for position, batch in self.trace.batches {
         if position == index {
@@ -258,4 +275,11 @@ pub fn[K : Compare, V : Compare, T : Lattice, R] Spine::cursor(
   self : Spine[(K, V), T, R],
 ) -> Cursor[K, V, T, R] {
   self.cursor_through(Antichain([])).unwrap()
+}
+
+///|
+/// Abandon outstanding merge work and release all retained standalone storage.
+pub fn[D, T : Lattice, R] Spine::dispose(self : Spine[D, T, R]) -> Unit {
+  self.merging = None
+  self.trace.dispose()
 }

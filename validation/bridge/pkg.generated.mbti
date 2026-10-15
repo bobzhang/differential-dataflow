@@ -38,6 +38,8 @@ pub fn evaluate_core_reduce(Int) -> String
 
 pub fn evaluate_cursors(Int) -> String
 
+pub fn evaluate_diagnostics(Int) -> String
+
 pub fn evaluate_dynamic(Int) -> String
 
 pub fn evaluate_dynamic_iteration(Int) -> String
