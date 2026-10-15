@@ -202,6 +202,7 @@ pub fn[T : Compare, S] OperatorBuilder::build_reschedule(
     },
     automatic=false,
   )
+  (self.scope.context.own_task)(task)
   let progress = self.scope.progress
   let shutdown = Ref(on_shutdown)
   let finish = fn() {

@@ -133,6 +133,7 @@ pub fn Worker::step(self : Worker) -> Bool {
   }
   self.network.pump()
   self.retire_completed()
+  self.network.reclaim_completed()
   if self.scheduler.head >= self.scheduler.queue.length() {
     self.scheduler.stepping = false
     self.gate.val = false
@@ -160,6 +161,7 @@ pub fn Worker::step(self : Worker) -> Bool {
   }
   self.network.pump()
   self.retire_completed()
+  self.network.reclaim_completed()
   self.scheduler.stepping = false
   self.gate.val = false
   true
@@ -192,6 +194,7 @@ pub fn Worker::run(self : Worker, max_steps~ : Int32 = 100000) -> RunResult {
   }
   self.network.pump()
   self.retire_completed()
+  self.network.reclaim_completed()
   self.scheduler.stepping = false
   self.gate.val = false
   let mut steps = 0

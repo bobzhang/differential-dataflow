@@ -94,6 +94,7 @@ fn[D, T : Lattice, R] Channel::subscribe(
       self.scheduler.schedule(mailbox.task)
     }
     Some(context) => {
+      (context.own_task)(mailbox.task)
       let port = (context.add_port)()
       (context.connect)(self.port, port)
       mailbox.counter = Some((context.pending, port))

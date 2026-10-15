@@ -5,6 +5,7 @@ priv struct ProgressDomain {
   prepare : () -> Bool
   seed : () -> Unit
   publish : () -> Unit
+  reclaim : () -> Bool
 }
 
 ///|
@@ -72,4 +73,30 @@ fn[A, B : Lattice, S, U] ProgressNetwork::link(
     let times = source.transient[input].elements.map(translate)
     target.include_frontier(output, times)
   })
+}
+
+///|
+// Stable IDs remain valid for external handles and manifests, but completed
+// local domains no longer retain reachability matrices, observers or boundary
+// closures. Coordinated domains require a separate group retirement decision.
+fn ProgressNetwork::reclaim_completed(self : ProgressNetwork) -> Unit {
+  let retired = []
+  for id, domain in self.domains {
+    if (domain.reclaim)() {
+      retired.push(id)
+      self.domains[id] = {
+        prepare: fn() { false },
+        seed: fn() { () },
+        publish: fn() { () },
+        reclaim: fn() { false },
+      }
+    }
+  }
+  if !retired.is_empty() {
+    for index, (source, _, target, _) in self.topology {
+      if retired.contains(source) || retired.contains(target) {
+        self.links[index] = fn() { false }
+      }
+    }
+  }
 }

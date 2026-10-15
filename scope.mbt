@@ -5,11 +5,13 @@ priv struct ProgressContext[T] {
   observe : (Int32, (Antichain[T]) -> Unit) -> Unit
   pending : ChangeBatch[(Int32, T)]
   freeze : () -> Unit
+  own_task : (Int32) -> Unit
 }
 
 ///|
 priv struct ScopeProgress[T, S] {
   id : Int32
+  tasks : Array[Int32]
   graph : ProgressGraph[T, S]
   transient : Array[Antichain[T]]
   mut frozen : Bool
@@ -146,6 +148,7 @@ fn[T : Lattice, S : Compare] Worker::make_scope(
   }
   let progress : ScopeProgress[T, S] = {
     id: self.network.domains.length(),
+    tasks: [],
     transient: [],
     dirty: true,
     frozen: false,
@@ -160,6 +163,11 @@ fn[T : Lattice, S : Compare] Worker::make_scope(
   let context = {
     pending: progress.pending,
     freeze: fn() { progress.frozen = true },
+    own_task: fn(task) {
+      if !progress.tasks.contains(task) {
+        progress.tasks.push(task)
+      }
+    },
     add_port: fn() {
       guard scheduler.active && !scheduler.stepping && !progress.frozen else {
         abort("build a scope before executing it or flushing its inputs")
@@ -178,16 +186,24 @@ fn[T : Lattice, S : Compare] Worker::make_scope(
     prepare: fn() { progress.prepare(local_progress) },
     seed: fn() { progress.seed() },
     publish: fn() { progress.publish() },
+    reclaim: fn() {
+      if !local_progress ||
+        progress.disposed ||
+        !progress.notified ||
+        !progress.pending.is_empty() ||
+        progress.tasks.iter().any(fn(task) { scheduler.live[task] }) {
+        return false
+      }
+      guard progress.tracker is Some(tracker) else { return false }
+      if !tracker.counts.is_empty() ||
+        tracker.frontiers.iter().any(fn(f) { !f.is_empty() }) {
+        return false
+      }
+      progress.dispose()
+      true
+    },
   })
-  self.cleanup.push(fn() {
-    progress.disposed = true
-    progress.dirty = true
-    progress.transient.clear()
-    progress.observers.clear()
-    progress.graph.edges.clear()
-    progress.pending.clear()
-    progress.tracker = None
-  })
+  self.cleanup.push(fn() { progress.dispose() })
   { worker: self, minimum, domain, progress, context, }
 }
 
@@ -221,4 +237,16 @@ pub fn[D, T : Lattice, R, S] Scope::input(
     held.val = Antichain(frontier.elements)
   })
   (input, { worker: self.worker, channel, })
+}
+
+///|
+fn[T, S] ScopeProgress::dispose(self : ScopeProgress[T, S]) -> Unit {
+  self.disposed = true
+  self.dirty = true
+  self.transient.clear()
+  self.observers.clear()
+  self.graph.edges.clear()
+  self.pending.clear()
+  self.tasks.clear()
+  self.tracker = None
 }

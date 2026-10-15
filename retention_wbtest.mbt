@@ -63,7 +63,7 @@ test "counted feedback releases pointstamps over two thousand input epochs" {
   input.close()
   let _ = worker.run()
   assert_true(probe.done())
-  assert_true(scope.progress.tracker.unwrap().counts.is_empty())
+  assert_true(scope.progress.disposed && scope.progress.tracker is None)
   worker.dispose()
 }
 

@@ -73,6 +73,7 @@ pub fn[D : Compare, T : Lattice, R : Semigroup, S] TraceReader::import_into(
       }
     }
   })
+  (scope.context.own_task)(task)
   let scheduler = scope.worker.scheduler
   cancel.val = reader.subscribe(fn(batch) {
     frames.push(Data(batch.to_array()))

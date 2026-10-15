@@ -89,5 +89,6 @@ follows the pinned implementation: callers explicitly seal empty intervals.
 
 Dynamic scopes preserve existing graph immutability. Completed built-in operators and imports now release task closures and resource-owning
 finalizers after their mailboxes and outputs finish. Custom operators retain their
-explicit incomplete-work condition. Topology metadata and whole-dataflow
-reclamation remain pending.
+explicit incomplete-work condition. Completed local scopes reclaim reachability
+matrices, observer tables and boundary closures; stable identity slots remain.
+Coordinated group/process scope reclamation and explicit drop-dataflow APIs are pending.
