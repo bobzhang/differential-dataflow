@@ -7,12 +7,17 @@ pub struct WorkerGroup {
 }
 
 ///|
-pub fn WorkerGroup::WorkerGroup(peers : Int32) -> WorkerGroup {
+pub fn WorkerGroup::WorkerGroup(
+  peers : Int32,
+  clock? : () -> Duration,
+) -> WorkerGroup {
   guard peers > 0 else { abort("worker group needs at least one peer") }
   let gate = Ref(false)
   let network = ProgressNetwork()
   {
-    workers: Array::makei(peers, fn(_) { Worker::with_gate(gate, network) }),
+    workers: Array::makei(peers, fn(_) {
+      Worker::with_gate(gate, network, clock?)
+    }),
     next: 0,
   }
 }

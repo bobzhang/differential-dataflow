@@ -125,6 +125,13 @@ Call `close()` explicitly to release the input capability. `run()` returning
 produce more data. Probe frontiers determine whether a timestamp is complete.
 `dispose()` releases the worker's registered tasks and invalidates its inputs.
 
+Custom operators can retain `builder.activator()` to request a coalesced wakeup,
+including from their own callback. `activate_after(Duration(...))` schedules a
+local timer using an explicit `Worker(clock=...)` monotonic host clock; zero delay
+needs no clock. The host calls `step()`/`run()` and can use `next_activation()` to
+choose its next wakeup. `Quiescent` does not wait for future timers. Handles become
+inert on disposal. Thread-safe cross-thread activators are not implemented.
+
 `WorkerGroup(peers)` coordinates workers in one process with globally counted
 progress and keyed exchange. It executes cooperatively on one thread; it does
 not provide shared-memory parallel threads. Build identical operator

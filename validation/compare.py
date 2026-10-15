@@ -48,6 +48,17 @@ for seed, r, m in zip(spine_seeds, rust, moon):
         history.append(';'.join(f'{k},{v},{r}' for (k,v),r in sorted(totals.items()) if r))
         expected.append('|'.join(history[max(0,epoch-3):epoch+1]))
     assert r == m == '/'.join(expected), f'fueled spine differs seed={seed}'
+rust = run(['validation/rust/target/release/differential-reference-check', 'activators'], input=cursor_inputs, capture_output=True).stdout.splitlines()
+moon = run(['node', 'validation/run.cjs', 'activators'], input=cursor_inputs, capture_output=True).stdout.splitlines()
+assert len(rust) == len(moon) == len(cursor_seeds)
+for seed, r, m in zip(cursor_seeds, rust, moon):
+    state, count = seed, 0
+    expected = []
+    for _ in range(64):
+        state = (state * 1664525 + 1013904223) & 0xffffffff
+        count += ((state >> 8) % 7 != 0)
+        expected.append(str(count))
+    assert r == m == ','.join(expected), f'operator activation differs seed={seed}'
 seeds = range(1,257)
 inputs = ''.join(f'{s}\n' for s in seeds)
 rust = run(['validation/rust/target/release/differential-reference-check'],input=inputs,capture_output=True).stdout.splitlines()
@@ -419,6 +430,8 @@ for seed, r, m in zip(search_seeds, rust, moon):
     assert r == m == 'GRAPH_SEARCH|' + '/'.join(expected), f'graph search differential failure seed={seed}\nRust: {r}\nMoon: {m}\nOracle: {"/".join(expected)}'
 summary = {
     'references': pins,
+    'activation_rounds': len(cursor_seeds) * 64,
+    'activation_checks': ['coalesced external wakeups', 'zero-delay timers', 'independent scheduling model'],
     'spine_epochs': len(spine_seeds) * 32,
     'spine_checks': ['incremental merge exertion', 'shared fueled nested joins and graph loops', 'reader compaction', 'retained historical snapshots', 'independent prefix-sum model'],
     'batch_epochs': len(cursor_seeds) * 8,

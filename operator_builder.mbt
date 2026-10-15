@@ -18,6 +18,7 @@ pub struct OperatorBuilder[T, S] {
   priv ports : OperatorPorts[T, S]
   priv initial : Array[Capability[T, S]]
   priv bind : Array[(Int32) -> Unit]
+  priv activation_slot : Ref[Int32?]
 }
 
 ///|
@@ -58,7 +59,7 @@ pub fn[T, S] Scope::operator(self : Scope[T, S]) -> OperatorBuilder[T, S] {
   self.worker.progress.push(fn() {
     guard ports.built else { abort("operator builder was not built") }
   })
-  { scope: self, ports, initial: [], bind: [], }
+  { scope: self, ports, initial: [], bind: [], activation_slot: Ref(None), }
 }
 
 ///|
@@ -164,6 +165,7 @@ pub fn[T, S] OperatorBuilder::build(
     run()
     ports.running = false
   })
+  self.activation_slot.val = Some(task)
   for bind in self.bind {
     bind(task)
   }

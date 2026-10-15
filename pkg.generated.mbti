@@ -27,6 +27,14 @@ pub suberror ClusterError {
 pub fn ClusterError::to_repr(Self) -> @debug.Repr
 
 // Types and methods
+pub struct Activator {
+  // private fields
+}
+pub fn Activator::activate(Self) -> Unit
+pub fn Activator::activate_after(Self, Duration) -> Unit
+pub fn Activator::clone(Self) -> Self
+pub fn Activator::try_activate(Self) -> Bool
+
 pub struct Antichain[T] {
   // private fields
 }
@@ -412,6 +420,7 @@ pub fn[T : Lattice, S] Notificator::request(Self[T, S], Capability[T, S]) -> Uni
 pub struct OperatorBuilder[T, S] {
   // private fields
 }
+pub fn[T, S] OperatorBuilder::activator(Self[T, S]) -> Activator
 pub fn[T, S] OperatorBuilder::build(Self[T, S], (Array[Capability[T, S]]) -> () -> Unit) -> Unit
 pub fn[D, T : Lattice, R, S] OperatorBuilder::new_input(Self[T, S], Collection[D, T, R]) -> OperatorInput[D, T, R, S]
 pub fn[D, T : Lattice, R, S] OperatorBuilder::new_output(Self[T, S]) -> (Output[D, T, R, S], Collection[D, T, R])
@@ -783,9 +792,10 @@ pub fn[A, B] WireCodec::product(Self[A], Self[B]) -> Self[Product[A, B]]
 pub struct Worker {
   // private fields
 }
-pub fn Worker::Worker() -> Self
+pub fn Worker::Worker(clock? : () -> Duration) -> Self
 pub fn Worker::dispose(Self) -> Unit
 pub fn[D, T : Lattice, R] Worker::input(Self, T) -> (InputSession[D, T, R], Collection[D, T, R])
+pub fn Worker::next_activation(Self) -> Duration?
 pub fn Worker::run(Self, max_steps? : Int) -> RunResult
 pub fn[T : Lattice, S : Compare] Worker::scope(Self, T, SummaryDomain[T, S]) -> Scope[T, S]
 pub fn Worker::step(Self) -> Bool
@@ -793,8 +803,9 @@ pub fn Worker::step(Self) -> Bool
 pub struct WorkerGroup {
   // private fields
 }
-pub fn WorkerGroup::WorkerGroup(Int) -> Self
+pub fn WorkerGroup::WorkerGroup(Int, clock? : () -> Duration) -> Self
 pub fn WorkerGroup::dispose(Self) -> Unit
+pub fn WorkerGroup::next_activation(Self) -> Duration?
 pub fn WorkerGroup::peers(Self) -> Int
 pub fn WorkerGroup::run(Self, max_steps? : Int) -> RunResult
 pub fn[T : Lattice, S : Compare] WorkerGroup::scopes(Self, T, SummaryDomain[T, S]) -> ScopeGroup[T, S]

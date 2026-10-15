@@ -6,6 +6,9 @@ priv struct Scheduler {
   mut started : Bool
   mut active : Bool
   mut stepping : Bool
+  clock : (() -> Duration)?
+  mut last_time : Duration
+  timers : Array[(Duration, Ref[Int32?])]
 }
 
 ///|
@@ -20,12 +23,16 @@ pub struct Worker {
 }
 
 ///|
-pub fn Worker::Worker() -> Worker {
-  Worker::with_gate(Ref(false), ProgressNetwork())
+pub fn Worker::Worker(clock? : () -> Duration) -> Worker {
+  Worker::with_gate(Ref(false), ProgressNetwork(), clock?)
 }
 
 ///|
-fn Worker::with_gate(gate : Ref[Bool], network : ProgressNetwork) -> Worker {
+fn Worker::with_gate(
+  gate : Ref[Bool],
+  network : ProgressNetwork,
+  clock? : () -> Duration,
+) -> Worker {
   network.workers += 1
   {
     network,
@@ -37,6 +44,9 @@ fn Worker::with_gate(gate : Ref[Bool], network : ProgressNetwork) -> Worker {
       started: false,
       active: true,
       stepping: false,
+      clock,
+      last_time: Duration(0UL),
+      timers: [],
     },
     tasks: [],
     progress: [],
@@ -74,6 +84,7 @@ pub fn Worker::step(self : Worker) -> Bool {
   self.scheduler.started = true
   self.scheduler.stepping = true
   self.gate.val = true
+  self.scheduler.poll_timers()
   for pump in self.progress {
     pump()
   }
@@ -130,6 +141,7 @@ pub fn Worker::run(self : Worker, max_steps~ : Int32 = 100000) -> RunResult {
   guard max_steps >= 0 else { abort("step limit must be nonnegative") }
   self.scheduler.stepping = true
   self.gate.val = true
+  self.scheduler.poll_timers()
   for pump in self.progress {
     pump()
   }
@@ -167,6 +179,7 @@ pub fn Worker::dispose(self : Worker) -> Unit {
   self.progress.clear()
   self.scheduler.queue.clear()
   self.scheduler.queued.clear()
+  self.scheduler.timers.clear()
   self.scheduler.head = 0
   self.network.workers -= 1
   if self.network.workers == 0 {
