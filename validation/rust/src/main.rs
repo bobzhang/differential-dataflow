@@ -53,7 +53,8 @@ fn main() {
                 "join" => evaluate_join(seed),
                 "reduce" => evaluate_reduce(seed),
                 "stream_reduce" => evaluate_stream_reduce(seed),
-                "feedback" => evaluate_feedback(seed),
+                "feedback" => evaluate_feedback(seed, false),
+                "signed_feedback" => evaluate_feedback(seed, true),
                 "iteration" => evaluate_iteration(seed),
                 "arrangement" => evaluate_arrangement(seed),
                 "upsert" => evaluate_upsert(seed),
@@ -197,16 +198,21 @@ fn evaluate_reduce(seed: u32) -> String {
     })
 }
 
-fn evaluate_feedback(seed: u32) -> String {
+fn evaluate_feedback(seed: u32, split: bool) -> String {
     use differential_dataflow::{input::Input, operators::iterate::VecVariable};
     use std::{cell::RefCell, collections::BTreeMap, rc::Rc};
     timely::execute_directly(move |worker| {
-        let observed = Rc::new(RefCell::new(BTreeMap::<(u32, u64), i64>::new()));
+        let observed = Rc::new(RefCell::new(BTreeMap::<(u32, i64), i64>::new()));
         let sink = observed.clone();
-        let delay = (seed % 3 + 1) as u64;
-        let (mut input, probe) = worker.dataflow::<u64, _, _>(|scope| {
+        let delay = (seed % 3 + 1) as i64;
+        let (mut input, probe) = worker.dataflow::<i64, _, _>(|scope| {
             let (input, values) = scope.new_collection::<u32, i64>();
-            let (feedback, looped) = VecVariable::new(scope, delay);
+            let (feedback, looped) = VecVariable::new(scope, delay + if split { 7 } else { 0 });
+            let looped = if split {
+                let (backward, lowered) = VecVariable::new(scope, -7i64);
+                backward.set(looped);
+                lowered
+            } else { looped };
             let all = values.concat(looped);
             feedback.set(all.clone().map(|x| x + 1).filter(|x| *x < 12).consolidate());
             let (probe, _) = all
@@ -217,6 +223,7 @@ fn evaluate_feedback(seed: u32) -> String {
                 .probe();
             (input, probe)
         });
+        input.advance_to(0);
         let mut random = seed;
         let mut result = Vec::new();
         for epoch in 0..4 {

@@ -121,3 +121,36 @@ test "zero step budget accounts for pending progress notifications" {
   assert_eq(worker.run(max_steps=0), Quiescent(0))
   worker.dispose()
 }
+
+///|
+test "negative summary edges compose into an advancing feedback cycle" {
+  let worker = @differential.Worker()
+  let scope = worker.scope(-100L, @differential.SummaryDomain::int64())
+  let (input, source) : (
+    @differential.InputSession[Int32, Int64, Int64],
+    @differential.Collection[Int32, Int64, Int64],
+  ) = scope.input()
+  let (backward, lowered) = scope.feedback(-3L)
+  let (forward, looped) = scope.feedback(4L)
+  let all = source.concat(looped)
+  backward.connect(
+    all.map(fn(value) { value + 1 }).filter(fn(value) { value < 4 }),
+  )
+  forward.connect(lowered)
+  let observed = []
+  let probe = all.inspect(fn(data, time, diff) {
+    observed.push((data, time, diff))
+  })
+  input.advance_to(10)
+  input.insert(0)
+  input.advance_to(20)
+  input.flush()
+  assert_true(worker.run(max_steps=1000) is Quiescent(_))
+  assert_true(!probe.less_than(20))
+  observed.sort()
+  assert_eq(observed, [(0, 10L, 1L), (1, 11L, 1L), (2, 12L, 1L), (3, 13L, 1L)])
+  input.close()
+  assert_true(worker.run() is Quiescent(_))
+  assert_true(probe.done())
+  worker.dispose()
+}

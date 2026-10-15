@@ -1,13 +1,33 @@
 ///|
 #export_name("evaluate_feedback")
 pub fn evaluate_feedback(seed : Int32) -> String {
+  evaluate_feedback_core(seed, false)
+}
+
+///|
+#export_name("evaluate_signed_feedback")
+pub fn evaluate_signed_feedback(seed : Int32) -> String {
+  evaluate_feedback_core(seed, true)
+}
+
+///|
+fn evaluate_feedback_core(seed : Int32, split : Bool) -> String {
   let worker = @differential.Worker()
   let scope = worker.scope(0L, @differential.SummaryDomain::int64())
   let (input, values) : (
     @differential.InputSession[Int32, Int64, Int64],
     @differential.Collection[Int32, Int64, Int64],
   ) = scope.input()
-  let (feedback, looped) = scope.feedback((seed % 3 + 1).to_int64())
+  let (feedback, looped) = scope.feedback(
+    (seed % 3 + 1).to_int64() + (if split { 7L } else { 0L }),
+  )
+  let looped = if split {
+    let (backward, lowered) = scope.feedback(-7L)
+    backward.connect(looped)
+    lowered
+  } else {
+    looped
+  }
   let all = values.concat(looped)
   feedback.connect(
     all.map(fn(x) { x + 1 }).filter(fn(x) { x < 12 }).consolidate(),

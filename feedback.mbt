@@ -1,5 +1,7 @@
 ///|
 /// A feedback edge shifts timestamps by a path summary. Connect exactly once before execution.
+/// Individual summaries may move time backward; cycles must still admit convergent
+/// reachability summaries. Summary functions must satisfy the domain laws.
 pub struct Feedback[D, T, R, S] {
   priv scope : Scope[T, S]
   priv output : Channel[D, T, R]
@@ -12,9 +14,6 @@ pub fn[D, T : Lattice, R, S] Scope::feedback(
   self : Scope[T, S],
   summary : S,
 ) -> (Feedback[D, T, R, S], Collection[D, T, R]) {
-  guard (self.domain.less_equal)(self.domain.identity, summary) else {
-    abort("feedback summary must not move time backward")
-  }
   let output = Channel(
     self.worker.scheduler,
     Antichain([self.minimum]),

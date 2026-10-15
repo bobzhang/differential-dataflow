@@ -165,8 +165,8 @@ building consumers; the consumers retain their own readers until completion.
 Use `worker.scope(minimum, domain)` for counted progress and cyclic graphs;
 `worker.input(initial)` remains available for acyclic pipelines. Scope boundaries share one progress calculation seeded by real capabilities and
 queued records, so an empty nested feedback cycle cannot sustain its own progress.
-Scope minimums must be lower bounds of all timestamps supplied in that domain. Feedback currently
-requires nonnegative path advancement. `iterate` does not insert consolidation:
+Scope minimums must be lower bounds of all timestamps supplied in that domain. Individual feedback edges may move time backward, provided complete cycles
+have convergent reachability summaries and the domain laws hold. `iterate` does not insert consolidation:
 finish the loop body with `distinct`, `reduce`, or `consolidate` to dissipate
 canceling differences, as in upstream.
 

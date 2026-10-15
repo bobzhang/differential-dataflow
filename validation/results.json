@@ -41,6 +41,7 @@
   ],
   "feedback_seeds": 64,
   "feedback_epochs_per_seed": 4,
+  "signed_feedback_epochs": 256,
   "iteration_seeds": 32,
   "iteration_epochs_per_seed": 8,
   "iteration_checks": [

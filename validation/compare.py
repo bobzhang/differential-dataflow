@@ -100,6 +100,10 @@ inputs = ''.join(f'{s}\n' for s in feedback_seeds)
 rust = run(['validation/rust/target/release/differential-reference-check','feedback'],input=inputs,capture_output=True).stdout.splitlines()
 moon = run(['node','validation/run.cjs','feedback'],input=inputs,capture_output=True).stdout.splitlines()
 assert len(rust) == len(moon) == len(feedback_seeds)
+signed_rust = run(['validation/rust/target/release/differential-reference-check', 'signed_feedback'], input=inputs, capture_output=True).stdout.splitlines()
+signed_moon = run(['node', 'validation/run.cjs', 'signed_feedback'], input=inputs, capture_output=True).stdout.splitlines()
+assert signed_rust == signed_moon == rust, 'signed summary feedback differs'
+
 for seed,r,m in zip(feedback_seeds,rust,moon):
     state=seed
     observed={}
@@ -314,6 +318,7 @@ summary = {
     'stream_reduce_checks': ['incomparable capability frontiers', 'exact incremental corrections', 'arbitrary-frontier compaction', 'shared arranged reduction'],
     'feedback_seeds': len(feedback_seeds),
     'feedback_epochs_per_seed': 4,
+    'signed_feedback_epochs': len(feedback_seeds) * 4,
     'iteration_seeds': len(iteration_seeds),
     'iteration_epochs_per_seed': 8,
     'iteration_checks': ['nested fixed points', 'root insertions and retractions', 'cyclic graph BFS oracle'],
