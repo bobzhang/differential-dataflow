@@ -1,7 +1,7 @@
 ///|
 /// A counted right to produce at a port. Explicit release replaces Rust Drop.
 pub struct Capability[T, S] {
-  priv tracker : ProgressTracker[T, S]
+  priv owner : CapabilityOwner[T, S]
   priv port : Int32
   priv mut time : T
   priv mut live : Bool
@@ -14,7 +14,7 @@ pub fn[T : Lattice, S] ProgressTracker::capability(
   time : T,
 ) -> Capability[T, S] {
   self.update(port, time, 1)
-  { tracker: self, port, time, live: true, }
+  { owner: Tracker(self), port, time, live: true, }
 }
 
 ///|
@@ -38,13 +38,13 @@ pub fn[T : Lattice, S] Capability::clone(
   self : Capability[T, S],
 ) -> Capability[T, S] {
   self.check()
-  self.tracker.capability(self.port, self.time)
+  self.owner.capability(self.port, self.time)
 }
 
 ///|
 pub fn[T : Lattice, S] Capability::release(self : Capability[T, S]) -> Unit {
   if self.live {
-    self.tracker.update(self.port, self.time, -1)
+    self.owner.update(self.port, self.time, -1)
     self.live = false
   }
 }
@@ -56,7 +56,7 @@ pub fn[T : Lattice, S] Capability::try_delayed(
 ) -> Capability[T, S]? {
   self.check()
   if self.time.less_equal(time) {
-    Some(self.tracker.capability(self.port, time))
+    Some(self.owner.capability(self.port, time))
   } else {
     None
   }
@@ -82,8 +82,8 @@ pub fn[T : Lattice, S] Capability::try_downgrade(
   if !self.time.less_equal(time) {
     return false
   }
-  self.tracker.update(self.port, time, 1)
-  self.tracker.update(self.port, self.time, -1)
+  self.owner.update(self.port, time, 1)
+  self.owner.update(self.port, self.time, -1)
   self.time = time
   true
 }
@@ -104,14 +104,18 @@ pub fn[T, S] Capability::valid_for(
   tracker : ProgressTracker[T, S],
   port : Int32,
 ) -> Bool {
-  self.live && physical_equal(self.tracker, tracker) && self.port == port
+  let same = match self.owner {
+    Tracker(owner) => physical_equal(owner, tracker)
+    Scoped(_) => false
+  }
+  self.live && self.port == port && same
 }
 
 ///|
 /// Minimal capabilities for one output port. Insertion transfers the input handle.
 pub struct CapabilitySet[T, S] {
   priv capabilities : Array[Capability[T, S]]
-  priv tracker : ProgressTracker[T, S]
+  priv owner : CapabilityOwner[T, S]
   priv port : Int32
 }
 
@@ -122,7 +126,7 @@ pub fn[T : Lattice, S] CapabilitySet::CapabilitySet(
   capability.check()
   let result = {
     capabilities: [],
-    tracker: capability.tracker,
+    owner: capability.owner,
     port: capability.port,
   }
   result.insert(capability)
@@ -135,7 +139,9 @@ pub fn[T : Lattice, S] CapabilitySet::insert(
   capability : Capability[T, S],
 ) -> Unit {
   capability.check()
-  guard capability.valid_for(self.tracker, self.port) else {
+  guard capability.live &&
+    capability.port == self.port &&
+    capability.owner.same(self.owner) else {
     abort("capability set requires one output port")
   }
   if self.capabilities
@@ -210,4 +216,45 @@ pub fn[T : Lattice, S] CapabilitySet::release(
     cap.release()
   }
   self.capabilities.clear()
+}
+
+///|
+priv enum CapabilityOwner[T, S] {
+  Tracker(ProgressTracker[T, S])
+  Scoped(ScopeProgress[T, S])
+}
+
+///|
+fn[T, S] CapabilityOwner::same(
+  self : CapabilityOwner[T, S],
+  other : CapabilityOwner[T, S],
+) -> Bool {
+  match (self, other) {
+    (Tracker(a), Tracker(b)) => physical_equal(a, b)
+    (Scoped(a), Scoped(b)) => physical_equal(a, b)
+    _ => false
+  }
+}
+
+///|
+fn[T : Lattice, S] CapabilityOwner::update(
+  self : CapabilityOwner[T, S],
+  port : Int32,
+  time : T,
+  diff : Int64,
+) -> Unit {
+  match self {
+    Tracker(tracker) => tracker.update(port, time, diff)
+    Scoped(progress) => progress.pending.update((port, time), diff)
+  }
+}
+
+///|
+fn[T : Lattice, S] CapabilityOwner::capability(
+  self : CapabilityOwner[T, S],
+  port : Int32,
+  time : T,
+) -> Capability[T, S] {
+  self.update(port, time, 1)
+  { owner: self, port, time, live: true, }
 }

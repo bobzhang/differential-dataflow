@@ -4,6 +4,8 @@ package "bobzhang/differential/validation/bridge"
 // Values
 pub fn evaluate(Int) -> String
 
+pub fn evaluate_feedback(Int) -> String
+
 pub fn evaluate_join(Int) -> String
 
 pub fn evaluate_reduce(Int) -> String

@@ -145,6 +145,26 @@ pub fn[T : Lattice] MutableAntichain::frontier(Self[T]) -> Antichain[T]
 pub fn[T : Lattice] MutableAntichain::update_all(Self[T], Array[(T, Int64)]) -> Array[(T, Int64)]
 pub fn[T : Lattice] MutableAntichain::updates(Self[T]) -> Array[(T, Int64)]
 
+pub struct Notificator[T, S] {
+  // private fields
+}
+pub fn[T, S] Notificator::Notificator() -> Self[T, S]
+pub fn[T : Lattice, S] Notificator::drain_ready(Self[T, S], Array[Antichain[T]]) -> Array[(Capability[T, S], Int64)]
+pub fn[T : Lattice, S] Notificator::release(Self[T, S]) -> Unit
+pub fn[T : Lattice, S] Notificator::request(Self[T, S], Capability[T, S]) -> Unit
+
+pub(all) enum OperatorEvent[D, T, R, S] {
+  Data(Capability[T, S], Array[(D, R)])
+  Progress(Antichain[T])
+}
+
+pub struct Output[D, T, R, S] {
+  // private fields
+}
+pub fn[D, T, R, S] Output::accepts(Self[D, T, R, S], Capability[T, S]) -> Bool
+pub fn[D, T : Lattice, R, S] Output::send(Self[D, T, R, S], Capability[T, S], Array[(D, R)]) -> Unit
+pub fn[D, T : Lattice, R, S] Output::send_at(Self[D, T, R, S], Capability[T, S], Array[(D, T, R)]) -> Unit
+
 pub(all) enum Present {
   Present
 } derive(Eq, @debug.Debug)
@@ -217,6 +237,8 @@ pub struct Scope[T, S] {
 }
 pub fn[D, T : Lattice, R, S] Scope::feedback(Self[T, S], S) -> (Feedback[D, T, R, S], Collection[D, T, R])
 pub fn[D, T : Lattice, R, S] Scope::input(Self[T, S]) -> (InputSession[D, T, R], Collection[D, T, R])
+pub fn[D, T : Lattice, R, S] Scope::source(Self[T, S]) -> (Output[D, T, R, S], Capability[T, S], Collection[D, T, R])
+pub fn[D, E, T : Lattice, R, U, S] Scope::unary(Self[T, S], Collection[D, T, R], (Output[E, T, U, S], Capability[T, S]) -> (OperatorEvent[D, T, R, S]) -> Unit) -> Collection[E, T, U]
 
 pub struct SummaryDomain[T, S] {
   // private fields
