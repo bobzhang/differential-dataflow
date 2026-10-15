@@ -33,6 +33,7 @@ pub fn[K : Compare, V : Compare, T : Lattice, R : Semigroup] Collection::arrange
   self : Collection[(K, V), T, R],
   fueled~ : Bool = false,
   columnar~ : Bool = false,
+  spill? : SpillPolicy[(K, V), T, R],
 ) -> Arranged[K, V, T, R] {
   let (writer, trace) = shared_trace_at(self.channel.frontier.val, fueled~)
   let output : Channel[(K, V), T, R] = self.channel.output()
@@ -61,6 +62,10 @@ pub fn[K : Compare, V : Compare, T : Lattice, R : Semigroup] Collection::arrange
           if lower.elements != frontier.elements {
             let batch = Batch(ready, lower~, upper=frontier)
             let batch = if columnar { batch.columnar().batch() } else { batch }
+            let batch = match spill {
+              Some(policy) => batch.spill(policy)
+              None => batch
+            }
             writer.insert(batch)
             output.data(batch.to_array())
           }
@@ -82,6 +87,7 @@ pub fn[K : Compare, T : Lattice, R : Semigroup] Collection::arrange_by_self(
   self : Collection[K, T, R],
   fueled~ : Bool = false,
   columnar~ : Bool = false,
+  spill? : SpillPolicy[(K, Unit), T, R],
 ) -> Arranged[K, Unit, T, R] {
-  self.map(fn(key) { (key, ()) }).arrange_by_key(fueled~, columnar~)
+  self.map(fn(key) { (key, ()) }).arrange_by_key(fueled~, columnar~, spill?)
 }

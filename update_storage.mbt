@@ -3,6 +3,11 @@
 // external-memory layouts need not retain a decoded copy in the batch itself.
 priv enum UpdateStorage[D, T, R] {
   Rows(Array[(D, T, R)])
+  Paged(
+    Int32,
+    () -> UpdateReader[D, T, R],
+    (Array[(D, T, R)]) -> UpdateStorage[D, T, R]
+  )
   Indexed(
     Int32,
     () -> UpdateReader[D, T, R],
@@ -22,7 +27,7 @@ fn[D, T, R] UpdateStorage::reader(
 ) -> UpdateReader[D, T, R] {
   match self {
     Rows(rows) => { size: rows.length(), read: fn(i) { rows[i] }, }
-    Indexed(_, open, _) => open()
+    Indexed(_, open, _) | Paged(_, open, _) => open()
   }
 }
 
@@ -30,7 +35,7 @@ fn[D, T, R] UpdateStorage::reader(
 fn[D, T, R] UpdateStorage::length(self : UpdateStorage[D, T, R]) -> Int32 {
   match self {
     Rows(rows) => rows.length()
-    Indexed(size, _, _) => size
+    Indexed(size, _, _) | Paged(size, _, _) => size
   }
 }
 
@@ -84,7 +89,7 @@ fn[D, T, R] UpdateStorage::packer(
 ) -> (Array[(D, T, R)]) -> UpdateStorage[D, T, R] {
   match self {
     Rows(_) => fn(rows) { Rows(rows) }
-    Indexed(_, _, pack) => pack
+    Indexed(_, _, pack) | Paged(_, _, pack) => pack
   }
 }
 
@@ -93,8 +98,10 @@ fn[D, T, R] UpdateStorage::merge_packer(
   self : UpdateStorage[D, T, R],
   other : UpdateStorage[D, T, R],
 ) -> (Array[(D, T, R)]) -> UpdateStorage[D, T, R] {
-  match self {
-    Rows(_) => other.packer()
-    Indexed(_, _, pack) => pack
+  match (self, other) {
+    (Paged(_, _, pack), _) => pack
+    (_, Paged(_, _, pack)) => pack
+    (Indexed(_, _, pack), _) => pack
+    (Rows(_), _) => other.packer()
   }
 }

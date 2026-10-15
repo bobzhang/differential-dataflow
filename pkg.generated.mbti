@@ -90,6 +90,7 @@ pub fn[K : Compare, V, T, R] Batch::for_key(Self[(K, V), T, R], K, (V, T, R) -> 
 pub fn[D, T, R] Batch::is_empty(Self[D, T, R]) -> Bool
 pub fn[D, T, R] Batch::length(Self[D, T, R]) -> Int
 pub fn[D : Compare, T : Lattice, R : Semigroup] Batch::merge(Self[D, T, R], Self[D, T, R], Antichain[T]) -> Self[D, T, R]
+pub fn[D, T, R] Batch::spill(Self[D, T, R], SpillPolicy[D, T, R]) -> Self[D, T, R]
 pub fn[D, T, R] Batch::to_array(Self[D, T, R]) -> Array[(D, T, R)]
 pub fn[D, T, R] Batch::view(Self[D, T, R]) -> BatchView[D, T, R]
 
@@ -131,6 +132,18 @@ pub fn[D, T : Lattice, R] Batcher::Batcher(T) -> Self[D, T, R]
 pub fn[D, T : Lattice, R] Batcher::frontier(Self[D, T, R]) -> Antichain[T]
 pub fn[D : Compare, T : Lattice, R : Semigroup] Batcher::push(Self[D, T, R], Array[(D, T, R)]) -> Unit
 pub fn[D : Compare, T : Lattice, R : Semigroup] Batcher::seal(Self[D, T, R], Antichain[T]) -> (Array[Array[(D, T, R)]], Description[T])
+
+pub struct BytesSource {
+  // private fields
+}
+pub fn BytesSource::BytesSource(() -> Bytes) -> Self
+pub fn BytesSource::load(Self) -> Bytes
+
+pub struct BytesStore {
+  // private fields
+}
+pub fn BytesStore::BytesStore((Bytes) -> BytesSource) -> Self
+pub fn BytesStore::store(Self, Bytes) -> BytesSource
 
 pub struct Capability[T, S] {
   // private fields
@@ -194,8 +207,8 @@ pub struct Collection[D, T, R] {
   // private fields
 }
 pub fn[K : Compare + Hash, V : Compare, T : Lattice] Collection::antijoin(Self[(K, V), T, Int64], Self[K, T, Int64]) -> Self[(K, V), T, Int64]
-pub fn[K : Compare, V : Compare, T : Lattice, R : Semigroup] Collection::arrange_by_key(Self[(K, V), T, R], fueled? : Bool, columnar? : Bool) -> Arranged[K, V, T, R]
-pub fn[K : Compare, T : Lattice, R : Semigroup] Collection::arrange_by_self(Self[K, T, R], fueled? : Bool, columnar? : Bool) -> Arranged[K, Unit, T, R]
+pub fn[K : Compare, V : Compare, T : Lattice, R : Semigroup] Collection::arrange_by_key(Self[(K, V), T, R], fueled? : Bool, columnar? : Bool, spill? : SpillPolicy[(K, V), T, R]) -> Arranged[K, V, T, R]
+pub fn[K : Compare, T : Lattice, R : Semigroup] Collection::arrange_by_self(Self[K, T, R], fueled? : Bool, columnar? : Bool, spill? : SpillPolicy[(K, Unit), T, R]) -> Arranged[K, Unit, T, R]
 pub fn[K : Compare + Hash, V : Compare, T : TotalOrder] Collection::arrange_from_upsert(Self[(K, V?), T, Present]) -> Arranged[K, V, T, Int64]
 pub fn[D : Compare, T : Lattice, R : Semigroup] Collection::capture(Self[D, T, R], (CaptureMessage[D, T, R]) -> Unit) -> Probe[T]
 pub fn[D, T : Lattice, R] Collection::concat(Self[D, T, R], Self[D, T, R]) -> Self[D, T, R]
@@ -616,6 +629,23 @@ pub fn[R : Monoid] SingletonDiff::zero() -> Self[R]
 pub impl[R : Abelian] Abelian for SingletonDiff[R]
 pub impl[R : Monoid] Monoid for SingletonDiff[R]
 pub impl[R : Semigroup] Semigroup for SingletonDiff[R]
+
+pub struct SpillPolicy[D, T, R] {
+  // private fields
+}
+pub fn[D, T, R] SpillPolicy::SpillPolicy(Int64, store~ : BytesStore, codec~ : WireCodec[Array[(D, T, R)]], chunk_size? : Int) -> Self[D, T, R]
+pub fn[D, T, R] SpillPolicy::stats(Self[D, T, R]) -> SpillStats
+
+pub(all) struct SpillStats {
+  spilled_chunks : Int64
+  spilled_records : Int64
+  fetched_chunks : Int64
+  bytes_written : Int64
+  resident_records : Int64
+} derive(Eq, @debug.Debug)
+pub fn SpillStats::equal(Self, Self) -> Bool
+pub fn SpillStats::not_equal(Self, Self) -> Bool
+pub fn SpillStats::to_repr(Self) -> @debug.Repr
 
 pub struct Spine[D, T, R] {
   // private fields
