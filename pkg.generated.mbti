@@ -3,6 +3,7 @@ package "bobzhang/differential"
 
 import {
   "moonbitlang/core/debug",
+  "moonbitlang/core/json",
 }
 
 // Values
@@ -15,6 +16,10 @@ pub fn[D : Compare, T : Compare, R : Semigroup] consolidate_updates(Array[(D, T,
 pub fn[D, T : Lattice, R] shared_trace(T) -> (TraceWriter[D, T, R], TraceAgent[D, T, R])
 
 // Errors
+pub suberror ClusterError {
+  ClusterError(String)
+} derive(@debug.Debug)
+pub fn ClusterError::to_repr(Self) -> @debug.Repr
 
 // Types and methods
 pub struct Antichain[T] {
@@ -96,6 +101,16 @@ pub fn[T : Compare] ChangeBatch::to_array(Self[T]) -> Array[(T, Int64)]
 pub fn[T : Compare] ChangeBatch::update(Self[T], T, Int64) -> Unit
 pub fn[T : Compare] ChangeBatch::update_all(Self[T], Array[(T, Int64)]) -> Unit
 
+pub struct ClusterWorker {
+  // private fields
+}
+pub fn ClusterWorker::ClusterWorker(Int, Int, exchange~ : (String) -> Array[String] raise) -> Self
+pub fn ClusterWorker::dispose(Self) -> Unit
+pub fn ClusterWorker::index(Self) -> Int
+pub fn ClusterWorker::peers(Self) -> Int
+pub fn ClusterWorker::run(Self, max_rounds? : Int) -> RunResult raise
+pub fn[T : Lattice, S : Compare] ClusterWorker::scope(Self, T, SummaryDomain[T, S], time_codec~ : WireCodec[T], summary_codec~ : WireCodec[S]) -> DistributedScope[T, S]
+
 pub struct Collection[D, T, R] {
   // private fields
 }
@@ -144,6 +159,13 @@ pub fn[T : Lattice] Description::Description(Antichain[T], Antichain[T], Anticha
 pub fn[T : Lattice] Description::lower(Self[T]) -> Antichain[T]
 pub fn[T : Lattice] Description::since(Self[T]) -> Antichain[T]
 pub fn[T : Lattice] Description::upper(Self[T]) -> Antichain[T]
+
+pub struct DistributedScope[T, S] {
+  // private fields
+}
+pub fn[D, T : Lattice, R, S] DistributedScope::exchange(Self[T, S], Collection[D, T, R], (D) -> UInt64, data_codec~ : WireCodec[D], time_codec~ : WireCodec[T], diff_codec~ : WireCodec[R]) -> Collection[D, T, R]
+pub fn[D, T : Lattice, R, S] DistributedScope::input(Self[T, S]) -> (InputSession[D, T, R], Collection[D, T, R])
+pub fn[T, S] DistributedScope::scope(Self[T, S]) -> Scope[T, S]
 
 pub struct Feedback[D, T, R, S] {
   // private fields
@@ -388,6 +410,13 @@ pub struct Variable[D, T, R, S] {
   // private fields
 }
 pub fn[D, T : Lattice, R : Abelian, S] Variable::set(Self[D, T, R, S], Collection[D, T, R]) -> Unit
+
+pub struct WireCodec[T] {
+  // private fields
+}
+pub fn[T] WireCodec::WireCodec(encode~ : (T) -> Json, decode~ : (Json) -> T?) -> Self[T]
+pub fn[T : ToJson + @json.FromJson] WireCodec::json() -> Self[T]
+pub fn[A, B] WireCodec::product(Self[A], Self[B]) -> Self[Product[A, B]]
 
 pub struct Worker {
   // private fields
