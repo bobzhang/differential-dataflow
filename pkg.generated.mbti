@@ -48,6 +48,18 @@ pub fn[T : Compare] ChangeBatch::to_array(Self[T]) -> Array[(T, Int64)]
 pub fn[T : Compare] ChangeBatch::update(Self[T], T, Int64) -> Unit
 pub fn[T : Compare] ChangeBatch::update_all(Self[T], Array[(T, Int64)]) -> Unit
 
+pub struct Collection[D, T, R] {
+  // private fields
+}
+pub fn[D : Compare, T : Lattice, R : Semigroup] Collection::consolidate(Self[D, T, R]) -> Self[D, T, R]
+pub fn[D, E, T : Lattice, R, S] Collection::explode(Self[D, T, R], (D) -> Array[(E, (R) -> S)]) -> Self[E, T, S]
+pub fn[D, T : Lattice, R] Collection::filter(Self[D, T, R], (D) -> Bool) -> Self[D, T, R]
+pub fn[D, E, T : Lattice, R] Collection::flat_map(Self[D, T, R], (D) -> Array[E]) -> Self[E, T, R]
+pub fn[D, T : Lattice, R] Collection::inspect(Self[D, T, R], (D, T, R) -> Unit) -> Probe[T]
+pub fn[D, E, T : Lattice, R] Collection::map(Self[D, T, R], (D) -> E) -> Self[E, T, R]
+pub fn[D, T : Lattice, R : Abelian] Collection::negate(Self[D, T, R]) -> Self[D, T, R]
+pub fn[D, T : Lattice, R] Collection::probe(Self[D, T, R]) -> Probe[T]
+
 pub struct Cursor[K, V, T, R] {
   // private fields
 }
@@ -106,6 +118,14 @@ pub fn Present::plus(Self, Self) -> Self
 pub fn Present::to_repr(Self) -> @debug.Repr
 pub impl Semigroup for Present
 
+pub struct Probe[T] {
+  // private fields
+}
+pub fn[T] Probe::done(Self[T]) -> Bool
+pub fn[T : Lattice] Probe::frontier(Self[T]) -> Antichain[T]
+pub fn[T : Lattice] Probe::less_equal(Self[T], T) -> Bool
+pub fn[T : Lattice] Probe::less_than(Self[T], T) -> Bool
+
 pub(all) struct Product[A, B] {
   outer : A
   inner : B
@@ -124,6 +144,14 @@ pub fn[A : Compare, B : Compare] Product::op_lt(Self[A, B], Self[A, B]) -> Bool
 pub fn[A : @debug.Debug, B : @debug.Debug] Product::to_repr(Self[A, B]) -> @debug.Repr
 pub impl[A : Lattice, B : Lattice] Lattice for Product[A, B]
 
+pub(all) enum RunResult {
+  Quiescent(Int)
+  StepLimit(Int)
+} derive(Eq, @debug.Debug)
+pub fn RunResult::equal(Self, Self) -> Bool
+pub fn RunResult::not_equal(Self, Self) -> Bool
+pub fn RunResult::to_repr(Self) -> @debug.Repr
+
 pub struct Trace[D, T, R] {
   // private fields
 }
@@ -138,6 +166,15 @@ pub fn[D : Compare, T : Lattice, R : Semigroup] Trace::set_logical_compaction(Se
 pub fn[D : Compare, T : Lattice, R : Semigroup] Trace::set_physical_compaction(Self[D, T, R], Antichain[T]) -> Unit
 pub fn[D : Compare, T : Lattice, R : Semigroup] Trace::snapshot(Self[D, T, R], T) -> Array[(D, R)]
 pub fn[D, T : Lattice, R] Trace::upper(Self[D, T, R]) -> Antichain[T]
+
+pub struct Worker {
+  // private fields
+}
+pub fn Worker::Worker() -> Self
+pub fn Worker::dispose(Self) -> Unit
+pub fn[D, T : Lattice, R] Worker::input(Self, T) -> (InputSession[D, T, R], Collection[D, T, R])
+pub fn Worker::run(Self, max_steps? : Int) -> RunResult
+pub fn Worker::step(Self) -> Bool
 
 // Type aliases
 
