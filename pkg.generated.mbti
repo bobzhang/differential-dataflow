@@ -12,6 +12,8 @@ pub fn[D : Compare, R : Semigroup] consolidate(Array[(D, R)]) -> Array[(D, R)]
 
 pub fn[D : Compare, T : Compare, R : Semigroup] consolidate_updates(Array[(D, T, R)]) -> Array[(D, T, R)]
 
+pub fn[D, T : Lattice, R] shared_trace(T) -> (TraceWriter[D, T, R], TraceAgent[D, T, R])
+
 // Errors
 
 // Types and methods
@@ -27,6 +29,13 @@ pub fn[T : Lattice] Antichain::less_equal(Self[T], T) -> Bool
 pub fn[T : Lattice] Antichain::less_than(Self[T], T) -> Bool
 pub fn[T : Lattice] Antichain::precedes(Self[T], Self[T]) -> Bool
 pub fn[T] Antichain::to_array(Self[T]) -> Array[T]
+
+pub struct Arranged[K, V, T, R] {
+  // private fields
+}
+pub fn[K, V, T, R] Arranged::as_collection(Self[K, V, T, R]) -> Collection[(K, V), T, R]
+pub fn[K : Compare, V : Compare, T : Lattice, R : Semigroup] Arranged::release(Self[K, V, T, R]) -> Unit
+pub fn[K, V, T : Lattice, R] Arranged::trace(Self[K, V, T, R]) -> TraceAgent[(K, V), T, R]
 
 pub struct Batch[D, T, R] {
   // private fields
@@ -75,6 +84,8 @@ pub struct Collection[D, T, R] {
   // private fields
 }
 pub fn[K : Compare + Hash, V : Compare, T : Lattice] Collection::antijoin(Self[(K, V), T, Int64], Self[K, T, Int64]) -> Self[(K, V), T, Int64]
+pub fn[K : Compare, V : Compare, T : Lattice, R : Semigroup] Collection::arrange_by_key(Self[(K, V), T, R]) -> Arranged[K, V, T, R]
+pub fn[K : Compare, T : Lattice, R : Semigroup] Collection::arrange_by_self(Self[K, T, R]) -> Arranged[K, Unit, T, R]
 pub fn[D, T : Lattice, R] Collection::concat(Self[D, T, R], Self[D, T, R]) -> Self[D, T, R]
 pub fn[D : Compare, T : Lattice, R : Semigroup] Collection::consolidate(Self[D, T, R]) -> Self[D, T, R]
 pub fn[D : Compare + Hash, T : Lattice, R : Semigroup + Compare] Collection::count(Self[D, T, R]) -> Self[(D, R), T, Int64]
@@ -275,6 +286,26 @@ pub fn[D : Compare, T : Lattice, R : Semigroup] Trace::set_logical_compaction(Se
 pub fn[D : Compare, T : Lattice, R : Semigroup] Trace::set_physical_compaction(Self[D, T, R], Antichain[T]) -> Unit
 pub fn[D : Compare, T : Lattice, R : Semigroup] Trace::snapshot(Self[D, T, R], T) -> Array[(D, R)]
 pub fn[D, T : Lattice, R] Trace::upper(Self[D, T, R]) -> Antichain[T]
+
+pub struct TraceAgent[D, T, R] {
+  // private fields
+}
+pub fn[D, T : Lattice, R] TraceAgent::batches_through(Self[D, T, R], Antichain[T]) -> Array[Batch[D, T, R]]?
+pub fn[D, T : Lattice, R] TraceAgent::clone(Self[D, T, R]) -> Self[D, T, R]
+pub fn[K : Compare, V : Compare, T : Lattice, R : Semigroup] TraceAgent::cursor(Self[(K, V), T, R]) -> Cursor[K, V, T, R]
+pub fn[D, T : Lattice, R] TraceAgent::logical_compaction(Self[D, T, R]) -> Antichain[T]
+pub fn[D, T : Lattice, R] TraceAgent::physical_compaction(Self[D, T, R]) -> Antichain[T]
+pub fn[D : Compare, T : Lattice, R : Semigroup] TraceAgent::release(Self[D, T, R]) -> Unit
+pub fn[D : Compare, T : Lattice, R : Semigroup] TraceAgent::set_logical_compaction(Self[D, T, R], Antichain[T]) -> Unit
+pub fn[D : Compare, T : Lattice, R : Semigroup] TraceAgent::set_physical_compaction(Self[D, T, R], Antichain[T]) -> Unit
+pub fn[D : Compare, T : Lattice, R : Semigroup] TraceAgent::snapshot(Self[D, T, R], T) -> Array[(D, R)]
+pub fn[D, T : Lattice, R] TraceAgent::upper(Self[D, T, R]) -> Antichain[T]
+
+pub struct TraceWriter[D, T, R] {
+  // private fields
+}
+pub fn[D : Compare, T : Lattice, R : Semigroup] TraceWriter::insert(Self[D, T, R], Batch[D, T, R]) -> Unit
+pub fn[D, T : Lattice, R] TraceWriter::upper(Self[D, T, R]) -> Antichain[T]
 
 pub struct Variable[D, T, R, S] {
   // private fields

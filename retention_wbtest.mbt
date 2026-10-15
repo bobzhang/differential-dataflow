@@ -107,3 +107,45 @@ test "compacted reduction holds only unemitted corrections" {
   assert_true(unchanged.is_empty())
   assert_true(pending.is_empty())
 }
+
+///|
+test "shared trace releases pinned history when a slow reader exits" {
+  let (writer, slow) : (
+    TraceWriter[Int32, Int64, Int64],
+    TraceAgent[Int32, Int64, Int64],
+  ) = shared_trace(0)
+  let fast = slow.clone()
+  for epoch in 0L..<1000L {
+    writer.insert(
+      Batch(
+        [(0, epoch, 1L)],
+        lower=Antichain([epoch]),
+        upper=Antichain([epoch + 1]),
+      ),
+    )
+    fast.set_logical_compaction(Antichain([epoch + 1]))
+    fast.set_physical_compaction(Antichain([epoch + 1]))
+  }
+  assert_eq(slow.snapshot(0), [(0, 1L)])
+  assert_eq(writer.shared.trace.batches.length(), 1000)
+  slow.release()
+  assert_eq(writer.shared.trace.batches.length(), 1)
+  assert_eq(writer.shared.trace.batches[0].updates.length(), 1)
+  for epoch in 1000L..<2000L {
+    writer.insert(
+      Batch(
+        [(0, epoch, 1L)],
+        lower=Antichain([epoch]),
+        upper=Antichain([epoch + 1]),
+      ),
+    )
+    assert_eq(fast.snapshot(epoch), [(0, epoch + 1)])
+    fast.set_logical_compaction(Antichain([epoch + 1]))
+    fast.set_physical_compaction(Antichain([epoch + 1]))
+    assert_eq(writer.shared.trace.batches.length(), 1)
+    assert_eq(writer.shared.trace.batches[0].updates.length(), 1)
+  }
+  fast.release()
+  assert_true(writer.shared.readers.is_empty())
+  assert_true(writer.shared.trace.batches.is_empty())
+}
