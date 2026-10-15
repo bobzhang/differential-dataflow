@@ -11,7 +11,7 @@ BIN = ROOT / '_build/native/release/build/validation/cluster/cluster.exe'
 
 
 def run_peers(seed, peers, mode="join"):
-    epochs = 8 if mode == "iteration" else 16
+    epochs = 8 if mode in ("iteration", "deep_iteration") else 16
     with socket.socket() as reserved:
         reserved.bind(('127.0.0.1', 0))
         port = reserved.getsockname()[1]
@@ -26,7 +26,7 @@ def run_peers(seed, peers, mode="join"):
         outputs = {}
         for peer, process in processes:
             stdout, stderr = process.communicate(timeout=45)
-            assert process.returncode == 0, (peer, process.returncode, stderr)
+            assert process.returncode == 0, (peer, process.returncode, stdout, stderr)
             outputs[peer] = stdout.strip().split('/')
             assert len(outputs[peer]) == epochs, (peer, stdout)
         result = []
@@ -108,12 +108,13 @@ def main():
     assert len(iteration_rust) == len(seeds)
     for peer_count in (2, 3):
         for seed, expected in zip(seeds, iteration_rust):
-            assert run_peers(seed, peer_count, 'iteration') == expected == reachable(seed), (seed, peer_count, 'iteration')
+            for mode in ('iteration', 'deep_iteration'):
+                assert run_peers(seed, peer_count, mode) == expected == reachable(seed), (seed, peer_count, mode)
     result = {'process_counts': [2, 3], 'seeds': seeds, 'epochs_per_seed': 16,
               'oracles': ['pinned Rust two-worker join', 'independent full weighted join'],
               'checks': ['TCP startup retry', 'keyed exchange', 'shared arrangement joins',
                          'global progress each epoch', 'closure', 'nested product timestamps',
-                         'cyclic fixed points', 'root retractions', 'independent BFS'],
+                         'cyclic fixed points', 'two nested feedback loops', 'root retractions', 'independent BFS'],
               'iteration_epochs_per_seed': 8, 'status': 'passed'}
     (ROOT / 'validation/cluster_results.json').write_text(json.dumps(result, indent=2) + '\n')
     print(json.dumps(result))

@@ -22,6 +22,7 @@
     "closure",
     "nested product timestamps",
     "cyclic fixed points",
+    "two nested feedback loops",
     "root retractions",
     "independent BFS"
   ],

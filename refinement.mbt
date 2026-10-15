@@ -125,10 +125,6 @@ pub fn[D, A : Lattice, B : Lattice, R, S, U] RefinedScope::enter_at(
     initial,
     context=self.inner.context,
   )
-  let held = Ref(initial)
-  for time in initial.elements {
-    output.hold(time, 1)
-  }
   let input : Mailbox[D, A, R] = Mailbox()
   input.task = self.outer.worker.register(fn() {
     for frame in input.drain() {
@@ -143,22 +139,18 @@ pub fn[D, A : Lattice, B : Lattice, R, S, U] RefinedScope::enter_at(
           })
           output.data(result)
         }
-        Progress(frontier) => {
-          let next = Antichain(
-            frontier.elements.map(fn(time) { refinement.to_inner(time) }),
-          )
-          for time in next.elements {
-            output.hold(time, 1)
-          }
-          for time in held.val.elements {
-            output.hold(time, -1)
-          }
-          held.val = next
-        }
+        Progress(_) => ()
       }
     }
   })
   source.channel.subscribe(input)
+  self.outer.worker.network.link(
+    self.outer.progress,
+    input.counter.unwrap().1,
+    self.inner.progress,
+    output.port,
+    fn(time) { refinement.to_inner(time) },
+  )
   { worker: self.inner.worker, channel: output, }
 }
 
@@ -182,10 +174,6 @@ pub fn[D, A : Lattice, B : Lattice, R, S, U] RefinedScope::leave(
     initial,
     context=self.outer.context,
   )
-  let held = Ref(initial)
-  for time in initial.elements {
-    output.hold(time, 1)
-  }
   let input : Mailbox[D, B, R] = Mailbox()
   input.task = self.inner.worker.register(fn() {
     for frame in input.drain() {
@@ -196,22 +184,18 @@ pub fn[D, A : Lattice, B : Lattice, R, S, U] RefinedScope::leave(
               (update.0, refinement.to_outer(update.1), update.2)
             }),
           )
-        Progress(frontier) => {
-          let next = Antichain(
-            frontier.elements.map(fn(time) { refinement.to_outer(time) }),
-          )
-          for time in next.elements {
-            output.hold(time, 1)
-          }
-          for time in held.val.elements {
-            output.hold(time, -1)
-          }
-          held.val = next
-        }
+        Progress(_) => ()
       }
     }
   })
   source.channel.subscribe(input)
+  self.outer.worker.network.link(
+    self.inner.progress,
+    input.counter.unwrap().1,
+    self.outer.progress,
+    output.port,
+    fn(time) { refinement.to_outer(time) },
+  )
   { worker: self.outer.worker, channel: output, }
 }
 

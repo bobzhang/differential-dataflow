@@ -10,7 +10,11 @@ pub struct WorkerGroup {
 pub fn WorkerGroup::WorkerGroup(peers : Int32) -> WorkerGroup {
   guard peers > 0 else { abort("worker group needs at least one peer") }
   let gate = Ref(false)
-  { workers: Array::makei(peers, fn(_) { Worker::with_gate(gate) }), next: 0, }
+  let network = ProgressNetwork()
+  {
+    workers: Array::makei(peers, fn(_) { Worker::with_gate(gate, network) }),
+    next: 0,
+  }
 }
 
 ///|
@@ -124,17 +128,19 @@ fn[T : Lattice, S : Compare] GroupProgress::pump(
   if !changed {
     return
   }
-  let changes = tracker.propagate()
   for core in self.members {
     if !core.disposed {
-      for port in 0..<core.observers.length() {
-        if first || changes.iter().any(fn(change) { change.0 == port }) {
-          let frontier = tracker.frontier(port)
-          for notify in core.observers[port] {
-            notify(Antichain(frontier.elements))
-          }
+      let peer_tracker = match core.tracker {
+        Some(peer_tracker) => peer_tracker
+        None => {
+          let peer_tracker = ProgressTracker(tracker.reachability)
+          core.tracker = Some(peer_tracker)
+          peer_tracker
         }
       }
+      peer_tracker.counts.clear()
+      peer_tracker.counts.update_all(tracker.counts.to_array())
+      core.dirty = true
     }
   }
 }

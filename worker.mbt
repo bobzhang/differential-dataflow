@@ -11,6 +11,7 @@ priv struct Scheduler {
 ///|
 /// Cooperative worker. Build the graph before executing or sending input.
 pub struct Worker {
+  priv network : ProgressNetwork
   priv gate : Ref[Bool]
   priv scheduler : Scheduler
   priv tasks : Array[() -> Unit]
@@ -20,12 +21,14 @@ pub struct Worker {
 
 ///|
 pub fn Worker::Worker() -> Worker {
-  Worker::with_gate(Ref(false))
+  Worker::with_gate(Ref(false), ProgressNetwork())
 }
 
 ///|
-fn Worker::with_gate(gate : Ref[Bool]) -> Worker {
+fn Worker::with_gate(gate : Ref[Bool], network : ProgressNetwork) -> Worker {
+  network.workers += 1
   {
+    network,
     gate,
     scheduler: {
       queue: [],
@@ -74,6 +77,7 @@ pub fn Worker::step(self : Worker) -> Bool {
   for pump in self.progress {
     pump()
   }
+  self.network.pump()
   if self.scheduler.head >= self.scheduler.queue.length() {
     self.scheduler.stepping = false
     self.gate.val = false
@@ -99,6 +103,7 @@ pub fn Worker::step(self : Worker) -> Bool {
   for pump in self.progress {
     pump()
   }
+  self.network.pump()
   self.scheduler.stepping = false
   self.gate.val = false
   true
@@ -128,6 +133,7 @@ pub fn Worker::run(self : Worker, max_steps~ : Int32 = 100000) -> RunResult {
   for pump in self.progress {
     pump()
   }
+  self.network.pump()
   self.scheduler.stepping = false
   self.gate.val = false
   let mut steps = 0
@@ -149,6 +155,9 @@ pub fn Worker::dispose(self : Worker) -> Unit {
   guard !self.scheduler.stepping && !self.gate.val else {
     abort("cannot dispose a running worker")
   }
+  if !self.scheduler.active {
+    return
+  }
   self.scheduler.active = false
   for offset in 0..<self.cleanup.length() {
     self.cleanup[self.cleanup.length() - 1 - offset]()
@@ -159,4 +168,10 @@ pub fn Worker::dispose(self : Worker) -> Unit {
   self.scheduler.queue.clear()
   self.scheduler.queued.clear()
   self.scheduler.head = 0
+  self.network.workers -= 1
+  if self.network.workers == 0 {
+    self.network.domains.clear()
+    self.network.links.clear()
+    self.network.topology.clear()
+  }
 }

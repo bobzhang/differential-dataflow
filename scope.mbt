@@ -8,7 +8,11 @@ priv struct ProgressContext[T] {
 
 ///|
 priv struct ScopeProgress[T, S] {
+  id : Int32
   graph : ProgressGraph[T, S]
+  transient : Array[Antichain[T]]
+  mut dirty : Bool
+  mut notified : Bool
   pending : ChangeBatch[(Int32, T)]
   observers : Array[Array[(Antichain[T]) -> Unit]]
   mut tracker : ProgressTracker[T, S]?
@@ -16,37 +20,95 @@ priv struct ScopeProgress[T, S] {
 }
 
 ///|
-fn[T : Lattice, S : Compare] ScopeProgress::pump(
+fn[T : Lattice, S : Compare] ScopeProgress::prepare(
   self : ScopeProgress[T, S],
-) -> Unit {
-  let first = self.tracker is None
-  let tracker = match self.tracker {
-    Some(tracker) => tracker
-    None => {
-      let reachability = self.graph
+  drain_local : Bool,
+) -> Bool {
+  let mut changed = self.dirty
+  self.dirty = false
+  if self.disposed {
+    return changed
+  }
+  if self.tracker is None {
+    self.tracker = Some(
+      ProgressTracker(
+        self.graph
         .compile()
-        .unwrap_or_else(fn() { abort("scope reachability did not converge") })
-      let tracker = ProgressTracker(reachability)
-      self.tracker = Some(tracker)
-      tracker
+        .unwrap_or_else(fn() { abort("scope reachability did not converge") }),
+      ),
+    )
+    changed = true
+  }
+  if drain_local {
+    let updates = self.pending.drain()
+    if !updates.is_empty() {
+      changed = true
+    }
+    let tracker = self.tracker.unwrap()
+    for ((port, time), diff) in updates {
+      tracker.update(port, time, diff)
     }
   }
-  let updates = self.pending.drain()
-  if !first && updates.is_empty() {
-    return
-  }
-  for ((port, time), diff) in updates {
-    tracker.update(port, time, diff)
-  }
-  let changes = tracker.propagate()
-  for port in 0..<self.observers.length() {
-    if first || changes.iter().any(fn(change) { change.0 == port }) {
-      let frontier = tracker.frontier(port)
-      for notify in self.observers[port] {
-        notify(Antichain(frontier.elements))
+  changed
+}
+
+///|
+fn[T : Lattice, S] ScopeProgress::include_frontier(
+  self : ScopeProgress[T, S],
+  origin : Int32,
+  times : Array[T],
+) -> Bool {
+  let reachability = self.tracker.unwrap().reachability
+  let mut changed = false
+  for time in times {
+    for destination in 0..<self.transient.length() {
+      for summary in reachability.paths[origin][destination] {
+        if (reachability.domain.apply)(summary, time) is Some(at) {
+          let inserted = self.transient[destination].insert(at)
+          changed = changed || inserted
+        }
       }
     }
   }
+  changed
+}
+
+///|
+fn[T : Lattice, S] ScopeProgress::seed(self : ScopeProgress[T, S]) -> Unit {
+  self.transient.clear()
+  if self.disposed {
+    return
+  }
+  let tracker = self.tracker.unwrap()
+  for _ in tracker.frontiers {
+    self.transient.push(Antichain([]))
+  }
+  for ((port, time), count) in tracker.counts.to_array() {
+    if count > 0 {
+      let _ = self.include_frontier(port, [time])
+    }
+  }
+}
+
+///|
+fn[T : Lattice, S] ScopeProgress::publish(self : ScopeProgress[T, S]) -> Unit {
+  if self.disposed {
+    return
+  }
+  let tracker = self.tracker.unwrap()
+  let previous = tracker.frontiers
+  tracker.frontiers = self.transient.map(fn(frontier) {
+    Antichain(frontier.elements)
+  })
+  for port in 0..<self.observers.length() {
+    if !self.notified ||
+      previous[port].elements != tracker.frontiers[port].elements {
+      for notify in self.observers[port] {
+        notify(tracker.frontier(port))
+      }
+    }
+  }
+  self.notified = true
 }
 
 ///|
@@ -80,6 +142,10 @@ fn[T : Lattice, S : Compare] Worker::make_scope(
     abort("build scope before execution")
   }
   let progress : ScopeProgress[T, S] = {
+    id: self.network.domains.length(),
+    transient: [],
+    dirty: true,
+    notified: false,
     graph: ProgressGraph(domain),
     pending: ChangeBatch(),
     observers: [],
@@ -102,11 +168,15 @@ fn[T : Lattice, S : Compare] Worker::make_scope(
     },
     observe: fn(port, notify) { progress.observers[port].push(notify) },
   }
-  if local_progress {
-    self.progress.push(fn() { progress.pump() })
-  }
+  self.network.domains.push({
+    prepare: fn() { progress.prepare(local_progress) },
+    seed: fn() { progress.seed() },
+    publish: fn() { progress.publish() },
+  })
   self.cleanup.push(fn() {
     progress.disposed = true
+    progress.dirty = true
+    progress.transient.clear()
     progress.observers.clear()
     progress.graph.edges.clear()
     progress.pending.clear()

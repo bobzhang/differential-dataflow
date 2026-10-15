@@ -33,7 +33,8 @@ def main():
     transport_failures.BIN = output
     for peers in (2, 3):
         assert cluster_compare.run_peers(42, peers) == cluster_compare.independent(42)
-        assert cluster_compare.run_peers(42, peers, 'iteration') == cluster_compare.reachable(42)
+        for mode in ('iteration', 'deep_iteration'):
+            assert cluster_compare.run_peers(42, peers, mode) == cluster_compare.reachable(42)
     transport_failures.main()
     print('AddressSanitizer and LeakSanitizer checks passed')
 

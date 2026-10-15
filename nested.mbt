@@ -45,10 +45,6 @@ pub fn[D, A : Lattice, B : Lattice, R, S, U] NestedScope::enter(
     initial,
     context=self.inner.context,
   )
-  let held = Ref(initial)
-  for time in initial.elements {
-    output.hold(time, 1)
-  }
   let input : Mailbox[D, A, R] = Mailbox()
   input.task = self.outer.worker.register(fn() {
     for frame in input.drain() {
@@ -59,22 +55,18 @@ pub fn[D, A : Lattice, B : Lattice, R, S, U] NestedScope::enter(
               (update.0, Product(update.1, minimum), update.2)
             }),
           )
-        Progress(frontier) => {
-          let next = Antichain(
-            frontier.elements.map(fn(time) { Product(time, minimum) }),
-          )
-          for time in next.elements {
-            output.hold(time, 1)
-          }
-          for time in held.val.elements {
-            output.hold(time, -1)
-          }
-          held.val = next
-        }
+        Progress(_) => ()
       }
     }
   })
   source.channel.subscribe(input)
+  self.outer.worker.network.link(
+    self.outer.progress,
+    input.counter.unwrap().1,
+    self.inner.progress,
+    output.port,
+    fn(time) { Product(time, minimum) },
+  )
   { worker: self.inner.worker, channel: output, }
 }
 
@@ -95,10 +87,6 @@ pub fn[D, A : Lattice, B : Lattice, R, S, U] NestedScope::leave(
     initial,
     context=self.outer.context,
   )
-  let held = Ref(initial)
-  for time in initial.elements {
-    output.hold(time, 1)
-  }
   let input : Mailbox[D, Product[A, B], R] = Mailbox()
   input.task = self.inner.worker.register(fn() {
     for frame in input.drain() {
@@ -107,19 +95,17 @@ pub fn[D, A : Lattice, B : Lattice, R, S, U] NestedScope::leave(
           output.data(
             updates.map(fn(update) { (update.0, update.1.outer, update.2) }),
           )
-        Progress(frontier) => {
-          let next = Antichain(frontier.elements.map(fn(time) { time.outer }))
-          for time in next.elements {
-            output.hold(time, 1)
-          }
-          for time in held.val.elements {
-            output.hold(time, -1)
-          }
-          held.val = next
-        }
+        Progress(_) => ()
       }
     }
   })
   source.channel.subscribe(input)
+  self.outer.worker.network.link(
+    self.inner.progress,
+    input.counter.unwrap().1,
+    self.outer.progress,
+    output.port,
+    fn(time) { time.outer },
+  )
   { worker: self.outer.worker, channel: output, }
 }

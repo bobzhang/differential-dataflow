@@ -30,8 +30,8 @@ fn main raise {
     transport.exchange(value)
   })
   defer cluster.dispose()
-  if args.length() > 5 && args[5] == "iteration" {
-    println(iteration(cluster, seed))
+  if mode == "iteration" || mode == "deep_iteration" {
+    println(iteration(cluster, seed, deep=mode == "deep_iteration"))
     return
   }
   let scope = cluster.scope(

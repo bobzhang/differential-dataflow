@@ -2,6 +2,7 @@
 fn iteration(
   cluster : @differential.ClusterWorker,
   seed : Int32,
+  deep~ : Bool = false,
 ) -> String raise {
   let mut random = seed.reinterpret_as_uint()
   let edges : Array[Array[Int32]] = Array::makei(6, fn(_) { [] })
@@ -21,7 +22,27 @@ fn iteration(
     @differential.Collection[Int32, Int64, Int64],
   ) = scope.input()
   let result = scope.iterate(source, fn(child, values) {
-    let expanded = values.concat(values.flat_map(fn(x) { edges[x].copy() }))
+    let expanded = if deep {
+      child.iterate(values, fn(grandchild, inner) {
+        grandchild
+        .exchange(
+          inner.concat(inner.flat_map(fn(x) { edges[x].copy() })),
+          fn(key) { key.to_uint64() },
+          data_codec=@differential.WireCodec::json(),
+          time_codec=@differential.WireCodec::product(
+            @differential.WireCodec::product(
+              @differential.WireCodec::json(),
+              @differential.WireCodec::json(),
+            ),
+            @differential.WireCodec::json(),
+          ),
+          diff_codec=@differential.WireCodec::json(),
+        )
+        .distinct()
+      })
+    } else {
+      values.concat(values.flat_map(fn(x) { edges[x].copy() }))
+    }
     child
     .exchange(
       expanded,

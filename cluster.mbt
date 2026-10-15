@@ -3,7 +3,6 @@ priv struct ClusterScopeCore {
   manifest : () -> Json
   drain : () -> Json
   apply : (Array[Json]) -> Unit raise ClusterError
-  propagate : () -> Unit
 }
 
 ///|
@@ -76,7 +75,6 @@ pub fn[T : Lattice, S : Compare] ClusterWorker::scope(
 ) -> DistributedScope[T, S] {
   let scope = self.worker.make_scope(minimum, domain, false)
   let progress = scope.progress
-  let initialized = Ref(false)
   let core : ClusterScopeCore = {
     manifest: fn() {
       [
@@ -104,6 +102,9 @@ pub fn[T : Lattice, S : Compare] ClusterWorker::scope(
       )
     },
     apply: fn(changes) raise ClusterError {
+      if !changes.is_empty() {
+        progress.dirty = true
+      }
       let tracker = match progress.tracker {
         Some(tracker) => tracker
         None => {
@@ -129,20 +130,6 @@ pub fn[T : Lattice, S : Compare] ClusterWorker::scope(
         }
         tracker.update(port, time, count)
       }
-    },
-    propagate: fn() {
-      let tracker = progress.tracker.unwrap()
-      let changes = tracker.propagate()
-      for port in 0..<progress.observers.length() {
-        if !initialized.val ||
-          changes.iter().any(fn(change) { change.0 == port }) {
-          let frontier = tracker.frontier(port)
-          for notify in progress.observers[port] {
-            notify(Antichain(frontier.elements))
-          }
-        }
-      }
-      initialized.val = true
     },
   }
   self.state.scopes.push(core)
@@ -239,6 +226,7 @@ fn ClusterWorker::round(self : ClusterWorker) -> Bool raise {
     [
       Json(state.scopes.map(fn(core) { (core.manifest)() })),
       Json(state.receivers.length()),
+      Json(self.worker.network.topology),
     ]
   } else {
     Json::null()
@@ -327,9 +315,7 @@ fn ClusterWorker::round(self : ClusterWorker) -> Bool raise {
   for (route, payload) in deliveries {
     state.receivers[route](payload)
   }
-  for core in state.scopes {
-    (core.propagate)()
-  }
+  self.worker.network.pump()
   state.round += 1
   let ran = self.worker.step()
   active || ran

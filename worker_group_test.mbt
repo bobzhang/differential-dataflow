@@ -171,3 +171,65 @@ test "nested fixed point exchanges updates across peer boundaries" {
   }
   group.dispose()
 }
+
+///|
+test "two nested fixed points exchange and retract across peer boundaries" {
+  let group = @differential.WorkerGroup(2)
+  let scopes = group.scopes(0L, @differential.SummaryDomain::int64())
+  let inputs : Array[
+    (
+      @differential.InputSession[Int32, Int64, Int64],
+      @differential.Collection[Int32, Int64, Int64],
+    ),
+  ] = scopes.input()
+  let sources = scopes.exchange(inputs.map(fn(input) { input.1 }), fn(key) {
+    key.to_uint64()
+  })
+  let result = scopes.iterate(sources, fn(child, values) {
+    child.iterate(values, fn(grandchild, values) {
+      let neighbors = values.map(fn(stream) {
+        stream.flat_map(fn(x) { if x < 5 { [x + 1] } else { [] } })
+      })
+      let exchanged = grandchild.exchange(neighbors, fn(key) { key.to_uint64() })
+      Array::makei(2, fn(index) {
+        values[index].concat(exchanged[index]).distinct()
+      })
+    })
+  })
+  let counts : Map[Int32, Int64] = Map([])
+  let probes = result.map(fn(stream) {
+    stream.inspect(fn(d, _, r) { counts[d] = counts.get(d).unwrap_or(0) + r })
+  })
+  inputs[1].0.insert(0)
+  for input in inputs {
+    input.0.advance_to(1)
+    input.0.flush()
+  }
+  guard group.run(max_steps=10000) is Quiescent(_) else {
+    fail("peer fixed point stalled")
+  }
+  for node in 0..<6 {
+    assert_eq(counts.get(node), Some(1L))
+  }
+  for probe in probes {
+    assert_true(!probe.less_than(1))
+  }
+  inputs[0].0.remove(0)
+  inputs[1].0.insert(3)
+  for input in inputs {
+    input.0.close()
+  }
+  guard group.run(max_steps=10000) is Quiescent(_) else {
+    fail("peer fixed point retraction stalled")
+  }
+  for node in 0..<3 {
+    assert_eq(counts.get(node), Some(0L))
+  }
+  for node in 3..<6 {
+    assert_eq(counts.get(node), Some(1L))
+  }
+  for probe in probes {
+    assert_true(probe.done())
+  }
+  group.dispose()
+}

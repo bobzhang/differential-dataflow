@@ -78,3 +78,48 @@ test "fixed-point iteration retracts and inserts reachability after source updat
   assert_true(probe.done())
   worker.dispose()
 }
+
+///|
+test "nested fixed points release progress across enclosing feedback cycles" {
+  let worker = @differential.Worker()
+  let scope = worker.scope(0L, @differential.SummaryDomain::int64())
+  let (input, source) : (
+    @differential.InputSession[Int32, Int64, Int64],
+    @differential.Collection[Int32, Int64, Int64],
+  ) = scope.input()
+  let result = scope.iterate(source, fn(child, values) {
+    child
+    .iterate(values, fn(_, inner) {
+      inner
+      .concat(inner.flat_map(fn(x) { if x < 4 { [x + 1] } else { [] } }))
+      .distinct()
+    })
+    .distinct()
+  })
+  let snapshot : Map[Int32, Int64] = Map([])
+  let probe = result.inspect(fn(data, _, diff) {
+    snapshot[data] = snapshot.get(data).unwrap_or(0L) + diff
+  })
+  for epoch in 0L..<128L {
+    let inserting = epoch % 2 == 0
+    input.update(0, if inserting { 1L } else { -1L })
+    input.advance_to(epoch + 1)
+    input.flush()
+    assert_true(worker.run(max_steps=2000) is Quiescent(_))
+    assert_true(!probe.less_than(epoch + 1))
+    for data in 0..<5 {
+      assert_eq(
+        snapshot.get(data).unwrap_or(0L),
+        if inserting {
+          1L
+        } else {
+          0L
+        },
+      )
+    }
+  }
+  input.close()
+  assert_true(worker.run(max_steps=2000) is Quiescent(_))
+  assert_true(probe.done())
+  worker.dispose()
+}
