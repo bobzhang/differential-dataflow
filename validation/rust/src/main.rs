@@ -47,6 +47,7 @@ fn main() {
             "{}",
             match mode.as_str() {
                 "numeric" => evaluate_numeric(seed),
+                "graphs" => evaluate_graphs(seed),
                 "join" => evaluate_join(seed),
                 "reduce" => evaluate_reduce(seed),
                 "stream_reduce" => evaluate_stream_reduce(seed),
@@ -689,4 +690,65 @@ fn evaluate_numeric(seed: u32) -> String {
         })
         .collect::<Vec<_>>()
         .join(";")
+}
+
+fn evaluate_graphs(seed: u32) -> String {
+    use differential_dataflow::algorithms::graphs::{bfs::bfs, propagate::{propagate, propagate_at}, scc::{strongly_connected, strongly_connected_at}};
+    use differential_dataflow::input::Input;
+    use std::{cell::RefCell, collections::BTreeMap, rc::Rc};
+    timely::execute_directly(move |worker| {
+        let observed = Rc::new(RefCell::new(BTreeMap::<(usize, u32, u32), isize>::new()));
+        let (mut edges, mut roots, probes) = worker.dataflow::<u64, _, _>(|scope| {
+            let (edges, graph) = scope.new_collection::<(u32, u32), isize>();
+            let (roots, source) = scope.new_collection::<u32, isize>();
+            let labels = source.clone().map(|x| (x, x));
+            let streams = [
+                bfs(graph.clone(), source),
+                propagate(graph.clone(), labels.clone()),
+                strongly_connected(graph.clone()),
+                propagate_at(graph.clone(), labels, |x| 1u64 << (x * 15)),
+                strongly_connected_at(graph, |x| 1u64 << (x * 15)),
+            ];
+            let probes: Vec<_> = streams.into_iter().enumerate().map(|(op, stream)| {
+                let sink = observed.clone();
+                stream.inspect(move |&((a, b), _, diff)| {
+                    *sink.borrow_mut().entry((op, a, b)).or_default() += diff;
+                }).probe().0
+            }).collect();
+            (edges, roots, probes)
+        });
+        let mut random = seed;
+        let mut weights = [0isize; 25];
+        let mut active = [false; 5];
+        let mut results = Vec::new();
+        for epoch in 0..12 {
+            for _ in 0..3 {
+                random = random.wrapping_mul(1664525).wrapping_add(1013904223);
+                let index = ((random >> 8) % 25) as usize;
+                let next = if weights[index] == 0 { (random % 2) as isize + 1 } else { 0 };
+                edges.update(((index / 5) as u32, (index % 5) as u32), next - weights[index]);
+                weights[index] = next;
+            }
+            random = random.wrapping_mul(1664525).wrapping_add(1013904223);
+            let node = ((random >> 8) % 5) as usize;
+            active[node] = !active[node];
+            roots.update(node as u32, if active[node] { 1 } else { -1 });
+            edges.advance_to(epoch + 1);
+            roots.advance_to(epoch + 1);
+            edges.flush();
+            roots.flush();
+            let mut steps = 0;
+            while probes.iter().any(|p| p.less_than(edges.time())) {
+                worker.step();
+                steps += 1;
+                assert!(steps < 100000, "graph convergence bound");
+            }
+            results.push(observed.borrow().iter().filter(|(_, d)| **d != 0)
+                .map(|((op, a, b), d)| format!("{op},{a},{b},{d}")).collect::<Vec<_>>().join(";"));
+        }
+        edges.close();
+        roots.close();
+        while probes.iter().any(|p| !p.done()) { worker.step(); }
+        results.join("/")
+    })
 }

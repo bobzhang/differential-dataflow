@@ -77,5 +77,15 @@
     "checked overflow",
     "duration nanosecond carry"
   ],
+  "graph_seeds": 16,
+  "graph_epochs_per_seed": 12,
+  "graph_checks": [
+    "shortest distances",
+    "minimum reachable labels",
+    "SCC edge multiplicities",
+    "scheduled labels",
+    "edge and root retractions",
+    "independent BFS and transitive closure"
+  ],
   "status": "passed"
 }

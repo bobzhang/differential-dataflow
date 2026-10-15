@@ -8,7 +8,7 @@ work; [UPSTREAM.md](UPSTREAM.md) pins both reference checkouts.
 The implemented foundations currently run on JavaScript, native, Wasm, and Wasm GC:
 
 - Timestamp lattices, product partial orders, antichains, and counted frontiers.
-- Counted cyclic progress, feedback loops, nested product scopes, and fixed-point iteration.
+- Counted cyclic progress, nested feedback loops, custom timestamp refinements and identity regions.
 - Output capabilities, custom unary operators, and frontier notifications.
 - Signed and presence-only differences and generic update consolidation.
 - Sealed trace batches, logical/physical compaction, and snapshot cursors.
@@ -20,6 +20,7 @@ The implemented foundations currently run on JavaScript, native, Wasm, and Wasm 
 - Shared arrangements and independent trace readers, live imports, historical lookups,
   and total-order upserts with upstream tie-breaking.
 - Capture/replay with duplicate suppression, out-of-order messages, and counted progress.
+- Incremental BFS distances, minimum-label propagation, and strongly connected component edges.
 
 ## Example: totals that change when prices change
 
@@ -156,12 +157,14 @@ further incremental optimization remains necessary.
 
 `Arranged.join` and `Arranged.join_map` share existing sorted batch indexes, using
 binary key lookup and independent compaction capabilities. Multiple joins reuse
-one arrangement without copying its history. Release the arrangement handle after
+one arrangement without copying its history. `Arranged.reduce` also reuses shared
+key ranges and caches unchanged-key corrections. Release the arrangement handle after
 building consumers; the consumers retain their own readers until completion.
 
 Use `worker.scope(minimum, domain)` for counted progress and cyclic graphs;
-`worker.input(initial)` remains available for acyclic pipelines. Scope minimums
-must be lower bounds of all timestamps supplied in that domain. Feedback currently
+`worker.input(initial)` remains available for acyclic pipelines. Scope boundaries share one progress calculation seeded by real capabilities and
+queued records, so an empty nested feedback cycle cannot sustain its own progress.
+Scope minimums must be lower bounds of all timestamps supplied in that domain. Feedback currently
 requires nonnegative path advancement. `iterate` does not insert consolidation:
 finish the loop body with `distinct`, `reduce`, or `consolidate` to dissipate
 canceling differences, as in upstream.
@@ -211,7 +214,9 @@ The pinned Rust comparisons cover:
 - 8,192 upsert records, including equal-time conflicts and deletion.
 - 256 reordered/duplicated capture-replay cases, comparing exact progress transitions.
 - 512 partitioned join epochs against Rust running two workers.
-- 128 TCP process join epochs and 64 cyclic fixed-point epochs with two/three peers.
+- 128 TCP process join epochs and 128 fixed-point epochs with one/two nested loops and two/three peers.
+- 192 dynamic graph epochs comparing BFS, label propagation, SCC edge weights, and scheduled variants.
+- 2,048 cases for 128-bit wrapping arithmetic, checked overflow, and Duration carries.
 
 Local retention tests exercise 20,000 total-order and 5,000 antichain reduction epochs,
 2,000 shared-index join epochs, 2,000 feedback epochs,

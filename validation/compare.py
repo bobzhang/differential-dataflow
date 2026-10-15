@@ -227,6 +227,46 @@ moon = run(['node','validation/run.cjs','numeric'],input=inputs,capture_output=T
 assert len(rust) == len(moon) == len(numeric_seeds)
 for seed,r,m in zip(numeric_seeds,rust,moon):
     assert r == m, f'wide arithmetic or duration failure seed={seed}'
+graph_seeds = range(1, 17)
+inputs = ''.join(f'{seed}\n' for seed in graph_seeds)
+rust = run(['validation/rust/target/release/differential-reference-check', 'graphs'], input=inputs, capture_output=True).stdout.splitlines()
+moon = run(['node', 'validation/run.cjs', 'graphs'], input=inputs, capture_output=True).stdout.splitlines()
+assert len(rust) == len(moon) == len(graph_seeds)
+for seed, r, m in zip(graph_seeds, rust, moon):
+    state = seed
+    weights = [0] * 25
+    roots = set()
+    expected = []
+    for epoch in range(12):
+        for _ in range(3):
+            state = (state * 1664525 + 1013904223) & 0xffffffff
+            index = (state >> 8) % 25
+            weights[index] = state % 2 + 1 if weights[index] == 0 else 0
+        state = (state * 1664525 + 1013904223) & 0xffffffff
+        roots.symmetric_difference_update([(state >> 8) % 5])
+        reach = [[a == b or weights[a * 5 + b] != 0 for b in range(5)] for a in range(5)]
+        for via in range(5):
+            for a in range(5):
+                for b in range(5):
+                    reach[a][b] |= reach[a][via] and reach[via][b]
+        distances = {root: 0 for root in roots}
+        queue = sorted(roots)
+        for source in queue:
+            for target in range(5):
+                if weights[source * 5 + target] and target not in distances:
+                    distances[target] = distances[source] + 1
+                    queue.append(target)
+        rows = [(0, node, distance, 1) for node, distance in distances.items()]
+        for node in range(5):
+            labels = [root for root in roots if reach[root][node]]
+            if labels:
+                rows.extend((op, node, min(labels), 1) for op in (1, 3))
+        for a in range(5):
+            for b in range(5):
+                if weights[a * 5 + b] and reach[b][a]:
+                    rows.extend((op, a, b, weights[a * 5 + b]) for op in (2, 4))
+        expected.append(';'.join(','.join(map(str, row)) for row in sorted(rows)))
+    assert r == m == '/'.join(expected), f'graph differential failure seed={seed}\nRust: {r}\nMoon: {m}\nOracle: {"/".join(expected)}'
 summary = {
     'references': pins,
     'frontier_seeds': len(seeds),
@@ -260,6 +300,9 @@ summary = {
     'group_join_peers': 2,
     'numeric_cases': len(numeric_seeds) * 64,
     'numeric_checks': ['signed and unsigned 128-bit wrapping arithmetic', 'checked overflow', 'duration nanosecond carry'],
+    'graph_seeds': len(graph_seeds),
+    'graph_epochs_per_seed': 12,
+    'graph_checks': ['shortest distances', 'minimum reachable labels', 'SCC edge multiplicities', 'scheduled labels', 'edge and root retractions', 'independent BFS and transitive closure'],
     'status': 'passed',
 }
 (ROOT/'validation/results.json').write_text(json.dumps(summary,indent=2)+'\n')

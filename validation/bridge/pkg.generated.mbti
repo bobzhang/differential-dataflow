@@ -12,6 +12,8 @@ pub fn evaluate_arrangement(Int) -> String
 
 pub fn evaluate_feedback(Int) -> String
 
+pub fn evaluate_graphs(Int) -> String
+
 pub fn evaluate_group_join(Int) -> String
 
 pub fn evaluate_iteration(Int) -> String

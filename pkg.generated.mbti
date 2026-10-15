@@ -422,15 +422,20 @@ pub fn RunResult::to_repr(Self) -> @debug.Repr
 pub struct Scope[T, S] {
   // private fields
 }
+pub fn[N : Compare + Hash, T : Lattice, S : Compare] Scope::bfs(Self[T, S], Collection[(N, N), T, Int64], Collection[N, T, Int64]) -> Collection[(N, UInt), T, Int64]
 pub fn[D, T : Lattice, R, S] Scope::feedback(Self[T, S], S) -> (Feedback[D, T, R, S], Collection[D, T, R])
 pub fn[D, T : Lattice, R, S] Scope::input(Self[T, S]) -> (InputSession[D, T, R], Collection[D, T, R])
 pub fn[D, T : Lattice, R : Abelian, S : Compare] Scope::iterate(Self[T, S], Collection[D, T, R], (Self[Product[T, Int64], Product[S, Int64]], Collection[D, Product[T, Int64], R]) -> Collection[D, Product[T, Int64], R]) -> Collection[D, T, R]
 pub fn[A : Lattice, B : Lattice, S : Compare, U : Compare] Scope::nested(Self[A, S], B, SummaryDomain[B, U]) -> NestedScope[A, B, S, U]
 pub fn[T, S] Scope::operator(Self[T, S]) -> OperatorBuilder[T, S]
+pub fn[N : Compare + Hash, L : Compare, T : Lattice, S : Compare] Scope::propagate(Self[T, S], Collection[(N, N), T, Int64], Collection[(N, L), T, Int64]) -> Collection[(N, L), T, Int64]
+pub fn[N : Compare + Hash, L : Compare, T : Lattice, S : Compare] Scope::propagate_at(Self[T, S], Collection[(N, N), T, Int64], Collection[(N, L), T, Int64], (L) -> UInt64) -> Collection[(N, L), T, Int64]
 pub fn[A, B : Lattice, S, U : Compare] Scope::refine(Self[A, S], SummaryDomain[B, U], Refinement[A, B, S, U]) -> RefinedScope[A, B, S, U]
 pub fn[T : Lattice, S : Compare] Scope::region(Self[T, S]) -> RefinedScope[T, T, S, S]
 pub fn[D, T : Lattice, R, S] Scope::replay(Self[T, S]) -> (ReplayInput[D, T, R], Collection[D, T, R])
 pub fn[D, T : Lattice, R, S] Scope::source(Self[T, S]) -> (Output[D, T, R, S], Capability[T, S], Collection[D, T, R])
+pub fn[N : Compare + Hash, T : Lattice, S : Compare] Scope::strongly_connected(Self[T, S], Collection[(N, N), T, Int64]) -> Collection[(N, N), T, Int64]
+pub fn[N : Compare + Hash, T : Lattice, S : Compare] Scope::strongly_connected_at(Self[T, S], Collection[(N, N), T, Int64], (N) -> UInt64) -> Collection[(N, N), T, Int64]
 pub fn[D, E, T : Lattice, R, U, S] Scope::unary(Self[T, S], Collection[D, T, R], (Output[E, T, U, S], Capability[T, S]) -> (OperatorEvent[D, T, R, S]) -> Unit) -> Collection[E, T, U]
 pub fn[D, T : Lattice, R, S] Scope::variable(Self[T, S], S) -> (Variable[D, T, R, S], Collection[D, T, R])
 pub fn[D, T : Lattice, R, S] Scope::variable_from(Self[T, S], Collection[D, T, R], S) -> (Variable[D, T, R, S], Collection[D, T, R])
