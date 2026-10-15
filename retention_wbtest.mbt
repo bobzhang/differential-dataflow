@@ -293,3 +293,57 @@ test "global exchange progress remains bounded over one thousand epochs" {
   }
   group.dispose()
 }
+
+///|
+test "shared join readers release indexes and listeners after sustained updates" {
+  let worker = Worker()
+  let scope = worker.scope(0L, SummaryDomain::int64())
+  let (a, left) : (
+    InputSession[(Int32, Int32), Int64, Int64],
+    Collection[(Int32, Int32), Int64, Int64],
+  ) = scope.input()
+  let (b, right) : (
+    InputSession[(Int32, Int32), Int64, Int64],
+    Collection[(Int32, Int32), Int64, Int64],
+  ) = scope.input()
+  let l = left.arrange_by_key()
+  let r = right.arrange_by_key()
+  let sum = Ref(0L)
+  let probe = l.join(r).inspect(fn(_, _, diff) { sum.val += diff })
+  let second = l.join(l).probe()
+  let shared1 = l.trace.shared
+  let shared2 = r.trace.shared
+  l.release()
+  r.release()
+  assert_eq(shared1.readers.length(), 3)
+  for epoch in 0L..<2000L {
+    a.update((0, 1), if epoch % 2 == 0 { 1 } else { -1 })
+    b.update((0, 2), if epoch == 0 { 1 } else { 0 })
+    a.advance_to(epoch + 1)
+    b.advance_to(epoch + 1)
+    a.flush()
+    b.flush()
+    let _ = worker.run()
+    assert_eq(sum.val, if epoch % 2 == 0 { 1L } else { 0L })
+    assert_true(!probe.less_than(epoch + 1))
+    assert_true(shared1.trace.batches.length() <= 2)
+    assert_true(shared2.trace.batches.length() <= 2)
+    assert_true(
+      shared1.trace.batches
+      .iter()
+      .map(fn(batch) { batch.updates.length() })
+      .fold(init=0, fn(a, b) { a + b }) <=
+      2,
+    )
+  }
+  a.close()
+  b.close()
+  let _ = worker.run()
+  assert_true(probe.done() && second.done())
+  assert_true(shared1.readers.is_empty() && shared2.readers.is_empty())
+  assert_true(shared1.listeners.is_empty() && shared2.listeners.is_empty())
+  assert_true(
+    shared1.trace.batches.is_empty() && shared2.trace.batches.is_empty(),
+  )
+  worker.dispose()
+}

@@ -34,6 +34,8 @@ pub struct Arranged[K, V, T, R] {
   // private fields
 }
 pub fn[K, V, T, R] Arranged::as_collection(Self[K, V, T, R]) -> Collection[(K, V), T, R]
+pub fn[K : Compare, V : Compare, W : Compare, T : Lattice] Arranged::join(Self[K, V, T, Int64], Self[K, W, T, Int64]) -> Collection[(K, (V, W)), T, Int64]
+pub fn[K : Compare, V : Compare, W : Compare, D, T : Lattice, R : Semigroup, S : Semigroup, O] Arranged::join_map(Self[K, V, T, R], Self[K, W, T, S], (K, V, W) -> D, multiply~ : (R, S) -> O) -> Collection[D, T, O]
 pub fn[K : Compare, V : Compare, T : Lattice, R : Semigroup] Arranged::release(Self[K, V, T, R]) -> Unit
 pub fn[K, V, T : Lattice, R] Arranged::trace(Self[K, V, T, R]) -> TraceAgent[(K, V), T, R]
 
@@ -43,6 +45,7 @@ pub struct Batch[D, T, R] {
 pub fn[D : Compare, T : Lattice, R : Semigroup] Batch::Batch(Array[(D, T, R)], lower~ : Antichain[T], upper~ : Antichain[T]) -> Self[D, T, R]
 pub fn[D : Compare, T : Lattice, R : Semigroup] Batch::compact(Self[D, T, R], Antichain[T]) -> Self[D, T, R]
 pub fn[D, T, R] Batch::description(Self[D, T, R]) -> Description[T]
+pub fn[K : Compare, V, T, R] Batch::for_key(Self[(K, V), T, R], K, (V, T, R) -> Unit) -> Unit
 pub fn[D, T, R] Batch::to_array(Self[D, T, R]) -> Array[(D, T, R)]
 
 pub struct Capability[T, S] {

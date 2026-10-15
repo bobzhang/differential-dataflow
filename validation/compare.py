@@ -42,6 +42,8 @@ rust = run(['validation/rust/target/release/differential-reference-check','join'
 moon = run(['node','validation/run.cjs','join'],input=inputs,capture_output=True).stdout.splitlines()
 scope_join = run(['node','validation/run.cjs','scope_join'],input=inputs,capture_output=True).stdout.splitlines()
 assert scope_join == moon, 'counted scope join runtime differs'
+arranged_join = run(['node','validation/run.cjs','arranged_join'],input=inputs,capture_output=True).stdout.splitlines()
+assert arranged_join == moon, 'shared arranged join runtime differs'
 assert len(rust) == len(moon) == len(join_seeds)
 join_cases = dict(zip(join_seeds, moon))
 for seed,r,m in zip(join_seeds,rust,moon):
@@ -217,7 +219,7 @@ summary = {
     'join_seeds': len(join_seeds),
     'join_epochs_per_seed': 16,
     'oracles': ['independent positive-count partial-order model', 'full weighted join recomputation each epoch'],
-    'runtimes': ['acyclic forwarding', 'counted pointstamp scopes', 'coordinated worker groups'],
+    'runtimes': ['acyclic forwarding', 'counted pointstamp scopes', 'coordinated worker groups', 'shared arranged joins'],
     'reduce_seeds': len(reduce_seeds),
     'reduce_queries_per_seed': 25,
     'reduce_checks': ['distinct', 'count', 'group minimum', 'exact product-timestamp corrections', 'independent grid snapshots'],

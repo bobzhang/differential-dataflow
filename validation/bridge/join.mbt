@@ -1,17 +1,17 @@
 ///|
 #export_name("evaluate_join")
 pub fn evaluate_join(seed : Int32) -> String {
-  join_case(seed, false)
+  join_case(seed, false, false)
 }
 
 ///|
 #export_name("evaluate_scope_join")
 pub fn evaluate_scope_join(seed : Int32) -> String {
-  join_case(seed, true)
+  join_case(seed, true, false)
 }
 
 ///|
-fn join_case(seed : Int32, counted : Bool) -> String {
+fn join_case(seed : Int32, counted : Bool, arranged : Bool) -> String {
   let worker = @differential.Worker()
   let scope = worker.scope(0L, @differential.SummaryDomain::int64())
   let (a, left) : (
@@ -23,8 +23,17 @@ fn join_case(seed : Int32, counted : Bool) -> String {
     @differential.Collection[(Int32, Int32), Int64, Int64],
   ) = if counted { scope.input() } else { worker.input(0) }
   let observed : Map[(Int32, Int32, Int32), Int64] = Map([])
-  let probe = left
-    .join(right)
+  let joined = if arranged {
+    let l = left.arrange_by_key()
+    let r = right.arrange_by_key()
+    let joined = l.join(r)
+    l.release()
+    r.release()
+    joined
+  } else {
+    left.join(right)
+  }
+  let probe = joined
     .consolidate()
     .inspect(fn(d, _, diff) {
       let key = (d.0, d.1.0, d.1.1)
@@ -66,4 +75,10 @@ fn join_case(seed : Int32, counted : Bool) -> String {
   guard probe.done() else { abort("input close did not complete") }
   worker.dispose()
   results.join("/")
+}
+
+///|
+#export_name("evaluate_arranged_join")
+pub fn evaluate_arranged_join(seed : Int32) -> String {
+  join_case(seed, true, true)
 }
