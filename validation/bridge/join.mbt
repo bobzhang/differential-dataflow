@@ -19,7 +19,20 @@ fn join_case(
   assigned~ : Bool = false,
   fueled~ : Bool = false,
   columnar~ : Bool = false,
+  spilled~ : Bool = false,
 ) -> String {
+  let spill : @differential.SpillPolicy[(Int32, Int32), Int64, Int64]? = if spilled {
+    Some(
+      SpillPolicy(
+        0L,
+        store=BytesStore(fn(bytes) { BytesSource(fn() { bytes }) }),
+        codec=@differential.WireCodec::json(),
+        chunk_size=3,
+      ),
+    )
+  } else {
+    None
+  }
   let worker = @differential.Worker()
   let scope = worker.scope(0L, @differential.SummaryDomain::int64())
   let (a, left) : (
@@ -32,8 +45,8 @@ fn join_case(
   ) = if counted { scope.input() } else { worker.input(0) }
   let observed : Map[(Int32, Int32, Int32), Int64] = Map([])
   let joined = if arranged {
-    let l = left.arrange_by_key(fueled~, columnar~)
-    let r = right.arrange_by_key(fueled~, columnar~)
+    let l = left.arrange_by_key(fueled~, columnar~, spill?)
+    let r = right.arrange_by_key(fueled~, columnar~, spill?)
     let joined = if entered {
       let first = scope.nested(0L, @differential.SummaryDomain::int64())
       let second = first
@@ -149,5 +162,20 @@ pub fn evaluate_columnar_join(seed : Int32) -> String {
     assigned=true,
     fueled=true,
     columnar=true,
+  )
+}
+
+///|
+#export_name("evaluate_spilled_join")
+pub fn evaluate_spilled_join(seed : Int32) -> String {
+  join_case(
+    seed,
+    true,
+    true,
+    entered=true,
+    assigned=true,
+    fueled=true,
+    columnar=true,
+    spilled=true,
   )
 }

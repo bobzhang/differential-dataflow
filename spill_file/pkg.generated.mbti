@@ -1,0 +1,24 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "bobzhang/differential/spill_file"
+
+import {
+  "bobzhang/differential",
+}
+
+// Values
+
+// Errors
+
+// Types and methods
+type FileHandle
+
+pub struct SpillFile {
+  // private fields
+}
+pub fn SpillFile::SpillFile() -> Self
+pub fn SpillFile::close(Self) -> Unit
+pub fn SpillFile::store(Self) -> @differential.BytesStore
+
+// Type aliases
+
+// Traits

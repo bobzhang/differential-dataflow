@@ -46,3 +46,23 @@ pub fn evaluate(seed: u32) -> String {
     assert!(upper.is_empty());
     output.join("/")
 }
+
+struct MemoryStore;
+struct MemorySource(Vec<u8>);
+impl differential_dataflow::columnar::trace::spill::BytesStore for MemoryStore {
+    fn store(&mut self, bytes: &[u8]) -> Box<dyn differential_dataflow::columnar::trace::spill::BytesSource> { Box::new(MemorySource(bytes.to_vec())) }
+}
+impl differential_dataflow::columnar::trace::spill::BytesSource for MemorySource {
+    fn load(&self) -> Vec<u8> { self.0.clone() }
+}
+pub fn spilled(seed: u32) -> String {
+    use differential_dataflow::columnar::trace::spill;
+    use std::sync::{Arc, atomic::Ordering::Relaxed};
+    let stats = Arc::new(spill::SpillStats::default());
+    spill::install(0, Box::new(MemoryStore), stats.clone());
+    let result = evaluate(seed);
+    spill::uninstall();
+    assert!(stats.spilled_chunks.load(Relaxed) > 0);
+    assert!(stats.fetched_chunks.load(Relaxed) > 0);
+    result
+}

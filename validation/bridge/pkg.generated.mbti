@@ -66,6 +66,12 @@ pub fn evaluate_search(Int) -> String
 
 pub fn evaluate_signed_feedback(Int) -> String
 
+pub fn evaluate_spilled_cursors(Int) -> String
+
+pub fn evaluate_spilled_join(Int) -> String
+
+pub fn evaluate_spilled_spines(Int) -> String
+
 pub fn evaluate_spines(Int) -> String
 
 pub fn evaluate_stream_reduce(Int) -> String

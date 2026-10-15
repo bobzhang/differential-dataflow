@@ -11,7 +11,24 @@ pub fn evaluate_columnar_spines(seed : Int32) -> String {
 }
 
 ///|
-fn spines_case(seed : Int32, columnar : Bool) -> String {
+fn spines_case(
+  seed : Int32,
+  columnar : Bool,
+  spilled~ : Bool = false,
+) -> String {
+  let spill : @differential.SpillPolicy[(Int32, Int32), Int64, Int64]? = if spilled {
+    Some(
+      SpillPolicy(
+        0L,
+        store=BytesStore(fn(bytes) { BytesSource(fn() { bytes }) }),
+        codec=@differential.WireCodec::json(),
+        chunk_size=3,
+      ),
+    )
+  } else {
+    None
+  }
+
   let spine : @differential.Spine[(Int32, Int32), Int64, Int64] = Spine(0L)
   spine.set_exert_logic(fn(_) { Some(1) })
   let mut random = seed.reinterpret_as_uint()
@@ -33,7 +50,13 @@ fn spines_case(seed : Int32, columnar : Bool) -> String {
     let earliest = Int64::max(0L, epoch - 3)
     spine.set_logical_compaction(Antichain([earliest]))
     spine.set_physical_compaction(Antichain([Int64::max(0L, epoch - 2)]))
-    spine.insert(if columnar { batch.columnar().batch() } else { batch })
+    let batch = if columnar { batch.columnar().batch() } else { batch }
+    spine.insert(
+      match spill {
+        Some(policy) => batch.spill(policy)
+        None => batch
+      },
+    )
     spine.exert()
     spine.exert()
     let snapshots = []
@@ -58,4 +81,10 @@ fn spines_case(seed : Int32, columnar : Bool) -> String {
   spine.close()
   guard spine.upper().is_empty() else { abort("spine did not close") }
   output.join("/")
+}
+
+///|
+#export_name("evaluate_spilled_spines")
+pub fn evaluate_spilled_spines(seed : Int32) -> String {
+  spines_case(seed, true, spilled=true)
 }

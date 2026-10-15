@@ -198,7 +198,22 @@ weights in separate immutable arrays; offset tables share repeated keys and valu
 `arrange_by_key(columnar=true, fueled=true)` (or `arrange_by_self`) to retain that
 layout through live arrangements and compaction. Storage counts describe entries,
 not measured bytes. The current merge/compaction path uses temporary row groups;
-upstream's trie-native chunk transducers, spilling and binary codecs remain pending.
+upstream's trie-native chunk transducers and binary codecs remain pending.
+
+`SpillPolicy(budget_records, store=..., codec=..., chunk_size=...)` pages sealed
+batches through a pluggable `BytesStore`. Use `batch.spill(policy)` or pass
+`spill=policy` to an arrangement. Compaction and merging retain the spill policy.
+The high-water-mark resident budget is cumulative, matching upstream: dropping
+old batches does not replenish it. Each reader caches one decoded page; builders
+and mergers still use temporary rows, so this is not a total process-memory cap.
+Payload checksums reject changed storage before decoding. `stats()` reports
+stored/fetched chunks, records and bytes.
+
+The native `spill_file` package supplies `SpillFile().store()`, backed by an
+anonymous temporary file. Page handles retain the file; optional `close()`
+invalidates outstanding handles. This is temporary storage, not durable replay.
+Codecs are explicit; the supplied JSON codec preserves 64-bit values but does
+not implement Rust's columnar binary format.
 
 `Cursor` merges retained batch views without copying stored update history.
 Times are visited per batch; callers consolidate them when needed.

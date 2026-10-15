@@ -11,7 +11,24 @@ pub fn evaluate_columnar_cursors(seed : Int32) -> String {
 }
 
 ///|
-fn cursors_case(seed : Int32, columnar : Bool) -> String {
+fn cursors_case(
+  seed : Int32,
+  columnar : Bool,
+  spilled~ : Bool = false,
+) -> String {
+  let spill : @differential.SpillPolicy[(Int32, Int32), Int64, Int64]? = if spilled {
+    Some(
+      SpillPolicy(
+        0L,
+        store=BytesStore(fn(bytes) { BytesSource(fn() { bytes }) }),
+        codec=@differential.WireCodec::json(),
+        chunk_size=3,
+      ),
+    )
+  } else {
+    None
+  }
+
   let mut random = seed.reinterpret_as_uint()
   let batches = []
   for epoch in 0L..<8L {
@@ -30,6 +47,10 @@ fn cursors_case(seed : Int32, columnar : Bool) -> String {
       upper=Antichain([epoch + 1]),
     )
     let batch = if columnar { batch.columnar().batch() } else { batch }
+    let batch = match spill {
+      Some(policy) => batch.spill(policy)
+      None => batch
+    }
     batches.push(batch.view())
   }
   let cursor = @differential.Cursor(batches)
@@ -54,4 +75,10 @@ fn cursors_case(seed : Int32, columnar : Bool) -> String {
     )
   }
   output.join("/")
+}
+
+///|
+#export_name("evaluate_spilled_cursors")
+pub fn evaluate_spilled_cursors(seed : Int32) -> String {
+  cursors_case(seed, true, spilled=true)
 }

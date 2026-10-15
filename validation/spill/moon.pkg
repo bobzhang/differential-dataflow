@@ -1,0 +1,8 @@
+import {
+  "bobzhang/differential",
+  "bobzhang/differential/spill_file",
+}
+
+pkgtype(kind: "executable")
+
+supported_targets = "-all+native"

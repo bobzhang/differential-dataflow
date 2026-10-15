@@ -1,0 +1,12 @@
+import {
+  "bobzhang/differential",
+}
+
+options(
+  "native-stub": [ "file.c" ],
+  targets: {
+    "native.mbt": [ "native" ],
+    "unsupported.mbt": [ "not", "native" ],
+    "file_test.mbt": [ "native" ],
+  },
+)

@@ -20,6 +20,13 @@ for mode, seeds in [('cursors', 128), ('batches', 128), ('spines', 64), ('join',
     assert len(reference) == len(columnar) == seeds
     for seed, (r, m) in enumerate(zip(reference, columnar), 1):
         assert r == m, f'columnar {mode} differs seed={seed}\nRust: {r}\nMoon: {m}'
+for mode, reference_mode, count in [('spines', 'spilled_spines', 64), ('cursors', 'cursors', 128), ('join', 'join', 64)]:
+    data = ''.join(f'{seed}\n' for seed in range(1, count+1))
+    rust = run(['validation/rust/target/release/differential-reference-check', reference_mode], input=data, capture_output=True).stdout.splitlines()
+    moon = run(['node', 'validation/run.cjs', 'spilled_' + mode], input=data, capture_output=True).stdout.splitlines()
+    assert len(rust) == len(moon) == count
+    for seed, (r, m) in enumerate(zip(rust, moon), 1):
+        assert r == m, f'spilled {mode} differs seed={seed}'
 cursor_seeds = range(1, 129)
 cursor_inputs = ''.join(f'{seed}\n' for seed in cursor_seeds)
 rust = run(['validation/rust/target/release/differential-reference-check', 'cursors'], input=cursor_inputs, capture_output=True).stdout.splitlines()
@@ -461,6 +468,7 @@ for seed, r, m in zip(search_seeds, rust, moon):
 summary = {
     'references': pins,
     'columnar_checks': ['16384 cursor steps', '1024 partial-order batch epochs', '2048 fueled spine epochs', '1024 nested join epochs', '768 partial-order reduction epochs'], 'activation_rounds': len(cursor_seeds) * 64,
+    'spill_checks': ['2048 upstream spilled spine epochs', '16384 paged cursor steps', '1024 nested paged join epochs'],
     'dynamic_dataflows': len(dynamic_seeds) * 16,
     'dynamic_import_snapshots': len(dynamic_seeds) * 136,
     'operator_lifecycle_rounds': len(cursor_seeds) * 48,

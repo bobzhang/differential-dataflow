@@ -11,6 +11,11 @@
     "768 partial-order reduction epochs"
   ],
   "activation_rounds": 8192,
+  "spill_checks": [
+    "2048 upstream spilled spine epochs",
+    "16384 paged cursor steps",
+    "1024 nested paged join epochs"
+  ],
   "dynamic_dataflows": 512,
   "dynamic_import_snapshots": 4352,
   "operator_lifecycle_rounds": 6144,
