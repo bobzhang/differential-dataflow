@@ -19,11 +19,9 @@ test "completed builtin pipelines release task closures while the worker remains
     let _ = worker.run()
     assert_true(probe.done())
     assert_eq(total, 8L)
-    assert_true(worker.tasks.iter().all(fn(task) { task is None }))
+    assert_true(worker.tasks.is_empty())
     assert_true(worker.retirement.is_empty())
-    assert_true(
-      worker.scheduler.finalizers.iter().all(fn(items) { items.is_empty() }),
-    )
+    assert_true(worker.scheduler.slots.is_empty())
   }
   worker.dispose()
 }
@@ -52,19 +50,19 @@ test "builtin retirement waits for deferred lookup answers and does not release 
   query.close()
   let _ = worker.run()
   assert_false(probe.done())
-  assert_true(worker.tasks.iter().all(fn(task) { task is Some(_) }))
+  assert_true(worker.tasks.length() == 3)
   input.insert((1, 7))
   input.advance_to(1L)
   input.flush()
   let _ = worker.run()
   assert_true(probe.done())
   assert_eq(seen, [((1, 7), 0L, 1L)])
-  assert_true(worker.tasks[0] is Some(_))
-  assert_true(worker.tasks[1] is None)
-  assert_true(worker.tasks[2] is None)
+  assert_true(worker.tasks.get(0) is Some(_))
+  assert_true(worker.tasks.get(1) is None)
+  assert_true(worker.tasks.get(2) is None)
   input.close()
   let _ = worker.run()
-  assert_true(worker.tasks.iter().all(fn(task) { task is None }))
+  assert_true(worker.tasks.is_empty())
   worker.dispose()
 }
 
@@ -87,7 +85,7 @@ test "closed live trace imports release their task without disposing the consume
   let _ = producer.run()
   let _ = consumer.run()
   assert_true(probe.done())
-  assert_true(consumer.tasks.iter().all(fn(task) { task is None }))
+  assert_true(consumer.tasks.is_empty())
   assert_eq(trace.snapshot(0L), [((1, 2), 1L)])
   trace.release()
   producer.dispose()

@@ -30,7 +30,7 @@ pub fn Activator::try_activate(self : Activator) -> Bool {
     return false
   }
   if self.slot.val is Some(task) {
-    if !self.scheduler.live[task] {
+    if !self.scheduler.slots.contains(task) {
       return false
     }
     self.scheduler.schedule(task)
@@ -44,7 +44,7 @@ pub fn Activator::try_activate(self : Activator) -> Bool {
 /// next_activation to decide when to call again; no backend-specific sleep runs.
 pub fn Activator::activate_after(self : Activator, delay : Duration) -> Unit {
   if !self.scheduler.active ||
-    (self.slot.val is Some(task) && !self.scheduler.live[task]) {
+    (self.slot.val is Some(task) && !self.scheduler.slots.contains(task)) {
     return
   }
   if delay == Duration(0UL) {

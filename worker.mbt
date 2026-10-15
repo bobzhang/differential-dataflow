@@ -1,11 +1,18 @@
 ///|
+// Scheduler handles retain task metadata, never operator closures. Retired task
+// identities are never reused, so old activators remain permanently inert.
+priv struct TaskStatus {
+  mut queued : Bool
+  input_done : Array[() -> Bool]
+  output_done : Array[() -> Bool]
+  finalizers : Array[() -> Unit]
+}
+
+///|
 priv struct Scheduler {
   queue : Array[Int32]
-  queued : Array[Bool]
-  live : Array[Bool]
-  input_done : Array[Array[() -> Bool]]
-  output_done : Array[Array[() -> Bool]]
-  finalizers : Array[Array[() -> Unit]]
+  slots : Map[Int32, TaskStatus]
+  mut next_task : Int32
   mut head : Int32
   mut started : Bool
   mut active : Bool
@@ -22,7 +29,7 @@ pub struct Worker {
   priv network : ProgressNetwork
   priv gate : Ref[Bool]
   priv scheduler : Scheduler
-  priv tasks : Array[(() -> Unit)?]
+  priv tasks : Map[Int32, () -> Unit]
   priv retirement : Array[(Int32, () -> Bool, () -> Unit)]
   priv progress : Array[() -> Unit]
   priv cleanup : Array[() -> Unit]
@@ -45,11 +52,8 @@ fn Worker::with_gate(
     gate,
     scheduler: {
       queue: [],
-      queued: [],
-      live: [],
-      input_done: [],
-      output_done: [],
-      finalizers: [],
+      slots: Map([]),
+      next_task: 0,
       head: 0,
       started: false,
       active: true,
@@ -58,7 +62,7 @@ fn Worker::with_gate(
       last_time: Duration(0UL),
       timers: [],
     },
-    tasks: [],
+    tasks: Map([]),
     retirement: [],
     progress: [],
     cleanup: [],
@@ -68,8 +72,8 @@ fn Worker::with_gate(
 ///|
 fn Scheduler::schedule(self : Scheduler, id : Int32) -> Unit {
   guard self.active else { abort("worker is disposed") }
-  if self.live[id] && !self.queued[id] {
-    self.queued[id] = true
+  if self.slots.get(id) is Some(status) && !status.queued {
+    status.queued = true
     self.queue.push(id)
   }
 }
@@ -83,34 +87,28 @@ fn Worker::register(
   guard self.scheduler.active && !self.scheduler.stepping && !self.gate.val else {
     abort("build graph only on an idle active worker")
   }
-  let id = self.tasks.length()
-  self.tasks.push(Some(task))
-  self.scheduler.live.push(true)
-  self.scheduler.queued.push(false)
-  self.scheduler.input_done.push([])
-  self.scheduler.output_done.push([])
-  self.scheduler.finalizers.push([])
+  let id = self.scheduler.next_task
+  guard id < 0x7fff_ffff else { abort("worker task identity space exhausted") }
+  self.scheduler.next_task += 1
+  self.tasks[id] = task
+  let status : TaskStatus = {
+    queued: false,
+    input_done: [],
+    output_done: [],
+    finalizers: [],
+  }
+  self.scheduler.slots[id] = status
   if automatic {
-    let scheduler = self.scheduler
     self.retirement.push(
       (
         id,
         fn() {
-          !scheduler.queued[id] &&
-          !scheduler.input_done[id].is_empty() &&
-          scheduler.input_done[id].iter().all(fn(done) { done() }) &&
-          scheduler.output_done[id].iter().all(fn(done) { done() })
+          !status.queued &&
+          !status.input_done.is_empty() &&
+          status.input_done.iter().all(fn(done) { done() }) &&
+          status.output_done.iter().all(fn(done) { done() })
         },
-        fn() {
-          for offset in 0..<scheduler.finalizers[id].length() {
-            scheduler.finalizers[id][scheduler.finalizers[id].length() -
-            1 -
-            offset]()
-          }
-          scheduler.finalizers[id].clear()
-          scheduler.input_done[id].clear()
-          scheduler.output_done[id].clear()
-        },
+        fn() { () },
       ),
     )
   }
@@ -141,7 +139,7 @@ pub fn Worker::step(self : Worker) -> Bool {
   }
   let id = self.scheduler.queue[self.scheduler.head]
   self.scheduler.head += 1
-  self.scheduler.queued[id] = false
+  self.scheduler.slots[id].queued = false
   if self.scheduler.head == self.scheduler.queue.length() {
     self.scheduler.queue.clear()
     self.scheduler.head = 0
@@ -155,7 +153,7 @@ pub fn Worker::step(self : Worker) -> Bool {
     self.scheduler.head = 0
   }
   self.scheduler.stepping = true
-  self.tasks[id].unwrap()()
+  self.tasks[id]()
   for pump in self.progress {
     pump()
   }
@@ -228,11 +226,7 @@ pub fn Worker::dispose(self : Worker) -> Unit {
   self.retirement.clear()
   self.progress.clear()
   self.scheduler.queue.clear()
-  self.scheduler.queued.clear()
-  self.scheduler.live.clear()
-  self.scheduler.input_done.clear()
-  self.scheduler.output_done.clear()
-  self.scheduler.finalizers.clear()
+  self.scheduler.slots.clear()
   self.scheduler.timers.clear()
   self.scheduler.head = 0
   self.network.workers -= 1
@@ -259,5 +253,5 @@ fn Worker::on_task_shutdown(
     }
   }
   self.cleanup.push(finish)
-  self.scheduler.finalizers[task].push(finish)
+  self.scheduler.slots[task].finalizers.push(finish)
 }

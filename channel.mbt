@@ -84,7 +84,7 @@ fn[D, T : Lattice, R] Channel::subscribe(
   self.subscribers.push(mailbox)
   let frames = mailbox.frames
   let ended = mailbox.ended
-  self.scheduler.input_done[mailbox.task].push(fn() {
+  self.scheduler.slots[mailbox.task].input_done.push(fn() {
     ended.val && frames.is_empty()
   })
   match self.context {
@@ -176,7 +176,9 @@ fn[D, E, T, R, S] Channel::depends_on(
   input : Mailbox[E, T, S],
 ) -> Unit {
   let frontier = self.frontier
-  self.scheduler.output_done[input.task].push(fn() { frontier.val.is_empty() })
+  self.scheduler.slots[input.task].output_done.push(fn() {
+    frontier.val.is_empty()
+  })
   if self.context is Some(context) && input.counter is Some((_, port)) {
     (context.connect)(port, self.port)
   }

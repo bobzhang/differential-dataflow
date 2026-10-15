@@ -8,10 +8,16 @@ fn Worker::retire_completed(self : Worker) -> Unit {
   let mut changed = false
   for (task, ready, finish) in self.retirement {
     if ready() {
-      self.scheduler.live[task] = false
-      self.scheduler.queued[task] = false
-      self.tasks[task] = None
+      let status = self.scheduler.slots[task]
+      self.scheduler.slots.remove(task)
+      self.tasks.remove(task)
       finish()
+      for offset in 0..<status.finalizers.length() {
+        status.finalizers[status.finalizers.length() - 1 - offset]()
+      }
+      status.finalizers.clear()
+      status.input_done.clear()
+      status.output_done.clear()
       changed = true
     } else {
       retained.push((task, ready, finish))
@@ -26,7 +32,7 @@ fn Worker::retire_completed(self : Worker) -> Unit {
     self.scheduler.queue.clear()
     self.scheduler.head = 0
     for task in queued {
-      if self.scheduler.live[task] {
+      if self.scheduler.slots.contains(task) {
         self.scheduler.queue.push(task)
       }
     }
@@ -34,7 +40,7 @@ fn Worker::retire_completed(self : Worker) -> Unit {
     self.scheduler.timers.clear()
     for (deadline, slot) in timers {
       if slot.val is None ||
-        (slot.val is Some(task) && self.scheduler.live[task]) {
+        (slot.val is Some(task) && self.scheduler.slots.contains(task)) {
         self.scheduler.timers.push((deadline, slot))
       }
     }

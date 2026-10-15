@@ -256,7 +256,7 @@ fn[T : Compare, S] ScopeProgress::ready_to_reclaim(
   }
   if !self.notified ||
     !self.pending.is_empty() ||
-    self.tasks.iter().any(fn(task) { scheduler.live[task] }) {
+    self.tasks.iter().any(fn(task) { scheduler.slots.contains(task) }) {
     return false
   }
   guard self.tracker is Some(tracker) else { return false }
