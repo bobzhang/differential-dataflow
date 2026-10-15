@@ -328,6 +328,51 @@ for seed, r, m in zip(identifier_seeds, rust, moon):
                     for byte in bytes(4) + data.to_bytes(4, 'little', signed=True):
                         expected = ((expected ^ byte) * 0x100000001b3) & ((1 << 64) - 1)
                     assert identifier == expected, 'default identifier encoding differs'
+search_seeds = range(1, 17)
+inputs = ''.join(f'{seed}\n' for seed in search_seeds)
+# Upstream bidijkstra contains unconditional diagnostic printlns; retain only
+# the explicitly tagged fixture results and still check the exact result count.
+rust_lines = run(['validation/rust/target/release/differential-reference-check', 'search'], input=inputs, capture_output=True).stdout.splitlines()
+rust = [line for line in rust_lines if line.startswith('GRAPH_SEARCH|')]
+moon = run(['node', 'validation/run.cjs', 'search'], input=inputs, capture_output=True).stdout.splitlines()
+assert len(rust) == len(moon) == len(search_seeds)
+for seed, r, m in zip(search_seeds, rust, moon):
+    state = seed
+    weights, requests, values = [0] * 25, [0] * 25, [1, 2, 3, 4, 5]
+    expected = []
+    for epoch in range(12):
+        for _ in range(3):
+            state = (state * 1664525 + 1013904223) & 0xffffffff
+            index = (state >> 8) % 25
+            weights[index] = state % 2 + 1 if weights[index] == 0 else 0
+        for _ in range(2):
+            state = (state * 1664525 + 1013904223) & 0xffffffff
+            index = (state >> 8) % 25
+            requests[index] = state % 2 + 1 if requests[index] == 0 else 0
+        state = (state * 1664525 + 1013904223) & 0xffffffff
+        values[(state >> 8) % 5] = state % 9 + 1
+        rows = []
+        for source in range(5):
+            distances, queue = {source: 0}, [source]
+            for node in queue:
+                for target in range(5):
+                    if weights[node * 5 + target] and target not in distances:
+                        distances[target] = distances[node] + 1
+                        queue.append(target)
+            for target, distance in distances.items():
+                weight = requests[source * 5 + target]
+                if weight:
+                    rows.append((0, source, target, distance, weight))
+        updated = {}
+        for node in range(5):
+            messages = [(updated[source] if source < node else values[source], weights[source * 5 + node])
+                        for source in range(5) if source != node and weights[source * 5 + node]
+                        and (source > node or source in updated)]
+            if messages:
+                updated[node] = 1 + sum(value * weight for value, weight in messages)
+                rows.append((1, node, 0, updated[node], 1))
+        expected.append(';'.join(','.join(map(str, row)) for row in sorted(rows)))
+    assert r == m == 'GRAPH_SEARCH|' + '/'.join(expected), f'graph search differential failure seed={seed}\nRust: {r}\nMoon: {m}\nOracle: {"/".join(expected)}'
 summary = {
     'references': pins,
     'frontier_seeds': len(seeds),
@@ -371,6 +416,9 @@ summary = {
     'identifier_seeds': len(identifier_seeds),
     'identifier_epochs_per_seed': 12,
     'identifier_checks': ['FNV byte encodings', 'forced collisions', 'weighted records', 'winner deletions', 'independent uniqueness and hash verification'],
+    'search_seeds': len(search_seeds),
+    'search_epochs_per_seed': 12,
+    'search_checks': ['bidirectional shortest paths', 'goal multiplicities', 'sequential neighbor updates', 'edge and goal retractions', 'independent BFS and ordered node evaluation'],
     'status': 'passed',
 }
 (ROOT/'validation/results.json').write_text(json.dumps(summary,indent=2)+'\n')

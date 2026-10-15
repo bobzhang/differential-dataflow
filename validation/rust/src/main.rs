@@ -1,3 +1,4 @@
+mod search;
 mod identifiers;
 mod prefix;
 use differential_dataflow::lattice::Lattice;
@@ -52,6 +53,7 @@ fn main() {
                 "graphs" => evaluate_graphs(seed),
                 "prefix" => prefix::evaluate(seed),
                 "identifiers" => identifiers::evaluate(seed),
+                "search" => search::evaluate(seed),
                 "join" => evaluate_join(seed),
                 "reduce" => evaluate_reduce(seed),
                 "stream_reduce" => evaluate_stream_reduce(seed),

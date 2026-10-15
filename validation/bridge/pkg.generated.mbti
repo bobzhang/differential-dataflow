@@ -34,6 +34,8 @@ pub fn evaluate_scope_join(Int) -> String
 
 pub fn evaluate_scope_reduce(Int) -> String
 
+pub fn evaluate_search(Int) -> String
+
 pub fn evaluate_signed_feedback(Int) -> String
 
 pub fn evaluate_stream_reduce(Int) -> String

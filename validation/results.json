@@ -107,5 +107,14 @@
     "winner deletions",
     "independent uniqueness and hash verification"
   ],
+  "search_seeds": 16,
+  "search_epochs_per_seed": 12,
+  "search_checks": [
+    "bidirectional shortest paths",
+    "goal multiplicities",
+    "sequential neighbor updates",
+    "edge and goal retractions",
+    "independent BFS and ordered node evaluation"
+  ],
   "status": "passed"
 }
