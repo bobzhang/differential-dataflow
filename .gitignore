@@ -1,0 +1,4 @@
+/.repos/
+/_build/
+/.mooncakes/
+/validation/rust/target/
