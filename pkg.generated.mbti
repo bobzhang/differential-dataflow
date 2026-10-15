@@ -15,9 +15,35 @@ pub struct Antichain[T] {
   // private fields
 }
 pub fn[T : Lattice] Antichain::Antichain(Array[T]) -> Self[T]
+pub fn[T] Antichain::clear(Self[T]) -> Unit
+pub fn[T : Lattice] Antichain::insert(Self[T], T) -> Bool
+pub fn[T] Antichain::is_empty(Self[T]) -> Bool
 pub fn[T : Lattice] Antichain::less_equal(Self[T], T) -> Bool
+pub fn[T : Lattice] Antichain::less_than(Self[T], T) -> Bool
 pub fn[T : Lattice] Antichain::precedes(Self[T], Self[T]) -> Bool
 pub fn[T] Antichain::to_array(Self[T]) -> Array[T]
+
+pub struct ChangeBatch[T] {
+  // private fields
+}
+pub fn[T] ChangeBatch::ChangeBatch() -> Self[T]
+pub fn[T] ChangeBatch::clear(Self[T]) -> Unit
+pub fn[T : Compare] ChangeBatch::drain(Self[T]) -> Array[(T, Int64)]
+pub fn[T] ChangeBatch::is_dirty(Self[T]) -> Bool
+pub fn[T : Compare] ChangeBatch::is_empty(Self[T]) -> Bool
+pub fn[T : Compare] ChangeBatch::to_array(Self[T]) -> Array[(T, Int64)]
+pub fn[T : Compare] ChangeBatch::update(Self[T], T, Int64) -> Unit
+pub fn[T : Compare] ChangeBatch::update_all(Self[T], Array[(T, Int64)]) -> Unit
+
+pub struct MutableAntichain[T] {
+  // private fields
+}
+pub fn[T : Lattice] MutableAntichain::MutableAntichain() -> Self[T]
+pub fn[T] MutableAntichain::clear(Self[T]) -> Unit
+pub fn[T : Lattice] MutableAntichain::count_for(Self[T], T) -> Int64
+pub fn[T : Lattice] MutableAntichain::frontier(Self[T]) -> Antichain[T]
+pub fn[T : Lattice] MutableAntichain::update_all(Self[T], Array[(T, Int64)]) -> Array[(T, Int64)]
+pub fn[T : Lattice] MutableAntichain::updates(Self[T]) -> Array[(T, Int64)]
 
 pub(all) struct Product[A, B] {
   outer : A

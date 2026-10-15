@@ -76,15 +76,15 @@ pub struct Antichain[T] {
 pub fn[T : Lattice] Antichain::Antichain(elements : Array[T]) -> Antichain[T] {
   let result = { elements: [], }
   for time in elements {
-    result.insert(time)
+    let _ = result.insert(time)
   }
   result
 }
 
 ///|
-fn[T : Lattice] Antichain::insert(self : Antichain[T], time : T) -> Unit {
+pub fn[T : Lattice] Antichain::insert(self : Antichain[T], time : T) -> Bool {
   if self.less_equal(time) {
-    return
+    return false
   }
   let retained = self.elements.filter(fn(old) { !time.less_equal(old) })
   self.elements.clear()
@@ -93,6 +93,7 @@ fn[T : Lattice] Antichain::insert(self : Antichain[T], time : T) -> Unit {
   }
   self.elements.push(time)
   self.elements.sort()
+  true
 }
 
 ///|
