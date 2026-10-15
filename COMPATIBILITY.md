@@ -22,7 +22,7 @@ until resolved. A small core port does not satisfy this target.
 | Shared arrangements/imports/lookups/upsert | Implemented baseline | 1,024 Rust reader-compaction epochs, 8,192 Rust upsert records; live imports and deferred lookups tested; indexed arranged operators remain |
 | General operator builders/notifications/capabilities | Partial | Scoped capabilities, unary builder, frontier notifications; multi-input/output builders and summary-aware connection APIs remain |
 | Nested scopes and iteration | Product nesting and fixed points implemented | 256 Rust feedback epochs and 256 cyclic graph fixed-point epochs; general Refines and negative-summary cases remain |
-| Multi-worker/distributed runtime | Pending | Same-process trace import is implemented; worker allocation, exchange, serialization, TCP transport, and distributed progress are not |
+| Multi-worker/distributed runtime | Cooperative groups implemented; network runtime pending | Globally counted exchange, peer joins, nested iteration, and 512 Rust two-worker join epochs; parallel threads, serialization, TCP transport, and cross-process progress remain |
 | Columnar/spilling/fueled trace variants | Pending | No compatibility or performance claim for these layouts |
 | Capture/replay, logging, diagnostics | Partial | Capture protocol and reordering iterator match Rust in 256 cases; async durable sources/sinks, distributed replay, logging and diagnostics remain |
 | Graph and auxiliary algorithms | Pending | Generic iteration is tested with cyclic graph reachability; dedicated upstream algorithm APIs remain |
@@ -46,8 +46,10 @@ until resolved. A small core port does not satisfy this target.
 ## Known implementation limits
 
 Counted scopes support feedback and product nesting within cooperative workers.
-There is no exchange or network runtime. Shared trace imports between workers in
-one process do not implement Timely's distributed progress protocol.
+Worker groups support keyed exchange and globally counted progress within one
+process, with cooperative execution on one thread. There is no parallel-thread
+or network runtime. Same-process global progress does not implement Timely's
+cross-process communication and progress protocol.
 
 Reduction compacts at singleton frontiers; general incomparable frontiers retain
 history. It still enumerates a timestamp join-closure. Trace cursors materialize

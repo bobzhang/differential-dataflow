@@ -12,7 +12,8 @@ The implemented foundations currently run on JavaScript, native, Wasm, and Wasm 
 - Output capabilities, custom unary operators, and frontier notifications.
 - Signed and presence-only differences and generic update consolidation.
 - Sealed trace batches, logical/physical compaction, and snapshot cursors.
-- Buffered input sessions, a cooperative worker, progress probes, and fanout.
+- Buffered input sessions, cooperative workers, progress probes, and fanout.
+- Worker groups with keyed exchange, global progress, and nested peer iteration.
 - Map, flat-map, filter, explode, negate, concat, and consolidation.
 - Weighted incremental joins, semijoins, and antijoins, including retractions.
 - Grouped reduction, count, threshold, and distinct with synthetic partial-order timestamps.
@@ -120,6 +121,13 @@ Call `close()` explicitly to release the input capability. `run()` returning
 produce more data. Probe frontiers determine whether a timestamp is complete.
 `dispose()` releases the worker's registered tasks and invalidates its inputs.
 
+`WorkerGroup(peers)` coordinates workers in one process with globally counted
+progress and keyed exchange. It executes cooperatively on one thread; it does
+not yet provide parallel threads or network transport. Build identical operator
+graphs on each peer, and use `ScopeGroup.exchange` to colocate equal keys before
+keyed operations. `ScopeGroup.iterate` coordinates nested progress and exchange.
+Dispose the entire group with `group.dispose()`.
+
 Tuples, timestamps, and weights must be immutable. Comparison and algebra traits
 must obey their mathematical laws. Callbacks must be deterministic and must not
 re-enter the worker or mutate the graph. Signed weights use MoonBit integer
@@ -179,9 +187,10 @@ The pinned Rust comparisons cover:
 - 1,024 shared-arrangement epochs with independent reader compaction.
 - 8,192 upsert records, including equal-time conflicts and deletion.
 - 256 reordered/duplicated capture-replay cases, comparing exact progress transitions.
+- 512 partitioned join epochs against Rust running two workers.
 
 Local retention tests exercise 20,000 reduction epochs, 2,000 feedback epochs,
-2,000 shared-trace epochs, and 10,000 replay intervals. Tests run on native,
+2,000 shared-trace epochs, 10,000 replay intervals, and 1,000 exchange epochs. Tests run on native,
 JavaScript, Wasm, and Wasm GC. The CI workflow repeats backend tests on Linux and
 macOS and runs the Rust oracle separately; it has not yet run on GitHub for this
 unfinished port. Results validate these components, not full upstream compatibility.
