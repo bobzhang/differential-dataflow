@@ -149,3 +149,45 @@ test "shared trace releases pinned history when a slow reader exits" {
   assert_true(writer.shared.readers.is_empty())
   assert_true(writer.shared.trace.batches.is_empty())
 }
+
+///|
+test "disposing an importer removes its listener and reader capability" {
+  let (writer, reader) : (
+    TraceWriter[Int32, Int64, Int64],
+    TraceAgent[Int32, Int64, Int64],
+  ) = shared_trace(0)
+  let worker = Worker()
+  let scope = worker.scope(0L, SummaryDomain::int64())
+  let _ = reader.import_into(scope).probe()
+  assert_eq(writer.shared.readers.length(), 2)
+  assert_eq(writer.shared.listeners.length(), 1)
+  worker.dispose()
+  assert_eq(writer.shared.readers.length(), 1)
+  assert_true(writer.shared.listeners.is_empty())
+  writer.insert(
+    Batch([(1, 0L, 1L)], lower=Antichain([0L]), upper=Antichain([1L])),
+  )
+  assert_eq(reader.snapshot(0), [(1, 1L)])
+  reader.release()
+}
+
+///|
+test "worker disposal clears scoped progress and queued data even with a retained scope" {
+  let worker = Worker()
+  let scope = worker.scope(0L, SummaryDomain::int64())
+  let (output, cap, values) : (
+    Output[Int32, Int64, Int64, Int64],
+    Capability[Int64, Int64],
+    Collection[Int32, Int64, Int64],
+  ) = scope.source()
+  let _ = values.map(fn(x) { x + 1 }).probe()
+  output.send(cap, Array::makei(1000, fn(i) { (i, 1L) }))
+  worker.dispose()
+  assert_true(scope.progress.observers.is_empty())
+  assert_true(scope.progress.graph.edges.is_empty())
+  assert_true(scope.progress.pending.is_empty())
+  assert_true(scope.progress.tracker is None)
+  assert_true(!cap.is_live())
+  cap.release()
+  assert_true(scope.progress.pending.is_empty())
+}

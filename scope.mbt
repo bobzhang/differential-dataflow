@@ -12,6 +12,7 @@ priv struct ScopeProgress[T, S] {
   pending : ChangeBatch[(Int32, T)]
   observers : Array[Array[(Antichain[T]) -> Unit]]
   mut tracker : ProgressTracker[T, S]?
+  mut disposed : Bool
 }
 
 ///|
@@ -73,6 +74,7 @@ pub fn[T : Lattice, S : Compare] Worker::scope(
     pending: ChangeBatch(),
     observers: [],
     tracker: None,
+    disposed: false,
   }
   let scheduler = self.scheduler
   let context = {
@@ -91,6 +93,13 @@ pub fn[T : Lattice, S : Compare] Worker::scope(
     observe: fn(port, notify) { progress.observers[port].push(notify) },
   }
   self.progress.push(fn() { progress.pump() })
+  self.cleanup.push(fn() {
+    progress.disposed = true
+    progress.observers.clear()
+    progress.graph.edges.clear()
+    progress.pending.clear()
+    progress.tracker = None
+  })
   { worker: self, minimum, domain, progress, context, }
 }
 

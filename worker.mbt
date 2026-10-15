@@ -14,6 +14,7 @@ pub struct Worker {
   priv scheduler : Scheduler
   priv tasks : Array[() -> Unit]
   priv progress : Array[() -> Unit]
+  priv cleanup : Array[() -> Unit]
 }
 
 ///|
@@ -29,6 +30,7 @@ pub fn Worker::Worker() -> Worker {
     },
     tasks: [],
     progress: [],
+    cleanup: [],
   }
 }
 
@@ -134,6 +136,10 @@ pub fn Worker::dispose(self : Worker) -> Unit {
     abort("cannot dispose a running worker")
   }
   self.scheduler.active = false
+  for offset in 0..<self.cleanup.length() {
+    self.cleanup[self.cleanup.length() - 1 - offset]()
+  }
+  self.cleanup.clear()
   self.tasks.clear()
   self.progress.clear()
   self.scheduler.queue.clear()

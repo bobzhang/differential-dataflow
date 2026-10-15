@@ -19,7 +19,9 @@ pub fn[T : Lattice, S] ProgressTracker::capability(
 
 ///|
 fn[T, S] Capability::check(self : Capability[T, S]) -> Unit {
-  guard self.live else { abort("capability was released or transferred") }
+  guard self.live && self.owner.active() else {
+    abort("capability was released or transferred")
+  }
 }
 
 ///|
@@ -30,7 +32,7 @@ pub fn[T, S] Capability::time(self : Capability[T, S]) -> T {
 
 ///|
 pub fn[T, S] Capability::is_live(self : Capability[T, S]) -> Bool {
-  self.live
+  self.live && self.owner.active()
 }
 
 ///|
@@ -245,7 +247,10 @@ fn[T : Lattice, S] CapabilityOwner::update(
 ) -> Unit {
   match self {
     Tracker(tracker) => tracker.update(port, time, diff)
-    Scoped(progress) => progress.pending.update((port, time), diff)
+    Scoped(progress) =>
+      if !progress.disposed {
+        progress.pending.update((port, time), diff)
+      }
   }
 }
 
@@ -257,4 +262,12 @@ fn[T : Lattice, S] CapabilityOwner::capability(
 ) -> Capability[T, S] {
   self.update(port, time, 1)
   { owner: self, port, time, live: true, }
+}
+
+///|
+fn[T, S] CapabilityOwner::active(self : CapabilityOwner[T, S]) -> Bool {
+  match self {
+    Tracker(_) => true
+    Scoped(progress) => !progress.disposed
+  }
 }

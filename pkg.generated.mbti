@@ -293,6 +293,7 @@ pub struct TraceAgent[D, T, R] {
 pub fn[D, T : Lattice, R] TraceAgent::batches_through(Self[D, T, R], Antichain[T]) -> Array[Batch[D, T, R]]?
 pub fn[D, T : Lattice, R] TraceAgent::clone(Self[D, T, R]) -> Self[D, T, R]
 pub fn[K : Compare, V : Compare, T : Lattice, R : Semigroup] TraceAgent::cursor(Self[(K, V), T, R]) -> Cursor[K, V, T, R]
+pub fn[D : Compare, T : Lattice, R : Semigroup, S] TraceAgent::import_into(Self[D, T, R], Scope[T, S]) -> Collection[D, T, R]
 pub fn[D, T : Lattice, R] TraceAgent::logical_compaction(Self[D, T, R]) -> Antichain[T]
 pub fn[D, T : Lattice, R] TraceAgent::physical_compaction(Self[D, T, R]) -> Antichain[T]
 pub fn[D : Compare, T : Lattice, R : Semigroup] TraceAgent::release(Self[D, T, R]) -> Unit

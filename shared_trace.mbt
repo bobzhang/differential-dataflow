@@ -8,6 +8,8 @@ priv struct ReaderBounds[T] {
 priv struct SharedTrace[D, T, R] {
   trace : Trace[D, T, R]
   readers : Map[Int32, ReaderBounds[T]]
+  listeners : Map[Int32, (Batch[D, T, R]) -> Unit]
+  mut next_listener : Int32
   mut next_id : Int32
 }
 
@@ -57,6 +59,8 @@ fn[D, T : Lattice, R] shared_trace_at(
       ),
     ]),
     next_id: 1,
+    listeners: Map([]),
+    next_listener: 0,
   }
   ({ shared, }, { shared, id: 0, live: true, })
 }
@@ -200,6 +204,9 @@ pub fn[D : Compare, T : Lattice, R : Semigroup] TraceWriter::insert(
 ) -> Unit {
   self.shared.trace.insert(batch)
   self.shared.compact()
+  for _, notify in self.shared.listeners {
+    notify(batch)
+  }
 }
 
 ///|
