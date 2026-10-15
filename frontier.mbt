@@ -81,3 +81,18 @@ pub fn[T] MutableAntichain::clear(self : MutableAntichain[T]) -> Unit {
   self.counts.clear()
   self.frontier.clear()
 }
+
+///|
+/// Least upper bound of frontier upsets (their intersection).
+pub fn[T : Lattice] Antichain::join(
+  self : Antichain[T],
+  other : Antichain[T],
+) -> Antichain[T] {
+  let times = []
+  for a in self.elements {
+    for b in other.elements {
+      times.push(a.join(b))
+    }
+  }
+  Antichain(times)
+}

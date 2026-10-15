@@ -22,10 +22,19 @@ pub fn[T : Lattice] Antichain::Antichain(Array[T]) -> Self[T]
 pub fn[T] Antichain::clear(Self[T]) -> Unit
 pub fn[T : Lattice] Antichain::insert(Self[T], T) -> Bool
 pub fn[T] Antichain::is_empty(Self[T]) -> Bool
+pub fn[T : Lattice] Antichain::join(Self[T], Self[T]) -> Self[T]
 pub fn[T : Lattice] Antichain::less_equal(Self[T], T) -> Bool
 pub fn[T : Lattice] Antichain::less_than(Self[T], T) -> Bool
 pub fn[T : Lattice] Antichain::precedes(Self[T], Self[T]) -> Bool
 pub fn[T] Antichain::to_array(Self[T]) -> Array[T]
+
+pub struct Batch[D, T, R] {
+  // private fields
+}
+pub fn[D : Compare, T : Lattice, R : Semigroup] Batch::Batch(Array[(D, T, R)], lower~ : Antichain[T], upper~ : Antichain[T]) -> Self[D, T, R]
+pub fn[D : Compare, T : Lattice, R : Semigroup] Batch::compact(Self[D, T, R], Antichain[T]) -> Self[D, T, R]
+pub fn[D, T, R] Batch::description(Self[D, T, R]) -> Description[T]
+pub fn[D, T, R] Batch::to_array(Self[D, T, R]) -> Array[(D, T, R)]
 
 pub struct ChangeBatch[T] {
   // private fields
@@ -38,6 +47,14 @@ pub fn[T : Compare] ChangeBatch::is_empty(Self[T]) -> Bool
 pub fn[T : Compare] ChangeBatch::to_array(Self[T]) -> Array[(T, Int64)]
 pub fn[T : Compare] ChangeBatch::update(Self[T], T, Int64) -> Unit
 pub fn[T : Compare] ChangeBatch::update_all(Self[T], Array[(T, Int64)]) -> Unit
+
+pub struct Description[T] {
+  // private fields
+}
+pub fn[T : Lattice] Description::Description(Antichain[T], Antichain[T], Antichain[T]) -> Self[T]
+pub fn[T : Lattice] Description::lower(Self[T]) -> Antichain[T]
+pub fn[T : Lattice] Description::since(Self[T]) -> Antichain[T]
+pub fn[T : Lattice] Description::upper(Self[T]) -> Antichain[T]
 
 pub struct MutableAntichain[T] {
   // private fields
@@ -76,6 +93,19 @@ pub fn[A : Compare, B : Compare] Product::op_le(Self[A, B], Self[A, B]) -> Bool
 pub fn[A : Compare, B : Compare] Product::op_lt(Self[A, B], Self[A, B]) -> Bool
 pub fn[A : @debug.Debug, B : @debug.Debug] Product::to_repr(Self[A, B]) -> @debug.Repr
 pub impl[A : Lattice, B : Lattice] Lattice for Product[A, B]
+
+pub struct Trace[D, T, R] {
+  // private fields
+}
+pub fn[D, T : Lattice, R] Trace::Trace(T) -> Self[D, T, R]
+pub fn[D, T : Lattice, R] Trace::batches_through(Self[D, T, R], Antichain[T]) -> Array[Batch[D, T, R]]?
+pub fn[D, T : Lattice, R] Trace::insert(Self[D, T, R], Batch[D, T, R]) -> Unit
+pub fn[D, T : Lattice, R] Trace::logical_compaction(Self[D, T, R]) -> Antichain[T]
+pub fn[D, T : Lattice, R] Trace::physical_compaction(Self[D, T, R]) -> Antichain[T]
+pub fn[D : Compare, T : Lattice, R : Semigroup] Trace::set_logical_compaction(Self[D, T, R], Antichain[T]) -> Unit
+pub fn[D : Compare, T : Lattice, R : Semigroup] Trace::set_physical_compaction(Self[D, T, R], Antichain[T]) -> Unit
+pub fn[D : Compare, T : Lattice, R : Semigroup] Trace::snapshot(Self[D, T, R], T) -> Array[(D, R)]
+pub fn[D, T : Lattice, R] Trace::upper(Self[D, T, R]) -> Antichain[T]
 
 // Type aliases
 
