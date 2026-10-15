@@ -58,6 +58,36 @@ for seed,r,m in zip(join_seeds,rust,moon):
                     if count: values.append(f'{k},{v},{w},{count}')
         expected.append(';'.join(values))
     assert r==m=='/'.join(expected), f'weighted join differential failure at seed {seed}'
-summary={'references':pins,'frontier_seeds':len(seeds),'frontier_rounds_per_seed':40,'frontier_checks':['membership changes','minimal positive timestamps','lattice advance_by'],'join_seeds':len(join_seeds),'join_epochs_per_seed':16,'oracles':['independent positive-count partial-order model','full weighted join recomputation each epoch'],'status':'passed'}
+reduce_seeds = range(1,129)
+inputs = ''.join(f'{s}\n' for s in reduce_seeds)
+rust = run(['validation/rust/target/release/differential-reference-check','reduce'],input=inputs,capture_output=True).stdout.splitlines()
+moon = run(['node','validation/run.cjs','reduce'],input=inputs,capture_output=True).stdout.splitlines()
+assert len(rust) == len(moon) == len(reduce_seeds)
+for seed,r,m in zip(reduce_seeds,rust,moon):
+    assert r == m, f'partial-order reduction differential failure at seed {seed}\nRust: {r}\nMoon: {m}'
+    state=seed
+    updates=[]
+    for _ in range(32):
+        state=(state*1664525+1013904223)&0xffffffff
+        idx=(state>>8)%375
+        updates.append((idx//125,idx%5,idx//25%5,idx//5%5,state%5-2))
+    actual=[tuple(map(int,row.split(','))) for row in m.split(';') if row]
+    for x in range(5):
+        for y in range(5):
+            expected={}
+            for k in range(3):
+                values={v:sum(d for key,val,a,b,d in updates if key==k and val==v and a<=x and b<=y) for v in range(5)}
+                total=sum(values.values())
+                if total:
+                    expected[0,k,0]=1
+                    expected[1,k,total]=1
+                nonzero=[v for v,count in values.items() if count]
+                if nonzero: expected[2,k,min(nonzero)]=1
+            snapshot={}
+            for op,k,v,a,b,d in actual:
+                if a<=x and b<=y: snapshot[op,k,v]=snapshot.get((op,k,v),0)+d
+            snapshot={key:d for key,d in snapshot.items() if d}
+            assert snapshot==expected, f'reduction snapshot failure seed={seed} time={(x,y)}'
+summary={'references':pins,'frontier_seeds':len(seeds),'frontier_rounds_per_seed':40,'frontier_checks':['membership changes','minimal positive timestamps','lattice advance_by'],'join_seeds':len(join_seeds),'join_epochs_per_seed':16,'oracles':['independent positive-count partial-order model','full weighted join recomputation each epoch'],'reduce_seeds':len(reduce_seeds),'reduce_queries_per_seed':25,'reduce_checks':['distinct','count','group minimum','exact product-timestamp corrections','independent grid snapshots'],'status':'passed'}
 (ROOT/'validation/results.json').write_text(json.dumps(summary,indent=2)+'\n')
 print(json.dumps(summary))

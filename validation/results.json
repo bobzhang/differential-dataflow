@@ -16,5 +16,14 @@
     "independent positive-count partial-order model",
     "full weighted join recomputation each epoch"
   ],
+  "reduce_seeds": 128,
+  "reduce_queries_per_seed": 25,
+  "reduce_checks": [
+    "distinct",
+    "count",
+    "group minimum",
+    "exact product-timestamp corrections",
+    "independent grid snapshots"
+  ],
   "status": "passed"
 }

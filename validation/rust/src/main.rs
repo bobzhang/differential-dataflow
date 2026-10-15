@@ -28,8 +28,8 @@ fn evaluate(seed: u32) -> String {
     result.join("/")
 }
 fn main() {
-    let join = std::env::args().nth(1).as_deref() == Some("join");
-    for line in io::stdin().lock().lines() { let seed = line.unwrap().parse().unwrap(); println!("{}", if join { evaluate_join(seed) } else { evaluate(seed) }); }
+    let mode = std::env::args().nth(1).unwrap_or_default();
+    for line in io::stdin().lock().lines() { let seed = line.unwrap().parse().unwrap(); println!("{}", match mode.as_str() { "join" => evaluate_join(seed), "reduce" => evaluate_reduce(seed), _ => evaluate(seed) }); }
 }
 fn evaluate_join(seed: u32) -> String {
     use differential_dataflow::input::Input;
@@ -66,5 +66,41 @@ fn evaluate_join(seed: u32) -> String {
         a.close(); b.close();
         while !probe.done() { worker.step(); }
         results.join("/")
+    })
+}
+
+fn evaluate_reduce(seed: u32) -> String {
+    use differential_dataflow::AsCollection;
+    use timely::dataflow::operators::ToStream;
+    use std::cell::RefCell;
+    use std::collections::BTreeMap;
+    use std::rc::Rc;
+    timely::execute_directly(move |worker| {
+        let observed = Rc::new(RefCell::new(BTreeMap::<(u32,u32,i64,u64,u64),i64>::new()));
+        let sinks = [observed.clone(), observed.clone(), observed.clone()];
+        let mut random = seed;
+        let mut updates = Vec::new();
+        for _ in 0..32 {
+            random = random.wrapping_mul(1664525).wrapping_add(1013904223);
+            let index = (random >> 8) % 375;
+            updates.push(((index / 125, index % 5),Product::new((index / 25 % 5) as u64,(index / 5 % 5) as u64),(random % 5) as i64 - 2));
+        }
+        let probes = worker.dataflow::<u64,_,_>(|outer| outer.scoped::<Product<u64,u64>,_,_>("ReduceCheck", |scope| {
+            let collection = updates.to_stream(scope).as_collection();
+            let [s0,s1,s2] = sinks;
+            let (p0,_) = collection.clone().map(|(k,_)| k).distinct_core::<i64>().inspect(move |&(k,t,d)| {
+                *s0.borrow_mut().entry((0,k,0,t.outer,t.inner)).or_default() += d;
+            }).probe();
+            let (p1,_) = collection.clone().map(|(k,_)| k).count().inspect(move |&((k,v),t,d)| {
+                *s1.borrow_mut().entry((1,k,v,t.outer,t.inner)).or_default() += d as i64;
+            }).probe();
+            let (p2,_) = collection.reduce(|_k,values,output| output.push((*values[0].0,1i64))).inspect(move |&((k,v),t,d)| {
+                *s2.borrow_mut().entry((2,k,v as i64,t.outer,t.inner)).or_default() += d;
+            }).probe();
+            [p0,p1,p2]
+        }));
+        while probes.iter().any(|p| !p.done()) { worker.step(); }
+        let result = observed.borrow().iter().filter(|(_,d)| **d != 0).map(|(&(op,k,v,x,y),d)| format!("{op},{k},{v},{x},{y},{d}")).collect::<Vec<_>>().join(";");
+        result
     })
 }
