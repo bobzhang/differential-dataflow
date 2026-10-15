@@ -11,9 +11,37 @@ fn main raise {
     port,
     peer,
     peers,
-    timeout_ms=if mode == "timeout" { 200 } else { 10000 },
+    timeout_ms=if mode == "timeout" || mode == "async_timeout" {
+      200
+    } else {
+      10000
+    },
   )
   defer transport.close()
+  if mode == "async_wire" || mode == "async_timeout" || mode == "async_wait" {
+    let payload = "🪐☄️漢字\u0000".repeat(seed)
+    for _ in 0..<3 {
+      transport.start_exchange(payload)
+      if mode == "async_wait" {
+        guard transport.poll_exchange() is None else {
+          abort("expected a pending exchange")
+        }
+        println("wire-ok")
+        return
+      }
+      for ;; {
+        if transport.poll_exchange() is Some(values) {
+          guard values.length() == peers &&
+            values.iter().all(fn(value) { value == payload }) else {
+            abort("async wire round trip mismatch")
+          }
+          break
+        }
+      }
+    }
+    println("wire-ok")
+    return
+  }
   if mode == "wire" {
     let payload = "🪐☄️漢字\u0000".repeat(seed)
     let values = transport.exchange(payload)

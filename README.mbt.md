@@ -286,6 +286,14 @@ at most that many cursor/emission steps before yielding. Pending work retains
 immutable batch views and timestamp capabilities, so probes cannot report its
 results complete prematurely. Empty historical intervals do not hold old times.
 
+`TcpTransport.start_exchange(value)` and `poll_exchange()` provide nonblocking
+round I/O for host event loops. A pending poll returns `None`; a completed poll
+returns peer-ordered values. Each peer advances at most 64 KiB of payload per
+poll, with frame bounds and deadlines. Connection setup and handshake remain
+synchronous. Do not overlap exchanges or mix a pending asynchronous exchange with
+`exchange`. Native validation checks host control before peer input, fragmented
+frames, 11 failure cases, and repeated large exchanges across two/three peers.
+
 ## Dataflow lifecycle
 
 Each root `worker.scope(...)` gets a monotone `dataflow_index`; nested scopes and

@@ -55,5 +55,6 @@ jobs:
       - run: python3 validation/compare.py
       - run: python3 validation/cluster_compare.py
       - run: python3 validation/transport_failures.py
+      - run: python3 validation/async_transport.py
       - run: python3 validation/sanitize_cluster.py
       - run: git diff --exit-code validation/results.json validation/cluster_results.json

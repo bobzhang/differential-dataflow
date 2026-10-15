@@ -72,6 +72,7 @@ pub struct TcpTransport {
   priv index : Int32
   priv peers : Int32
   priv mut closed : Bool
+  priv mut pending : TcpRound?
 }
 
 ///|
@@ -98,6 +99,7 @@ pub fn TcpTransport::TcpTransport(
     index,
     peers,
     closed: false,
+    pending: None,
   }
   errdefer result.close()
   if peers == 1 {
@@ -165,6 +167,9 @@ pub fn TcpTransport::exchange(
   value : String,
 ) -> Array[String] raise {
   guard !self.closed else { raise TransportError("TCP transport is closed") }
+  guard self.pending is None else {
+    raise TransportError("TCP exchange is already pending")
+  }
   errdefer self.close()
   if self.index == 0 {
     let values = [value]
@@ -196,6 +201,7 @@ pub fn TcpTransport::exchange(
 pub fn TcpTransport::close(self : TcpTransport) -> Unit {
   if !self.closed {
     self.closed = true
+    self.pending = None
     for socket in self.sockets {
       if socket is Some(socket) {
         socket_close(socket)

@@ -8,6 +8,7 @@ from pathlib import Path
 import cluster_compare
 import transport_failures
 import journal_check
+import async_transport
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -61,6 +62,8 @@ def main():
         for mode in ('iteration', 'deep_iteration'):
             assert cluster_compare.run_peers(42, peers, mode) == cluster_compare.reachable(42)
     transport_failures.main()
+    async_transport.BIN = output
+    async_transport.main(build=False)
     print('AddressSanitizer and LeakSanitizer checks passed')
 
 
