@@ -52,5 +52,11 @@
     "greatest-value tie breaking",
     "deletion and repeated values"
   ],
+  "replay_seeds": 256,
+  "replay_checks": [
+    "reordered duplicated messages",
+    "exact progress transitions",
+    "complete unique updates"
+  ],
   "status": "passed"
 }

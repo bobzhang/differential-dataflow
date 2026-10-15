@@ -68,6 +68,19 @@ pub fn[T : Lattice, S] CapabilitySet::times(Self[T, S]) -> Array[T]
 pub fn[T : Lattice, S] CapabilitySet::try_delayed(Self[T, S], T) -> Capability[T, S]?
 pub fn[T : Lattice, S] CapabilitySet::try_downgrade(Self[T, S], Array[T]) -> Bool
 
+pub(all) enum CaptureMessage[D, T, R] {
+  Updates(Array[(D, T, R)])
+  Progress(CaptureProgress[T])
+}
+
+pub struct CaptureProgress[T] {
+  // private fields
+}
+pub fn[T : Lattice] CaptureProgress::CaptureProgress(Antichain[T], Antichain[T], Array[(T, Int64)]) -> Self[T]
+pub fn[T] CaptureProgress::counts(Self[T]) -> Array[(T, Int64)]
+pub fn[T : Lattice] CaptureProgress::lower(Self[T]) -> Antichain[T]
+pub fn[T : Lattice] CaptureProgress::upper(Self[T]) -> Antichain[T]
+
 pub struct ChangeBatch[T] {
   // private fields
 }
@@ -87,6 +100,7 @@ pub fn[K : Compare + Hash, V : Compare, T : Lattice] Collection::antijoin(Self[(
 pub fn[K : Compare, V : Compare, T : Lattice, R : Semigroup] Collection::arrange_by_key(Self[(K, V), T, R]) -> Arranged[K, V, T, R]
 pub fn[K : Compare, T : Lattice, R : Semigroup] Collection::arrange_by_self(Self[K, T, R]) -> Arranged[K, Unit, T, R]
 pub fn[K : Compare + Hash, V : Compare, T : TotalOrder] Collection::arrange_from_upsert(Self[(K, V?), T, Present]) -> Arranged[K, V, T, Int64]
+pub fn[D : Compare, T : Lattice, R : Semigroup] Collection::capture(Self[D, T, R], (CaptureMessage[D, T, R]) -> Unit) -> Probe[T]
 pub fn[D, T : Lattice, R] Collection::concat(Self[D, T, R], Self[D, T, R]) -> Self[D, T, R]
 pub fn[D : Compare, T : Lattice, R : Semigroup] Collection::consolidate(Self[D, T, R]) -> Self[D, T, R]
 pub fn[D : Compare + Hash, T : Lattice, R : Semigroup + Compare] Collection::count(Self[D, T, R]) -> Self[(D, R), T, Int64]
@@ -243,6 +257,19 @@ pub struct Reachability[T, S] {
 pub fn[T, S] Reachability::port_count(Self[T, S]) -> Int
 pub fn[T, S] Reachability::summaries(Self[T, S], Int, Int) -> Array[S]
 
+pub struct ReplayInput[D, T, R] {
+  // private fields
+}
+pub fn[D, T : Lattice, R] ReplayInput::cancel(Self[D, T, R]) -> Unit
+pub fn[D : Compare, T : Lattice, R : Compare] ReplayInput::push(Self[D, T, R], CaptureMessage[D, T, R]) -> Unit
+
+pub struct Replayer[D, T, R] {
+  // private fields
+}
+pub fn[D, T : Lattice, R] Replayer::Replayer(T) -> Self[D, T, R]
+pub fn[D, T : Lattice, R] Replayer::frontier(Self[D, T, R]) -> Antichain[T]
+pub fn[D : Compare, T : Lattice, R : Compare] Replayer::push(Self[D, T, R], CaptureMessage[D, T, R]) -> (Array[(D, T, R)], Antichain[T])?
+
 pub(all) enum RunResult {
   Quiescent(Int)
   StepLimit(Int)
@@ -258,6 +285,7 @@ pub fn[D, T : Lattice, R, S] Scope::feedback(Self[T, S], S) -> (Feedback[D, T, R
 pub fn[D, T : Lattice, R, S] Scope::input(Self[T, S]) -> (InputSession[D, T, R], Collection[D, T, R])
 pub fn[D, T : Lattice, R : Abelian, S : Compare] Scope::iterate(Self[T, S], Collection[D, T, R], (Self[Product[T, Int64], Product[S, Int64]], Collection[D, Product[T, Int64], R]) -> Collection[D, Product[T, Int64], R]) -> Collection[D, T, R]
 pub fn[A : Lattice, B : Lattice, S : Compare, U : Compare] Scope::nested(Self[A, S], B, SummaryDomain[B, U]) -> NestedScope[A, B, S, U]
+pub fn[D, T : Lattice, R, S] Scope::replay(Self[T, S]) -> (ReplayInput[D, T, R], Collection[D, T, R])
 pub fn[D, T : Lattice, R, S] Scope::source(Self[T, S]) -> (Output[D, T, R, S], Capability[T, S], Collection[D, T, R])
 pub fn[D, E, T : Lattice, R, U, S] Scope::unary(Self[T, S], Collection[D, T, R], (Output[E, T, U, S], Capability[T, S]) -> (OperatorEvent[D, T, R, S]) -> Unit) -> Collection[E, T, U]
 pub fn[D, T : Lattice, R, S] Scope::variable(Self[T, S], S) -> (Variable[D, T, R, S], Collection[D, T, R])

@@ -29,7 +29,7 @@ fn evaluate(seed: u32) -> String {
 }
 fn main() {
     let mode = std::env::args().nth(1).unwrap_or_default();
-    for line in io::stdin().lock().lines() { let seed = line.unwrap().parse().unwrap(); println!("{}", match mode.as_str() { "join" => evaluate_join(seed), "reduce" => evaluate_reduce(seed), "feedback" => evaluate_feedback(seed), "iteration" => evaluate_iteration(seed), "arrangement" => evaluate_arrangement(seed), "upsert" => evaluate_upsert(seed), _ => evaluate(seed) }); }
+    for line in io::stdin().lock().lines() { let seed = line.unwrap().parse().unwrap(); println!("{}", match mode.as_str() { "join" => evaluate_join(seed), "reduce" => evaluate_reduce(seed), "feedback" => evaluate_feedback(seed), "iteration" => evaluate_iteration(seed), "arrangement" => evaluate_arrangement(seed), "upsert" => evaluate_upsert(seed), "replay" => evaluate_replay(seed), _ => evaluate(seed) }); }
 }
 fn evaluate_join(seed: u32) -> String {
     use differential_dataflow::input::Input;
@@ -249,4 +249,27 @@ fn evaluate_upsert(seed: u32) -> String {
         let result=observed.borrow().iter().filter(|(_,r)| **r!=0).map(|(&(k,v,t),r)| format!("{k},{v},{t},{r}")).collect::<Vec<_>>().join(";");
         result
     })
+}
+
+fn evaluate_replay(seed: u32) -> String {
+    use differential_dataflow::capture::{Message, Progress, iterator::Iter};
+    let mut random=seed;
+    let mut messages=Vec::new();
+    for epoch in 0u64..8 {
+        random=random.wrapping_mul(1664525).wrapping_add(1013904223);
+        let data=(random>>8)%11;
+        let diff=(random%3+1) as i64;
+        messages.push(Message::Updates(vec![(data,epoch,diff),(data+20,epoch,-diff)]));
+        messages.push(Message::Progress(Progress{lower:vec![epoch],upper:vec![epoch+1],counts:vec![(epoch,2)]}));
+    }
+    messages.push(Message::Progress(Progress{lower:vec![8],upper:vec![],counts:vec![]}));
+    messages.extend(messages.clone());
+    for index in 1..messages.len() {
+        random=random.wrapping_mul(1664525).wrapping_add(1013904223);
+        messages.swap(index,random as usize%(index+1));
+    }
+    Iter::new(messages.into_iter()).map(|(mut updates,frontier)| {
+        updates.sort();
+        format!("{}|{}",updates.iter().map(|(d,t,r)| format!("{d},{t},{r}")).collect::<Vec<_>>().join(";"),frontier.elements().iter().map(|t| t.to_string()).collect::<Vec<_>>().join(","))
+    }).collect::<Vec<_>>().join("/")
 }

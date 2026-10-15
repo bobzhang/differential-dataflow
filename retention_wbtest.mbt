@@ -191,3 +191,26 @@ test "worker disposal clears scoped progress and queued data even with a retaine
   cap.release()
   assert_true(scope.progress.pending.is_empty())
 }
+
+///|
+test "capture replay releases completed deduplication state over ten thousand intervals" {
+  let replay : Replayer[Int32, Int64, Int64] = Replayer(0)
+  for epoch in 0L..<10000L {
+    assert_true(
+      replay.push(
+        Progress(
+          CaptureProgress(Antichain([epoch]), Antichain([epoch + 1]), [
+            (epoch, 1L),
+          ]),
+        ),
+      )
+      is None,
+    )
+    let (data, frontier) = replay.push(Updates([(1, epoch, 1L)])).unwrap()
+    assert_eq(data, [(1, epoch, 1L)])
+    assert_eq(frontier.to_array(), [epoch + 1])
+    assert_true(replay.updates.is_empty())
+    assert_true(replay.counts.updates().is_empty())
+    assert_true(replay.statements.is_empty())
+  }
+}
