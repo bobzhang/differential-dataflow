@@ -9,23 +9,23 @@ until resolved. A small core port does not satisfy this target.
 
 | Area | Status | Evidence / remaining work |
 | --- | --- | --- |
-| Lattice joins/meets and advance-by | Implemented for Int64 and generic products | Rust differential oracle; complete built-in timestamp family remains; Int64/product summary domains are implemented |
+| Lattice joins/meets and advance-by | Common built-ins and products | Int32/Int64/UInt32/UInt64/Unit and generic products; small-width/128-bit integers and Duration remain |
 | Minimal/counted antichains | Implemented | 10,240 Rust and independent-oracle rounds |
 | Change batches | Implemented | Signed cancellation and frontier tests |
-| Difference algebra | Partial | Int/Int64, Present, custom semigroup/monoid/Abelian traits; remaining built-ins and convenience products remain |
-| Sealed traces | Initial implementation | Snapshot, compaction, cursor, and sustained-update tests; not all upstream trace interfaces/layouts |
-| Buffered input | Implemented callback and worker integration | Explicit close replaces Rust Drop; scoped resource ergonomics still needed |
-| Worker scheduling | Single cooperative worker | Activation deduplication, re-entry guards, bounded queue storage tested |
+| Difference algebra | Partial | Signed/unsigned 32/64-bit, Present, pairs, custom algebra traits; remaining built-ins/tuple arities and convenience multiplication remain |
+| Sealed traces | Initial implementation | Snapshots, compaction, cursors; not all upstream trace interfaces/layouts |
+| Buffered input | Implemented callback and worker integration | Explicit close replaces Rust Drop |
+| Worker scheduling | Cooperative workers | Counted scopes, activation deduplication, re-entry guards, bounded queues, disposal tests |
 | Unary and binary collection operators | Implemented baseline | Map/filter/flat-map/explode/negate/concat/consolidate and weighted join family |
-| Live weighted joins | Implemented with keyed histories and compaction | 1,024 Rust epochs plus independent recomputation; reusable arrangements still needed |
-| Reduce/count/threshold/distinct | Reference implementation | Partial-order synthetic-time and snapshot tests; optimized incremental implementation and Rust operator differential checks remain |
-| Shared arrangements/imports/lookups/upsert | Pending | Must preserve trace reader capabilities, compaction, and reuse |
-| General operator builders/notifications/capabilities | Partial | Standalone counted capabilities and capability sets are tested; worker integration, builders and notifications remain |
-| Nested scopes and iteration | Partial foundations | Cyclic pointstamp reachability and summary composition pass example/randomized tests; integration, scope refinement, feedback and nested fixed points remain |
-| Multi-worker/distributed runtime | Pending | Worker allocation, partitioning/exchange, serialization, TCP transport, distributed progress |
+| Live weighted joins | Keyed histories with compaction | 1,024 Rust epochs in both runtime modes; joins do not yet reuse shared arrangement indexes |
+| Reduce/count/threshold/distinct | Reference algorithm with singleton compaction | Exact Rust product-time comparisons and 20,000-epoch retention test; general frontier compaction and incremental per-key optimization remain |
+| Shared arrangements/imports/lookups/upsert | Implemented baseline | 1,024 Rust reader-compaction epochs, 8,192 Rust upsert records; live imports and deferred lookups tested; indexed arranged operators remain |
+| General operator builders/notifications/capabilities | Partial | Scoped capabilities, unary builder, frontier notifications; multi-input/output builders and summary-aware connection APIs remain |
+| Nested scopes and iteration | Product nesting and fixed points implemented | 256 Rust feedback epochs and 256 cyclic graph fixed-point epochs; general Refines and negative-summary cases remain |
+| Multi-worker/distributed runtime | Pending | Same-process trace import is implemented; worker allocation, exchange, serialization, TCP transport, and distributed progress are not |
 | Columnar/spilling/fueled trace variants | Pending | No compatibility or performance claim for these layouts |
-| Capture/replay, logging, diagnostics | Pending | Structured probes alone do not cover upstream facilities |
-| Graph and auxiliary algorithms | Pending | BFS, SCC, propagation and other upstream algorithms after iteration |
+| Capture/replay, logging, diagnostics | Partial | Capture protocol and reordering iterator match Rust in 256 cases; async durable sources/sinks, distributed replay, logging and diagnostics remain |
+| Graph and auxiliary algorithms | Pending | Generic iteration is tested with cyclic graph reachability; dedicated upstream algorithm APIs remain |
 
 ## Completion gates
 
@@ -45,9 +45,17 @@ until resolved. A small core port does not satisfy this target.
 
 ## Known implementation limits
 
-The current worker supports an acyclic graph built before execution. It has no
-feedback, nested scopes, multi-worker execution, or network transport. Reduction
-is an intentionally unoptimized reference algorithm that retains open-input
-history. Trace cursors materialize a snapshot instead of borrowing upstream's
-ordered trie containers. The current trace implementation is not a substitute
-for the full family of trace layouts and shared arrangement capabilities.
+Counted scopes support feedback and product nesting within cooperative workers.
+There is no exchange or network runtime. Shared trace imports between workers in
+one process do not implement Timely's distributed progress protocol.
+
+Reduction compacts at singleton frontiers; general incomparable frontiers retain
+history. It still enumerates a timestamp join-closure. Trace cursors materialize
+snapshots, lookups scan snapshots, and joins maintain their own keyed histories.
+Shared reader lifetimes are implemented, but the full trace layout family and
+arranged operator reuse remain unfinished. Capture/replay currently has a
+synchronous callback/message interface and no durable or distributed transport.
+
+Built-in String ordering follows MoonBit (length-first), so lexical Rust behavior
+requires a custom Compare implementation. Explicit release/close/dispose replace
+Rust Drop semantics; APIs document ownership transfers and borrowed capabilities.

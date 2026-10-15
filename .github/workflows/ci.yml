@@ -1,0 +1,55 @@
+name: CI
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        moonbit: ['0.10.15+943464bfa', latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      - name: Install MoonBit
+        env:
+          MOONBIT_INSTALL_VERSION: ${{ matrix.moonbit }}
+        run: |
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
+          echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
+      - run: moon check --target all --warn-list +unnecessary_annotation --deny-warn
+      - run: moon fmt --check
+      - run: moon test --target all
+      - name: Verify generated API
+        run: |
+          moon info
+          git diff --exit-code
+  differential:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/checkout@v5
+        with:
+          repository: TimelyDataflow/differential-dataflow
+          ref: aa8745f93ea8abe131104fc7885ba4fd47e63902
+          path: .repos/differential-dataflow
+      - uses: actions/checkout@v5
+        with:
+          repository: TimelyDataflow/timely-dataflow
+          ref: eba4ae5298442cc2475e5ef82277bb135e4a7ea4
+          path: .repos/timely-dataflow
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      - name: Install MoonBit
+        env:
+          MOONBIT_INSTALL_VERSION: 0.10.15+943464bfa
+        run: |
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
+          echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
+      - run: python3 validation/compare.py
+      - run: git diff --exit-code validation/results.json
