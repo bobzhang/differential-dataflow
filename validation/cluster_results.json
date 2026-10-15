@@ -12,7 +12,9 @@
   "epochs_per_seed": 16,
   "oracles": [
     "pinned Rust two-worker join",
-    "independent full weighted join"
+    "independent full weighted join",
+    "pinned Rust three-worker replay",
+    "independent replay totals"
   ],
   "checks": [
     "TCP startup retry",
@@ -24,8 +26,11 @@
     "cyclic fixed points",
     "two nested feedback loops",
     "root retractions",
-    "independent BFS"
+    "independent BFS",
+    "capture duplicates across peers",
+    "progress before replay data"
   ],
+  "distributed_replay_epochs": 128,
   "dynamic_dataflow_epochs": 144,
   "iteration_epochs_per_seed": 8,
   "status": "passed"

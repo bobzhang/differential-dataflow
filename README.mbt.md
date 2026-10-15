@@ -271,6 +271,13 @@ Trace `snapshot(time)` requires a complete timestamp at or beyond the logical
 compaction frontier. Physical compaction can remove batch cuts; `cursor_through`
 then returns `None`. Cursors snapshot their records and survive later compaction.
 
+`ScopeGroup::replay_from` and `DistributedScope::replay_from` reconstruct one
+captured collection from messages arriving at any peer. Duplicate messages across
+peers are counted once globally; output goes to `hash(data) % peers`. These
+adapters replicate protocol state per peer, so memory use scales differently
+from upstream's partitioned capture source. A paused source keeps progress open;
+wake its handle when messages arrive and cancel every peer to abandon a replay.
+
 ## Persistent capture
 
 The native `bobzhang/differential/capture_journal` package stores capture messages
@@ -311,6 +318,8 @@ The pinned Rust comparisons cover:
 - 1,536 activated capture/replay epochs with update retries, duplicate messages,
   progress arriving before data, and an independent accumulated-state oracle.
 - 512 partitioned join epochs against Rust running two workers.
+- 128 distributed replay epochs in two/three native processes against Rust
+  running three workers, including duplicates across peers and delayed data.
 - 128 TCP process join epochs and 128 fixed-point epochs with one/two nested loops and two/three peers.
 - 192 dynamic graph epochs comparing BFS, label propagation, SCC edge weights, and scheduled variants.
 - 2,048 cases for 128-bit wrapping arithmetic, checked overflow, and Duration carries.

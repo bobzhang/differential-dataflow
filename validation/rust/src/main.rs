@@ -1,3 +1,4 @@
+mod replay_distributed;
 mod capture_async;
 mod dynamic;
 mod lifecycle;
@@ -59,6 +60,7 @@ fn main() {
             match mode.as_str() {
                 "spilled_spines" => columnar::spilled(seed),
                 "columnar_spines" => columnar::evaluate(seed),
+                "group_replay" => replay_distributed::evaluate(seed),
                 "capture_async" => capture_async::evaluate(seed),
                 "dynamic" => dynamic::evaluate(seed),
                 "lifecycle" => lifecycle::evaluate(seed),

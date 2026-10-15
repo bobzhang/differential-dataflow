@@ -85,6 +85,18 @@ def reachable(seed):
     return '/'.join(results)
 
 
+def replay_expected(seed):
+    random, state, result = seed & 0xffffffff, {}, []
+    for epoch in range(16):
+        for slot in range(8):
+            random = (random * 1664525 + 1013904223) & 0xffffffff
+            key = (seed % 16 + slot) % 16
+            diff = (random % 3 + 1) * (1 if random % 2 == 0 else -1)
+            state[key] = state.get(key, 0) + diff
+        result.append(';'.join(f'{d},{r}' for d,r in sorted(state.items()) if r))
+    return '/'.join(result)
+
+
 def main():
     pins = json.loads((ROOT / 'validation/pins.json').read_text())
     for name, pin in pins.items():
@@ -114,12 +126,20 @@ def main():
         for seed in (1, 7, 42):
             expected = '/'.join(reachable(seed + offset) for offset in range(3))
             assert run_peers(seed, peer_count, 'dynamic_iteration') == expected
+    replay_rust = subprocess.run(['validation/rust/target/release/differential-reference-check', 'group_replay'],
+                                cwd=ROOT, input=''.join(f'{seed}\n' for seed in seeds), text=True,
+                                capture_output=True, check=True, timeout=90).stdout.splitlines()
+    assert len(replay_rust) == len(seeds)
+    for peer_count in (2, 3):
+        for seed, expected in zip(seeds, replay_rust):
+            assert run_peers(seed, peer_count, 'replay') == expected == replay_expected(seed)
     result = {'process_counts': [2, 3], 'seeds': seeds, 'epochs_per_seed': 16,
-              'oracles': ['pinned Rust two-worker join', 'independent full weighted join'],
+              'oracles': ['pinned Rust two-worker join', 'independent full weighted join', 'pinned Rust three-worker replay', 'independent replay totals'],
               'checks': ['TCP startup retry', 'keyed exchange', 'shared arrangement joins',
                          'global progress each epoch', 'closure', 'nested product timestamps',
-                         'cyclic fixed points', 'two nested feedback loops', 'root retractions', 'independent BFS'],
-              'dynamic_dataflow_epochs': 144, 'iteration_epochs_per_seed': 8, 'status': 'passed'}
+                         'cyclic fixed points', 'two nested feedback loops', 'root retractions', 'independent BFS',
+                         'capture duplicates across peers', 'progress before replay data'],
+              'distributed_replay_epochs': 128, 'dynamic_dataflow_epochs': 144, 'iteration_epochs_per_seed': 8, 'status': 'passed'}
     (ROOT / 'validation/cluster_results.json').write_text(json.dumps(result, indent=2) + '\n')
     print(json.dumps(result))
 

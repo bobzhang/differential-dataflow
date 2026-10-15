@@ -30,6 +30,10 @@ fn main raise {
     transport.exchange(value)
   })
   defer cluster.dispose()
+  if mode == "replay" {
+    println(replay(cluster, seed))
+    return
+  }
   if mode == "dynamic_iteration" {
     let results = []
     for offset in 0..<3 {
