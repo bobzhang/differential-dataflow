@@ -71,14 +71,32 @@ pub struct Batch[D, T, R] {
   // private fields
 }
 pub fn[D : Compare, T : Lattice, R : Semigroup] Batch::Batch(Array[(D, T, R)], lower~ : Antichain[T], upper~ : Antichain[T]) -> Self[D, T, R]
+pub fn[D, T : Lattice, R] Batch::begin_merge(Self[D, T, R], Self[D, T, R], Antichain[T]) -> BatchMerger[D, T, R]
 pub fn[D : Compare, T : Lattice, R : Semigroup] Batch::compact(Self[D, T, R], Antichain[T]) -> Self[D, T, R]
 pub fn[D, T, R] Batch::description(Self[D, T, R]) -> Description[T]
 pub fn[D, T : Lattice, R] Batch::empty(lower~ : Antichain[T], upper~ : Antichain[T]) -> Self[D, T, R]
 pub fn[K : Compare, V, T, R] Batch::for_key(Self[(K, V), T, R], K, (V, T, R) -> Unit) -> Unit
 pub fn[D, T, R] Batch::is_empty(Self[D, T, R]) -> Bool
 pub fn[D, T, R] Batch::length(Self[D, T, R]) -> Int
+pub fn[D : Compare, T : Lattice, R : Semigroup] Batch::merge(Self[D, T, R], Self[D, T, R], Antichain[T]) -> Self[D, T, R]
 pub fn[D, T, R] Batch::to_array(Self[D, T, R]) -> Array[(D, T, R)]
 pub fn[D, T, R] Batch::view(Self[D, T, R]) -> BatchView[D, T, R]
+
+pub struct BatchBuilder[D, T, R] {
+  // private fields
+}
+pub fn[D, T, R] BatchBuilder::BatchBuilder(capacity? : Int) -> Self[D, T, R]
+pub fn[D, T, R] BatchBuilder::done(Self[D, T, R], Description[T]) -> Batch[D, T, R]
+pub fn[D : Compare, T : Compare, R : Semigroup] BatchBuilder::push(Self[D, T, R], Array[(D, T, R)]) -> Unit
+pub fn[D : Compare, T : Compare, R : Semigroup] BatchBuilder::seal(Array[Array[(D, T, R)]], Description[T]) -> Batch[D, T, R]
+
+pub struct BatchMerger[D, T, R] {
+  // private fields
+}
+pub fn[D, T : Lattice, R] BatchMerger::BatchMerger(Batch[D, T, R], Batch[D, T, R], Antichain[T]) -> Self[D, T, R]
+pub fn[D, T, R] BatchMerger::done(Self[D, T, R]) -> Batch[D, T, R]
+pub fn[D, T, R] BatchMerger::is_complete(Self[D, T, R]) -> Bool
+pub fn[D : Compare, T : Lattice, R : Semigroup] BatchMerger::work(Self[D, T, R], Int) -> Int
 
 pub struct BatchView[D, T, R] {
   // private fields
@@ -94,6 +112,14 @@ pub fn[D, T, R] BatchView::length(Self[D, T, R]) -> Int
 pub fn[D, T, U : Lattice, R] BatchView::map_times(Self[D, T, R], (T) -> U) -> Self[D, U, R]
 pub fn[D, T, U : Lattice, R] BatchView::map_times_at(Self[D, T, R], (T) -> U, (D, T) -> U) -> Self[D, U, R]
 pub fn[D, T, R] BatchView::to_array(Self[D, T, R]) -> Array[(D, T, R)]
+
+pub struct Batcher[D, T, R] {
+  // private fields
+}
+pub fn[D, T : Lattice, R] Batcher::Batcher(T) -> Self[D, T, R]
+pub fn[D, T : Lattice, R] Batcher::frontier(Self[D, T, R]) -> Antichain[T]
+pub fn[D : Compare, T : Lattice, R : Semigroup] Batcher::push(Self[D, T, R], Array[(D, T, R)]) -> Unit
+pub fn[D : Compare, T : Lattice, R : Semigroup] Batcher::seal(Self[D, T, R], Antichain[T]) -> (Array[Array[(D, T, R)]], Description[T])
 
 pub struct Capability[T, S] {
   // private fields

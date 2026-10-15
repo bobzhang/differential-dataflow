@@ -163,6 +163,14 @@ keys. Retention tests cover 20,000 total-order and 5,000 incomparable-frontier
 epochs. Timestamp closure can still grow exponentially for some lattices;
 further incremental optimization remains necessary.
 
+`Batcher(minimum)` consumes chunks, merges sorted chains, and seals intervals at
+arbitrary antichains. `BatchBuilder` consumes ordered chunks into immutable
+batches. `Batch.begin_merge` creates a `BatchMerger` whose `work(fuel)` advances
+by complete data groups; `is_complete()` and `done()` finish the result. Fuel
+counts input updates and may overshoot by one group, a conservative adaptation
+of Rust's output-based accounting. These primitives do not yet replace the
+default trace's eager compaction with a fueled spine.
+
 `Cursor` merges retained batch views without copying stored update history.
 Times are visited per batch; callers consolidate them when needed.
 

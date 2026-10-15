@@ -24,6 +24,11 @@ moon = run(['node', 'validation/run.cjs', 'trace_views'], input=cursor_inputs, c
 assert len(rust) == len(moon) == len(cursor_seeds)
 for seed, r, m in zip(cursor_seeds, rust, moon):
     assert r == m, f'frontier/assigned trace views differ seed={seed}\nRust: {r}\nMoon: {m}'
+rust = run(['validation/rust/target/release/differential-reference-check', 'batches'], input=cursor_inputs, capture_output=True).stdout.splitlines()
+moon = run(['node', 'validation/run.cjs', 'batches'], input=cursor_inputs, capture_output=True).stdout.splitlines()
+assert len(rust) == len(moon) == len(cursor_seeds)
+for seed, r, m in zip(cursor_seeds, rust, moon):
+    assert r == m, f'batching and fueled merging differ seed={seed}\nRust: {r}\nMoon: {m}'
 seeds = range(1,257)
 inputs = ''.join(f'{s}\n' for s in seeds)
 rust = run(['validation/rust/target/release/differential-reference-check'],input=inputs,capture_output=True).stdout.splitlines()
@@ -393,6 +398,8 @@ for seed, r, m in zip(search_seeds, rust, moon):
     assert r == m == 'GRAPH_SEARCH|' + '/'.join(expected), f'graph search differential failure seed={seed}\nRust: {r}\nMoon: {m}\nOracle: {"/".join(expected)}'
 summary = {
     'references': pins,
+    'batch_epochs': len(cursor_seeds) * 8,
+    'batch_checks': ['partial-order sealing', 'post-consolidation retained frontiers', 'ordered builders', 'fueled compacting merges'],
     'trace_view_seeds': len(cursor_seeds),
     'trace_view_checks': ['frontier advancement and suppression', 'data-dependent timestamp entry', 'unchanged batch metadata and key navigation', '1024 entered-at join epochs'],
     'cursor_steps': len(cursor_seeds) * 128,

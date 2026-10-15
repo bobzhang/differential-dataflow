@@ -12,6 +12,8 @@ pub fn evaluate_arrangement(Int) -> String
 
 pub fn evaluate_assigned_join(Int) -> String
 
+pub fn evaluate_batches(Int) -> String
+
 pub fn evaluate_cursors(Int) -> String
 
 pub fn evaluate_entered_join(Int) -> String

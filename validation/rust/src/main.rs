@@ -1,3 +1,4 @@
+mod batches;
 mod cursors;
 mod search;
 mod identifiers;
@@ -50,6 +51,7 @@ fn main() {
         println!(
             "{}",
             match mode.as_str() {
+                "batches" => batches::evaluate(seed),
                 "trace_views" => cursors::views(seed),
                 "cursors" => cursors::evaluate(seed),
                 "numeric" => evaluate_numeric(seed),
