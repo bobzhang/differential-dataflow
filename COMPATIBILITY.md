@@ -27,6 +27,13 @@ until resolved. A small core port does not satisfy this target.
 | Capture/replay, logging, diagnostics | Partial | Capture protocol matches Rust in 256 cases; retryable capture writers and activated replay sources compare with Rust across 1,536 epochs; POSIX capture journals provide fsynced persistence and tailing with 268 truncation and 7 corruption checks; partitioned distributed replay matches upstream three-worker sources across 128 two/three-process epochs; 128 eager-source cases distinguish record availability from sealed progress; logging and diagnostics remain |
 | Graph and auxiliary algorithms | BFS, label propagation and SCC edges | 192 dynamic graph epochs against Rust and independent BFS/transitive closure, including duplicate edges and scheduled labels; generic Ring weights tested; arranged graph APIs reuse shared indexes across feedback; bidijkstra and sequential updates match 192 Rust epochs; prefix aggregate/broadcast match 192 Rust epochs; identifiers match 384 collision/retraction epochs |
 
+Three upstream example families now have runnable MoonBit adaptations: degree
+histograms (`hello.rs`/`degrees.rs`), integer PageRank (`pagerank.rs`), and item
+recommendations (`itembased_cf.rs`). They match pinned Rust and independent full
+recomputation over 384 epochs. PageRank requires a positive iteration bound;
+recommendations expose exact Jaccard fractions instead of final floating scores.
+This is partial example coverage; the remaining example inventory is not complete.
+
 ## Completion gates
 
 - Port upstream examples and behavior tests, recording intentional MoonBit API

@@ -12,6 +12,8 @@ for name, pin in pins.items():
     assert not run(['git','-C',f'.repos/{name}','status','--porcelain'],capture_output=True).stdout.strip()
 run(['cargo','build','--release','--locked','--manifest-path','validation/rust/Cargo.toml'])
 run(['moon','build','--release','--target','js'])
+from examples_compare import compare as compare_examples
+compare_examples(build=False)
 eager_inputs = ''.join(f'{seed}\n' for seed in range(1,129))
 rust = run(['validation/rust/target/release/differential-reference-check', 'eager_replay'], input=eager_inputs, capture_output=True).stdout.splitlines()
 moon = run(['node', 'validation/run.cjs', 'eager_replay'], input=eager_inputs, capture_output=True).stdout.splitlines()
@@ -544,6 +546,8 @@ summary = {
     'search_seeds': len(search_seeds),
     'search_epochs_per_seed': 12,
     'search_checks': ['shared forward and reversed indexes', 'bidirectional shortest paths', 'goal multiplicities', 'sequential neighbor updates', 'edge and goal retractions', 'independent BFS and ordered node evaluation'],
+    'example_epochs': 384,
+    'example_checks': ['integer PageRank with 1-5 iterations', 'degree histograms', 'item recommendations with exact Jaccard fractions', 'empty graphs and retractions', 'independent full recomputation'],
     'status': 'passed',
 }
 (ROOT/'validation/results.json').write_text(json.dumps(summary,indent=2)+'\n')

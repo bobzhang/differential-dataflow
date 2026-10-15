@@ -1,0 +1,21 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "bobzhang/differential/examples/algorithms"
+
+import {
+  "bobzhang/differential",
+}
+
+// Values
+pub fn[T : @differential.Lattice] degree_histogram(@differential.Collection[(Int, Int), T, Int64]) -> @differential.Collection[(Int64, Int64), T, Int64]
+
+pub fn pagerank(@differential.Scope[Int64, Int64], @differential.Collection[(Int, Int), Int64, Int64], iterations? : Int64) -> @differential.Collection[Int, Int64, Int64]
+
+pub fn[T : @differential.Lattice] recommendations(@differential.Collection[(Int, Int), T, Int64], max_interactions? : Int64) -> @differential.Collection[((Int, Int), (Int64, Int64)), T, Int64]
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits

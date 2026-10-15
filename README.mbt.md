@@ -286,6 +286,22 @@ at most that many cursor/emission steps before yielding. Pending work retains
 immutable batch views and timestamp capabilities, so probes cannot report its
 results complete prematurely. Empty historical intervals do not hold old times.
 
+## Runnable upstream algorithms
+
+Run `moon run examples/showcase --target js` (or `--target native`) to see
+integer PageRank, degree histograms, and item recommendations update after graph
+insertions and removals. Each printed row contains the completed epoch followed
+by the three accumulated results. These are reusable functions in
+`bobzhang/differential/examples/algorithms`.
+
+PageRank retains upstream's six-million initial and one-million reset weights,
+with a positive iteration bound. Recommendations assume set-valued user/item
+interactions and return exact `(intersection, union)` Jaccard fractions; upstream's
+final floating score is an intentional presentation adaptation. Users with at
+least `max_interactions` interactions are excluded, and scores must exceed 0.05.
+The randomized oracle compares all three algorithms with pinned Rust and full
+recomputation over 384 epochs, including empty input and complete retractions.
+
 ## Persistent capture
 
 The native `bobzhang/differential/capture_journal` package stores capture messages

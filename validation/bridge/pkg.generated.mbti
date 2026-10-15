@@ -38,6 +38,8 @@ pub fn evaluate_entered_join(Int) -> String
 
 pub fn evaluate_entered_reduce(Int) -> String
 
+pub fn evaluate_examples(Int) -> String
+
 pub fn evaluate_feedback(Int) -> String
 
 pub fn evaluate_fueled_join(Int) -> String

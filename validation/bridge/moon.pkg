@@ -1,5 +1,6 @@
 import {
   "bobzhang/differential",
+  "bobzhang/differential/examples/algorithms",
 }
 
 pkgtype(kind: "foreign_library")

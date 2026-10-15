@@ -170,5 +170,13 @@
     "edge and goal retractions",
     "independent BFS and ordered node evaluation"
   ],
+  "example_epochs": 384,
+  "example_checks": [
+    "integer PageRank with 1-5 iterations",
+    "degree histograms",
+    "item recommendations with exact Jaccard fractions",
+    "empty graphs and retractions",
+    "independent full recomputation"
+  ],
   "status": "passed"
 }
