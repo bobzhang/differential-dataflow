@@ -218,6 +218,7 @@ pub struct NestedScope[A, B, S, U] {
   // private fields
 }
 pub fn[D, A : Lattice, B : Lattice, R, S, U] NestedScope::enter(Self[A, B, S, U], Collection[D, A, R]) -> Collection[D, Product[A, B], R]
+pub fn[D, A : Lattice, B : Lattice, R, S, U] NestedScope::enter_at(Self[A, B, S, U], Collection[D, A, R], (D, A) -> B) -> Collection[D, Product[A, B], R]
 pub fn[D, A : Lattice, B : Lattice, R, S, U] NestedScope::leave(Self[A, B, S, U], Collection[D, Product[A, B], R]) -> Collection[D, A, R]
 pub fn[A, B, S, U] NestedScope::scope(Self[A, B, S, U]) -> Scope[Product[A, B], Product[S, U]]
 
@@ -321,6 +322,24 @@ pub struct Reachability[T, S] {
 pub fn[T, S] Reachability::port_count(Self[T, S]) -> Int
 pub fn[T, S] Reachability::summaries(Self[T, S], Int, Int) -> Array[S]
 
+pub struct RefinedScope[A, B, S, U] {
+  // private fields
+}
+pub fn[D, A : Lattice, B : Lattice, R, S, U] RefinedScope::enter(Self[A, B, S, U], Collection[D, A, R]) -> Collection[D, B, R]
+pub fn[D, A : Lattice, B : Lattice, R, S, U] RefinedScope::enter_at(Self[A, B, S, U], Collection[D, A, R], (D, A) -> B) -> Collection[D, B, R]
+pub fn[D, A : Lattice, B : Lattice, R, S, U] RefinedScope::leave(Self[A, B, S, U], Collection[D, B, R]) -> Collection[D, A, R]
+pub fn[A, B, S, U] RefinedScope::scope(Self[A, B, S, U]) -> Scope[B, U]
+
+pub struct Refinement[A, B, S, U] {
+  // private fields
+}
+pub fn[A, B, S, U] Refinement::Refinement(lift~ : (A) -> B, project~ : (B) -> A, summarize~ : (U) -> S) -> Self[A, B, S, U]
+pub fn[T, S] Refinement::identity() -> Self[T, T, S, S]
+pub fn[A, B, S, U] Refinement::product(B) -> Self[A, Product[A, B], S, Product[S, U]]
+pub fn[A, B, S, U] Refinement::summary_to_outer(Self[A, B, S, U], U) -> S
+pub fn[A, B, S, U] Refinement::to_inner(Self[A, B, S, U], A) -> B
+pub fn[A, B, S, U] Refinement::to_outer(Self[A, B, S, U], B) -> A
+
 pub struct ReplayInput[D, T, R] {
   // private fields
 }
@@ -350,6 +369,8 @@ pub fn[D, T : Lattice, R, S] Scope::input(Self[T, S]) -> (InputSession[D, T, R],
 pub fn[D, T : Lattice, R : Abelian, S : Compare] Scope::iterate(Self[T, S], Collection[D, T, R], (Self[Product[T, Int64], Product[S, Int64]], Collection[D, Product[T, Int64], R]) -> Collection[D, Product[T, Int64], R]) -> Collection[D, T, R]
 pub fn[A : Lattice, B : Lattice, S : Compare, U : Compare] Scope::nested(Self[A, S], B, SummaryDomain[B, U]) -> NestedScope[A, B, S, U]
 pub fn[T, S] Scope::operator(Self[T, S]) -> OperatorBuilder[T, S]
+pub fn[A, B : Lattice, S, U : Compare] Scope::refine(Self[A, S], SummaryDomain[B, U], Refinement[A, B, S, U]) -> RefinedScope[A, B, S, U]
+pub fn[T : Lattice, S : Compare] Scope::region(Self[T, S]) -> RefinedScope[T, T, S, S]
 pub fn[D, T : Lattice, R, S] Scope::replay(Self[T, S]) -> (ReplayInput[D, T, R], Collection[D, T, R])
 pub fn[D, T : Lattice, R, S] Scope::source(Self[T, S]) -> (Output[D, T, R, S], Capability[T, S], Collection[D, T, R])
 pub fn[D, E, T : Lattice, R, U, S] Scope::unary(Self[T, S], Collection[D, T, R], (Output[E, T, U, S], Capability[T, S]) -> (OperatorEvent[D, T, R, S]) -> Unit) -> Collection[E, T, U]
