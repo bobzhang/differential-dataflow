@@ -73,6 +73,7 @@ name = "differential-reference-check"
 version = "0.1.0"
 dependencies = [
  "differential-dataflow",
+ "serde",
  "timely",
 ]
 

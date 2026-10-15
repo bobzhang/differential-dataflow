@@ -15,25 +15,26 @@ pub fn[D, T : Lattice, R, S] Scope::variable(
 }
 
 ///|
-pub fn[D, T : Lattice, R, S] Scope::variable_from(
+pub fn[D, T : Lattice, R : Abelian, S] Scope::variable_from(
   self : Scope[T, S],
   source : Collection[D, T, R],
   step : S,
 ) -> (Variable[D, T, R, S], Collection[D, T, R]) {
   let (feedback, collection) = self.feedback(step)
-  ({ feedback, source: Some(source), }, source.concat(collection))
+  ({ feedback, source: Some(source.negate()), }, source.concat(collection))
 }
 
 ///|
-/// Subtracts the initial source before feeding the definition back, so source
-/// records are not injected again at every iteration.
-pub fn[D, T : Lattice, R : Abelian, S] Variable::set(
+/// Feed the definition back once. Variables created with variable_from carry
+/// a pre-negated initial source, so those records are not reinjected. Empty
+/// variables require no subtraction and support semigroup-only differences.
+pub fn[D, T : Lattice, R, S] Variable::set(
   self : Variable[D, T, R, S],
   definition : Collection[D, T, R],
 ) -> Unit {
   let updates = match self.source {
     None => definition
-    Some(source) => definition.concat(source.negate())
+    Some(source) => definition.concat(source)
   }
   self.feedback.connect(updates)
 }

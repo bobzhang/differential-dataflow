@@ -690,7 +690,7 @@ pub fn[N : Compare + Hash, T : Lattice, S : Compare, R : Ring] Scope::strongly_c
 pub fn[N : Compare + Hash, T : Lattice, S : Compare, R : Ring] Scope::strongly_connected_at(Self[T, S], Collection[(N, N), T, R], (N) -> UInt64) -> Collection[(N, N), T, R]
 pub fn[D, E, T : Lattice, R, U, S] Scope::unary(Self[T, S], Collection[D, T, R], (Output[E, T, U, S], Capability[T, S]) -> (OperatorEvent[D, T, R, S]) -> Unit) -> Collection[E, T, U]
 pub fn[D, T : Lattice, R, S] Scope::variable(Self[T, S], S) -> (Variable[D, T, R, S], Collection[D, T, R])
-pub fn[D, T : Lattice, R, S] Scope::variable_from(Self[T, S], Collection[D, T, R], S) -> (Variable[D, T, R, S], Collection[D, T, R])
+pub fn[D, T : Lattice, R : Abelian, S] Scope::variable_from(Self[T, S], Collection[D, T, R], S) -> (Variable[D, T, R, S], Collection[D, T, R])
 
 pub struct ScopeGroup[T, S] {
   // private fields
@@ -898,7 +898,7 @@ pub impl TotalOrder for UInt128
 pub struct Variable[D, T, R, S] {
   // private fields
 }
-pub fn[D, T : Lattice, R : Abelian, S] Variable::set(Self[D, T, R, S], Collection[D, T, R]) -> Unit
+pub fn[D, T : Lattice, R, S] Variable::set(Self[D, T, R, S], Collection[D, T, R]) -> Unit
 
 pub struct VectorDiff[R] {
   // private fields

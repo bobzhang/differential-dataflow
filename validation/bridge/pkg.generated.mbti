@@ -68,6 +68,8 @@ pub fn evaluate_join(Int) -> String
 
 pub fn evaluate_lifecycle(Int) -> String
 
+pub fn evaluate_monoid_bfs(Int) -> String
+
 pub fn evaluate_numeric(Int) -> String
 
 pub fn evaluate_pointstamp(Int) -> String

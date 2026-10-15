@@ -33,7 +33,7 @@ histograms (`hello.rs`/`degrees.rs`), integer PageRank (`pagerank.rs`), and item
 recommendations (`itembased_cf.rs`). They match pinned Rust and independent full
 recomputation over 384 epochs. PageRank requires a positive iteration bound;
 recommendations expose exact Jaccard fractions instead of final floating scores.
-This is partial example coverage; the remaining example inventory is not complete.
+The min-plus shortest-path example (`monoid-bfs.rs`) is also ported: 1,024 incremental epochs match Rust and independent Dijkstra, including zero-cost cycles, new roots and decreasing weights. Empty feedback variables accept semigroup weights; only variables initialized from a source require negation. This is partial example coverage; the remaining example inventory is not complete.
 
 ## Completion gates
 

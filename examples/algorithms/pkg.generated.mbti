@@ -3,10 +3,13 @@ package "bobzhang/differential/examples/algorithms"
 
 import {
   "bobzhang/differential",
+  "moonbitlang/core/debug",
 }
 
 // Values
 pub fn[T : @differential.Lattice] degree_histogram(@differential.Collection[(Int, Int), T, Int64]) -> @differential.Collection[(Int64, Int64), T, Int64]
+
+pub fn monoid_bfs(@differential.Scope[Int64, Int64], @differential.Collection[(Int, Int), Int64, MinSum], @differential.Collection[Int, Int64, MinSum]) -> @differential.Collection[Int, Int64, MinSum]
 
 pub fn pagerank(@differential.Scope[Int64, Int64], @differential.Collection[(Int, Int), Int64, Int64], iterations? : Int64) -> @differential.Collection[Int, Int64, Int64]
 
@@ -15,6 +18,22 @@ pub fn[T : @differential.Lattice] recommendations(@differential.Collection[(Int,
 // Errors
 
 // Types and methods
+pub(all) struct MinSum {
+  value : UInt
+} derive(Compare, Eq, @debug.Debug)
+pub fn MinSum::MinSum(UInt) -> Self
+pub fn MinSum::compare(Self, Self) -> Int
+pub fn MinSum::equal(Self, Self) -> Bool
+pub fn MinSum::is_zero(Self) -> Bool
+pub fn MinSum::multiply(Self, Self) -> Self
+pub fn MinSum::not_equal(Self, Self) -> Bool
+pub fn MinSum::op_ge(Self, Self) -> Bool
+pub fn MinSum::op_gt(Self, Self) -> Bool
+pub fn MinSum::op_le(Self, Self) -> Bool
+pub fn MinSum::op_lt(Self, Self) -> Bool
+pub fn MinSum::plus(Self, Self) -> Self
+pub fn MinSum::to_repr(Self) -> @debug.Repr
+pub impl @differential.Semigroup for MinSum
 
 // Type aliases
 

@@ -352,6 +352,19 @@ completion. Complete corrupt frames raise `JournalError` and poison the reader.
 Call `close` explicitly to report close errors. Automatic writer recovery is not
 provided. The versioned JSON/frame encoding is independent of Rust serde.
 
+## Min-plus shortest paths
+
+`examples/algorithms.monoid_bfs` ports upstream's semigroup shortest-path example.
+`MinSum` combines alternative routes by minimum and extends routes by adding their
+lengths. Adding edges, lowering edge weights, or adding roots propagates improved
+distances through a feedback loop; zero-weight cycles converge. These weights do
+not support retractions, so deleting edges requires the ordinary signed-weight
+formulation. `validation/bridge/monoid_bfs.mbt` demonstrates incremental updates.
+
+`Scope.variable(step)` now supports weights without negation. Only
+`Scope.variable_from(source, step)` requires `Abelian`, because it must subtract
+the initially supplied source. This matches upstream's constructor distinction.
+
 ## Reducers with explicit corrections
 
 `Collection.reduce_core`, `Arranged.reduce_core`, and
