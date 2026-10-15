@@ -295,6 +295,8 @@ pub fn[D, T : Lattice, R] TraceAgent::clone(Self[D, T, R]) -> Self[D, T, R]
 pub fn[K : Compare, V : Compare, T : Lattice, R : Semigroup] TraceAgent::cursor(Self[(K, V), T, R]) -> Cursor[K, V, T, R]
 pub fn[D : Compare, T : Lattice, R : Semigroup, S] TraceAgent::import_into(Self[D, T, R], Scope[T, S]) -> Collection[D, T, R]
 pub fn[D, T : Lattice, R] TraceAgent::logical_compaction(Self[D, T, R]) -> Antichain[T]
+pub fn[K : Compare, V : Compare, T : Lattice, R : Semigroup, Q, O] TraceAgent::lookup(Self[(K, V), T, R], Collection[(K, T), T, Q], multiply~ : (R, Q) -> O) -> Collection[(K, V), T, O]
+pub fn[K : Compare, V : Compare, T : Lattice, R : Semigroup] TraceAgent::lookup_at(Self[(K, V), T, R], K, T) -> Array[(V, R)]
 pub fn[D, T : Lattice, R] TraceAgent::physical_compaction(Self[D, T, R]) -> Antichain[T]
 pub fn[D : Compare, T : Lattice, R : Semigroup] TraceAgent::release(Self[D, T, R]) -> Unit
 pub fn[D : Compare, T : Lattice, R : Semigroup] TraceAgent::set_logical_compaction(Self[D, T, R], Antichain[T]) -> Unit
