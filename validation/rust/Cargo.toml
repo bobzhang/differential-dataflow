@@ -1,0 +1,10 @@
+[package]
+name = "differential-reference-check"
+version = "0.1.0"
+edition = "2021"
+publish = false
+[dependencies]
+differential-dataflow = { path = "../../.repos/differential-dataflow/differential-dataflow", default-features = false }
+timely = { path = "../../.repos/timely-dataflow/timely", default-features = false }
+[patch.crates-io]
+timely = { path = "../../.repos/timely-dataflow/timely" }

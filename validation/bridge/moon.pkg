@@ -1,0 +1,5 @@
+import {
+  "bobzhang/differential",
+}
+
+pkgtype(kind: "foreign_library")
