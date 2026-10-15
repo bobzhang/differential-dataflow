@@ -7,6 +7,7 @@ import subprocess
 from pathlib import Path
 import cluster_compare
 import transport_failures
+import journal_check
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -45,6 +46,13 @@ def main():
     spill_command = [str(spill_source) if arg == str(sources[0]) else str(ROOT / 'spill_file/file.c') if arg == str(sources[1]) else str(spill_output) if arg == str(output) else arg for arg in command]
     subprocess.run(spill_command, cwd=ROOT, check=True)
     subprocess.run([str(spill_output)], cwd=ROOT, check=True)
+    subprocess.run(['moon', 'build', '--target', 'native', '--release', 'validation/journal'], cwd=ROOT, check=True)
+    journal_output = output.with_name('journal.exe')
+    journal_source = ROOT / '_build/native/release/build/validation/journal/journal.c'
+    journal_command = [str(journal_source) if arg == str(sources[0]) else str(ROOT / 'capture_journal/journal.c') if arg == str(sources[1]) else str(journal_output) if arg == str(output) else arg for arg in command]
+    subprocess.run(journal_command, cwd=ROOT, check=True)
+    journal_check.BIN = journal_output
+    journal_check.check()
     for peers in (2, 3):
         assert cluster_compare.run_peers(42, peers) == cluster_compare.independent(42)
         assert cluster_compare.run_peers(42, peers, 'dynamic_iteration') == '/'.join(cluster_compare.reachable(42 + i) for i in range(3))

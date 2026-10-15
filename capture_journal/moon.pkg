@@ -1,0 +1,13 @@
+import {
+  "bobzhang/differential",
+  "moonbitlang/core/json",
+  "moonbitlang/core/encoding/utf8",
+}
+
+options(
+  "native-stub": [ "journal.c" ],
+  targets: {
+    "native.mbt": [ "native" ],
+    "unsupported.mbt": [ "not", "native" ],
+  },
+)

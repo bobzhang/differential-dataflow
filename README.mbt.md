@@ -271,6 +271,19 @@ Trace `snapshot(time)` requires a complete timestamp at or beyond the logical
 compaction frontier. Physical compaction can remove batch cuts; `cursor_through`
 then returns `None`. Cursors snapshot their records and survive later compaction.
 
+## Persistent capture
+
+The native `bobzhang/differential/capture_journal` package stores capture messages
+in an exclusively created POSIX file. Use `CaptureMessage::codec` with explicit
+data/time/difference codecs, `CaptureJournal::create(path)`, and `journal.append(message, codec)`.
+Each append fsyncs; creation also syncs the containing directory. To replay,
+open a reader with `CaptureJournal::open(path)` and call `next(codec)` from
+`Scope::replay_from`. Wake its handle when new bytes arrive. EOF or an incomplete
+last frame means temporarily unavailable; only terminal capture progress means
+completion. Complete corrupt frames raise `JournalError` and poison the reader.
+Call `close` explicitly to report close errors. Automatic writer recovery is not
+provided. The versioned JSON/frame encoding is independent of Rust serde.
+
 ## Validation
 
 ```sh
@@ -281,6 +294,7 @@ moon test --target all
 python3 validation/compare.py
 python3 validation/cluster_compare.py
 python3 validation/transport_failures.py
+python3 validation/journal_check.py
 # Optional Clang ASan/LSan validation:
 python3 validation/sanitize_cluster.py
 ```

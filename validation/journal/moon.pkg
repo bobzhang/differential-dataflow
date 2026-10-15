@@ -1,0 +1,9 @@
+import {
+  "bobzhang/differential",
+  "bobzhang/differential/capture_journal",
+  "moonbitlang/core/env",
+}
+
+pkgtype(kind: "executable")
+
+supported_targets = "-all+native"

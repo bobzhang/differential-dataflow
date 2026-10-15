@@ -24,7 +24,7 @@ until resolved. A small core port does not satisfy this target.
 | Nested scopes and iteration | Product nesting, custom refinements and identity regions implemented | 256 Rust feedback epochs and 256 cyclic graph fixed-point epochs; nested feedback cycles tested locally and across processes; 256 Rust epochs with signed-summary edges in advancing cycles |
 | Multi-worker/distributed runtime | Cooperative groups and TCP process clusters | Globally counted serialized exchange and nested iteration tested in two and three native processes; 144 repeated nested-dataflow epochs across two/three processes; shared-memory parallel threads and asynchronous transport scheduling remain |
 | Columnar/spilling/fueled trace variants | Fueled spine, columnar arrangements and pluggable spilling implemented | 1,024 partial-order batching epochs and 2,048 fueled spine epochs match Rust; columnar storage also checked against upstream columnar spines, 16,384 cursor steps, 1,024 nested join and 768 partial-order reduction epochs; 2,048 upstream spilled spine epochs, paged cursors/joins, corruption checks and native disk compaction tests; trie-native chunk transducers and columnar binary codecs remain |
-| Capture/replay, logging, diagnostics | Partial | Capture protocol matches Rust in 256 cases; retryable capture writers and activated replay sources compare with Rust across 1,536 epochs; durable storage, distributed replay, logging and diagnostics remain |
+| Capture/replay, logging, diagnostics | Partial | Capture protocol matches Rust in 256 cases; retryable capture writers and activated replay sources compare with Rust across 1,536 epochs; POSIX capture journals provide fsynced persistence and tailing with 268 truncation and 7 corruption checks; distributed replay, logging and diagnostics remain |
 | Graph and auxiliary algorithms | BFS, label propagation and SCC edges | 192 dynamic graph epochs against Rust and independent BFS/transitive closure, including duplicate edges and scheduled labels; generic Ring weights tested; arranged graph APIs reuse shared indexes across feedback; bidijkstra and sequential updates match 192 Rust epochs; prefix aggregate/broadcast match 192 Rust epochs; identifiers match 384 collision/retraction epochs |
 
 ## Completion gates
@@ -65,7 +65,10 @@ times across two nested scopes. Trace imports use the same retained views.
 Arranged joins reuse shared sorted batch indexes with binary key lookup; collection
 joins retain private keyed histories. Arranged reductions read shared key ranges and retain output corrections separately.
 Full trace layouts, columnar chunk transducers and fueled operator computation remain unfinished. Capture/replay supports nonblocking writer retries, explicit commit completion, cancellation,
-and bounded activated sources. It has no built-in durable or distributed replay protocol.
+and bounded activated sources. POSIX capture journals persist versioned checksummed frames and can replay complete
+prefixes after interruption; missing terminal progress keeps replay incomplete.
+Creation is exclusive and append calls fsync; automatic crashed-writer resumption
+and distributed replay remain pending. Journal encoding is independent of Rust serde.
 The pinned Rust progress writer only retries inside its frontier-advance branch;
 the port also retries queued progress when the frontier is unchanged, avoiding
 a stalled terminal progress message. Its regression test uses a delayed final
