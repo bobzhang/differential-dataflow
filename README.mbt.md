@@ -19,7 +19,8 @@ The implemented foundations currently run on JavaScript, native, Wasm, and Wasm 
 - Grouped reduction, count, threshold, and distinct with synthetic partial-order timestamps.
 - Shared arrangements and independent trace readers, live imports, historical lookups,
   and total-order upserts with upstream tie-breaking.
-- Capture/replay with duplicate suppression, out-of-order messages, and counted progress.
+- Capture/replay with duplicate suppression, out-of-order messages, counted progress,
+  retryable writers and externally activated sources.
 - Incremental BFS distances, minimum-label propagation, strongly connected component edges,
   bidirectional shortest-path queries, and sequential neighbor-state updates.
 - Exclusive prefix sums at sparse 64-bit positions, with independent keys and dynamic queries.
@@ -293,6 +294,8 @@ The pinned Rust comparisons cover:
 - 1,024 shared-arrangement epochs with independent reader compaction.
 - 8,192 upsert records, including equal-time conflicts and deletion.
 - 256 reordered/duplicated capture-replay cases, comparing exact progress transitions.
+- 1,536 activated capture/replay epochs with update retries, duplicate messages,
+  progress arriving before data, and an independent accumulated-state oracle.
 - 512 partitioned join epochs against Rust running two workers.
 - 128 TCP process join epochs and 128 fixed-point epochs with one/two nested loops and two/three peers.
 - 192 dynamic graph epochs comparing BFS, label propagation, SCC edge weights, and scheduled variants.

@@ -1,3 +1,4 @@
+mod capture_async;
 mod dynamic;
 mod lifecycle;
 mod columnar;
@@ -58,6 +59,7 @@ fn main() {
             match mode.as_str() {
                 "spilled_spines" => columnar::spilled(seed),
                 "columnar_spines" => columnar::evaluate(seed),
+                "capture_async" => capture_async::evaluate(seed),
                 "dynamic" => dynamic::evaluate(seed),
                 "lifecycle" => lifecycle::evaluate(seed),
                 "activators" => activators::evaluate(seed),

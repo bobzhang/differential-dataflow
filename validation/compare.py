@@ -12,6 +12,19 @@ for name, pin in pins.items():
     assert not run(['git','-C',f'.repos/{name}','status','--porcelain'],capture_output=True).stdout.strip()
 run(['cargo','build','--release','--locked','--manifest-path','validation/rust/Cargo.toml'])
 run(['moon','build','--release','--target','js'])
+capture_inputs = ''.join(f'{seed}\n' for seed in range(1,65))
+rust = run(['validation/rust/target/release/differential-reference-check', 'capture_async'], input=capture_inputs, capture_output=True).stdout.splitlines()
+moon = run(['node', 'validation/run.cjs', 'capture_async'], input=capture_inputs, capture_output=True).stdout.splitlines()
+assert len(rust) == len(moon) == 64
+for seed, (r, m) in enumerate(zip(rust, moon), 1):
+    state, counts, expected = seed, {}, []
+    for epoch in range(24):
+        for _ in range(12):
+            state = (state * 1664525 + 1013904223) & 0xffffffff
+            key = (state >> 8) % 16
+            counts[key] = counts.get(key, 0) + state % 5 - 2
+        expected.append(';'.join(f'{key},{diff}' for key,diff in sorted(counts.items()) if diff))
+    assert r == m == '/'.join(expected), f'async capture/replay differs seed={seed}'
 for mode, seeds in [('cursors', 128), ('batches', 128), ('spines', 64), ('join', 64), ('stream_reduce', 32)]:
     columnar_mode = 'reduce' if mode == 'stream_reduce' else mode
     data = ''.join(f'{seed}\n' for seed in range(1, seeds+1))
@@ -469,6 +482,7 @@ summary = {
     'references': pins,
     'columnar_checks': ['16384 cursor steps', '1024 partial-order batch epochs', '2048 fueled spine epochs', '1024 nested join epochs', '768 partial-order reduction epochs'], 'activation_rounds': len(cursor_seeds) * 64,
     'spill_checks': ['2048 upstream spilled spine epochs', '16384 paged cursor steps', '1024 nested paged join epochs'],
+    'async_capture_replay_epochs': 64 * 24,
     'dynamic_dataflows': len(dynamic_seeds) * 16,
     'dynamic_import_snapshots': len(dynamic_seeds) * 136,
     'operator_lifecycle_rounds': len(cursor_seeds) * 48,

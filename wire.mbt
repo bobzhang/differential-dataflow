@@ -55,3 +55,13 @@ fn[T : @json.FromJson] wire_read(value : Json) -> T raise ClusterError {
 
 ///|
 pub extend ClusterError with Debug::{to_repr}
+
+///|
+pub fn[T] WireCodec::to_json(self : WireCodec[T], value : T) -> Json {
+  (self.encode)(value)
+}
+
+///|
+pub fn[T] WireCodec::from_json(self : WireCodec[T], value : Json) -> T? {
+  (self.decode)(value)
+}

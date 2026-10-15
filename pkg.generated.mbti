@@ -176,10 +176,19 @@ pub fn[T : Lattice, S] CapabilitySet::times(Self[T, S]) -> Array[T]
 pub fn[T : Lattice, S] CapabilitySet::try_delayed(Self[T, S], T) -> Capability[T, S]?
 pub fn[T : Lattice, S] CapabilitySet::try_downgrade(Self[T, S], Array[T]) -> Bool
 
+pub struct CaptureHandle {
+  // private fields
+}
+pub fn CaptureHandle::activate(Self) -> Unit
+pub fn CaptureHandle::cancel(Self) -> Unit
+pub fn CaptureHandle::is_cancelled(Self) -> Bool
+pub fn CaptureHandle::is_complete(Self) -> Bool
+
 pub(all) enum CaptureMessage[D, T, R] {
   Updates(Array[(D, T, R)])
   Progress(CaptureProgress[T])
 }
+pub fn[D, T : Lattice, R] CaptureMessage::codec(WireCodec[D], WireCodec[T], WireCodec[R]) -> WireCodec[Self[D, T, R]]
 
 pub struct CaptureProgress[T] {
   // private fields
@@ -188,6 +197,11 @@ pub fn[T : Lattice] CaptureProgress::CaptureProgress(Antichain[T], Antichain[T],
 pub fn[T] CaptureProgress::counts(Self[T]) -> Array[(T, Int64)]
 pub fn[T : Lattice] CaptureProgress::lower(Self[T]) -> Antichain[T]
 pub fn[T : Lattice] CaptureProgress::upper(Self[T]) -> Antichain[T]
+
+pub struct CaptureWriter[D, T, R] {
+  // private fields
+}
+pub fn[D, T, R] CaptureWriter::CaptureWriter(poll~ : (CaptureMessage[D, T, R]) -> Duration?, done~ : () -> Bool) -> Self[D, T, R]
 
 pub struct ChangeBatch[T] {
   // private fields
@@ -582,6 +596,7 @@ pub fn[N : Compare + Hash, T : Lattice, S : Compare] Scope::bfs_arranged(Self[T,
 pub fn[N : Compare + Hash, T : Lattice, S : Compare] Scope::bidijkstra(Self[T, S], Collection[(N, N), T, Int64], Collection[(N, N), T, Int64]) -> Collection[((N, N), UInt), T, Int64]
 pub fn[N : Compare + Hash, T : Lattice, S : Compare] Scope::bidijkstra_arranged(Self[T, S], ArrangementView[N, N, T, Int64], ArrangementView[N, N, T, Int64], Collection[(N, N), T, Int64]) -> Collection[((N, N), UInt), T, Int64]
 pub fn[K : Compare + Hash, D : Compare + Hash, T : Lattice, S : Compare] Scope::broadcast_prefix(Self[T, S], Collection[((UInt64, Int, K), D), T, Int64], Collection[(UInt64, K), T, Int64], D, (K, D, D) -> D) -> Collection[((UInt64, K), D), T, Int64]
+pub fn[D : Compare, T : Lattice, R : Semigroup, S] Scope::capture_to(Self[T, S], Collection[D, T, R], CaptureWriter[D, T, R]) -> CaptureHandle
 pub fn[D, T : Lattice, R, S] Scope::feedback(Self[T, S], S) -> (Feedback[D, T, R, S], Collection[D, T, R])
 pub fn[D : Compare + RustHash, T : Lattice, R : Abelian, S : Compare] Scope::identifiers(Self[T, S], Collection[D, T, R]) -> Collection[(D, UInt64), T, R]
 pub fn[D : Compare, T : Lattice, R : Abelian, S : Compare] Scope::identifiers_with(Self[T, S], Collection[D, T, R], (Int, D) -> UInt64) -> Collection[(D, UInt64), T, R]
@@ -597,6 +612,7 @@ pub fn[N : Compare + Hash, L : Compare, T : Lattice, S : Compare, R : Ring] Scop
 pub fn[A, B : Lattice, S, U : Compare] Scope::refine(Self[A, S], SummaryDomain[B, U], Refinement[A, B, S, U]) -> RefinedScope[A, B, S, U]
 pub fn[T : Lattice, S : Compare] Scope::region(Self[T, S]) -> RefinedScope[T, T, S, S]
 pub fn[D, T : Lattice, R, S] Scope::replay(Self[T, S]) -> (ReplayInput[D, T, R], Collection[D, T, R])
+pub fn[D : Compare, T : Lattice, R : Compare, S] Scope::replay_from(Self[T, S], (Activator) -> () -> CaptureMessage[D, T, R]?, messages_per_turn? : Int) -> (CaptureHandle, Collection[D, T, R])
 pub fn[N : Compare + Hash, V : Compare, T : Lattice, S : Compare] Scope::sequence(Self[T, S], Collection[(N, V), T, Int64], Collection[(N, N), T, Int64], (N, Array[(V, Int64)]) -> V) -> Collection[(N, V?), T, Int64]
 pub fn[D, T : Lattice, R, S] Scope::source(Self[T, S]) -> (Output[D, T, R, S], Capability[T, S], Collection[D, T, R])
 pub fn[N : Compare + Hash, T : Lattice, S : Compare, R : Ring] Scope::strongly_connected(Self[T, S], Collection[(N, N), T, R]) -> Collection[(N, N), T, R]
@@ -833,8 +849,10 @@ pub struct WireCodec[T] {
   // private fields
 }
 pub fn[T] WireCodec::WireCodec(encode~ : (T) -> Json, decode~ : (Json) -> T?) -> Self[T]
+pub fn[T] WireCodec::from_json(Self[T], Json) -> T?
 pub fn[T : ToJson + @json.FromJson] WireCodec::json() -> Self[T]
 pub fn[A, B] WireCodec::product(Self[A], Self[B]) -> Self[Product[A, B]]
+pub fn[T] WireCodec::to_json(Self[T], T) -> Json
 
 pub struct Worker {
   // private fields
