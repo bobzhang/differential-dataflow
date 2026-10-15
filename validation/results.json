@@ -58,5 +58,8 @@
     "exact progress transitions",
     "complete unique updates"
   ],
+  "group_join_seeds": 32,
+  "group_join_epochs_per_seed": 16,
+  "group_join_peers": 2,
   "status": "passed"
 }

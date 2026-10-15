@@ -43,6 +43,7 @@ moon = run(['node','validation/run.cjs','join'],input=inputs,capture_output=True
 scope_join = run(['node','validation/run.cjs','scope_join'],input=inputs,capture_output=True).stdout.splitlines()
 assert scope_join == moon, 'counted scope join runtime differs'
 assert len(rust) == len(moon) == len(join_seeds)
+join_cases = dict(zip(join_seeds, moon))
 for seed,r,m in zip(join_seeds,rust,moon):
     state=seed
     sides=[[0]*20,[0]*20]
@@ -201,6 +202,13 @@ for seed,r,m in zip(replay_seeds,rust,moon):
         assert next_frontier>frontier
         frontier=next_frontier
     assert frontier==float('inf') and sorted(observed)==sorted(expected), f'capture replay records failure seed={seed}'
-summary={'references':pins,'frontier_seeds':len(seeds),'frontier_rounds_per_seed':40,'frontier_checks':['membership changes','minimal positive timestamps','lattice advance_by'],'join_seeds':len(join_seeds),'join_epochs_per_seed':16,'oracles':['independent positive-count partial-order model','full weighted join recomputation each epoch'],'runtimes':['acyclic forwarding','counted pointstamp scopes'],'reduce_seeds':len(reduce_seeds),'reduce_queries_per_seed':25,'reduce_checks':['distinct','count','group minimum','exact product-timestamp corrections','independent grid snapshots'],'feedback_seeds':len(feedback_seeds),'feedback_epochs_per_seed':4,'iteration_seeds':len(iteration_seeds),'iteration_epochs_per_seed':8,'iteration_checks':['nested fixed points','root insertions and retractions','cyclic graph BFS oracle'],'arrangement_seeds':len(arrangement_seeds),'arrangement_epochs_per_seed':16,'arrangement_checks':['independent readers','logical and physical compaction','past and current snapshots'],'upsert_seeds':len(upsert_seeds),'upsert_records_per_seed':64,'upsert_checks':['out-of-order times','greatest-value tie breaking','deletion and repeated values'],'replay_seeds':len(replay_seeds),'replay_checks':['reordered duplicated messages','exact progress transitions','complete unique updates'],'status':'passed'}
+group_join_seeds = range(1,33)
+inputs = ''.join(f'{s}\n' for s in group_join_seeds)
+rust = run(['validation/rust/target/release/differential-reference-check','group_join'],input=inputs,capture_output=True).stdout.splitlines()
+moon = run(['node','validation/run.cjs','group_join'],input=inputs,capture_output=True).stdout.splitlines()
+assert len(rust) == len(moon) == len(group_join_seeds)
+for seed,r,m in zip(group_join_seeds,rust,moon):
+    assert r==m==join_cases[seed], f'two-worker join failure seed={seed}'
+summary={'references':pins,'frontier_seeds':len(seeds),'frontier_rounds_per_seed':40,'frontier_checks':['membership changes','minimal positive timestamps','lattice advance_by'],'join_seeds':len(join_seeds),'join_epochs_per_seed':16,'oracles':['independent positive-count partial-order model','full weighted join recomputation each epoch'],'runtimes':['acyclic forwarding','counted pointstamp scopes'],'reduce_seeds':len(reduce_seeds),'reduce_queries_per_seed':25,'reduce_checks':['distinct','count','group minimum','exact product-timestamp corrections','independent grid snapshots'],'feedback_seeds':len(feedback_seeds),'feedback_epochs_per_seed':4,'iteration_seeds':len(iteration_seeds),'iteration_epochs_per_seed':8,'iteration_checks':['nested fixed points','root insertions and retractions','cyclic graph BFS oracle'],'arrangement_seeds':len(arrangement_seeds),'arrangement_epochs_per_seed':16,'arrangement_checks':['independent readers','logical and physical compaction','past and current snapshots'],'upsert_seeds':len(upsert_seeds),'upsert_records_per_seed':64,'upsert_checks':['out-of-order times','greatest-value tie breaking','deletion and repeated values'],'replay_seeds':len(replay_seeds),'replay_checks':['reordered duplicated messages','exact progress transitions','complete unique updates'],'group_join_seeds':len(group_join_seeds),'group_join_epochs_per_seed':16,'group_join_peers':2,'status':'passed'}
 (ROOT/'validation/results.json').write_text(json.dumps(summary,indent=2)+'\n')
 print(json.dumps(summary))

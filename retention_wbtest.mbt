@@ -250,3 +250,46 @@ test "worker group disposal clears global pointstamp ownership" {
   assert_true(scopes.coordinator.local_counts.is_empty())
   assert_true(scopes.coordinator.members.is_empty())
 }
+
+///|
+test "global exchange progress remains bounded over one thousand epochs" {
+  let group = WorkerGroup(3)
+  let scopes = group.scopes(0L, SummaryDomain::int64())
+  let sources : Array[
+    (InputSession[Int32, Int64, Int64], Collection[Int32, Int64, Int64]),
+  ] = scopes.input()
+  let outputs = scopes.exchange(sources.map(fn(source) { source.1 }), fn(key) {
+    key.to_uint64()
+  })
+  let total = Ref(0L)
+  let probes = outputs.map(fn(output) {
+    output.consolidate().inspect(fn(_, _, diff) { total.val += diff })
+  })
+  for epoch in 0L..<1000L {
+    for peer in 0..<3 {
+      sources[peer].0.update(peer + 1, 1)
+      sources[peer].0.advance_to(epoch + 1)
+      sources[peer].0.flush()
+    }
+    guard group.run(max_steps=300) is Quiescent(_) else {
+      fail("exchange did not quiesce")
+    }
+    assert_eq(total.val, (epoch + 1) * 3)
+    for probe in probes {
+      assert_true(!probe.less_than(epoch + 1))
+    }
+    assert_eq(scopes.coordinator.tracker.unwrap().counts.to_array().length(), 1)
+    for counts in scopes.coordinator.local_counts {
+      assert_eq(counts.to_array().length(), 1)
+    }
+  }
+  for source in sources {
+    source.0.close()
+  }
+  let _ = group.run()
+  assert_true(scopes.coordinator.tracker.unwrap().counts.is_empty())
+  for probe in probes {
+    assert_true(probe.done())
+  }
+  group.dispose()
+}

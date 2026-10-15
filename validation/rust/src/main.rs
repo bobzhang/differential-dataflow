@@ -29,7 +29,7 @@ fn evaluate(seed: u32) -> String {
 }
 fn main() {
     let mode = std::env::args().nth(1).unwrap_or_default();
-    for line in io::stdin().lock().lines() { let seed = line.unwrap().parse().unwrap(); println!("{}", match mode.as_str() { "join" => evaluate_join(seed), "reduce" => evaluate_reduce(seed), "feedback" => evaluate_feedback(seed), "iteration" => evaluate_iteration(seed), "arrangement" => evaluate_arrangement(seed), "upsert" => evaluate_upsert(seed), "replay" => evaluate_replay(seed), _ => evaluate(seed) }); }
+    for line in io::stdin().lock().lines() { let seed = line.unwrap().parse().unwrap(); println!("{}", match mode.as_str() { "join" => evaluate_join(seed), "reduce" => evaluate_reduce(seed), "feedback" => evaluate_feedback(seed), "iteration" => evaluate_iteration(seed), "arrangement" => evaluate_arrangement(seed), "upsert" => evaluate_upsert(seed), "replay" => evaluate_replay(seed), "group_join" => evaluate_group_join(seed), _ => evaluate(seed) }); }
 }
 fn evaluate_join(seed: u32) -> String {
     use differential_dataflow::input::Input;
@@ -271,5 +271,50 @@ fn evaluate_replay(seed: u32) -> String {
     Iter::new(messages.into_iter()).map(|(mut updates,frontier)| {
         updates.sort();
         format!("{}|{}",updates.iter().map(|(d,t,r)| format!("{d},{t},{r}")).collect::<Vec<_>>().join(";"),frontier.elements().iter().map(|t| t.to_string()).collect::<Vec<_>>().join(","))
+    }).collect::<Vec<_>>().join("/")
+}
+
+fn evaluate_group_join(seed: u32) -> String {
+    use differential_dataflow::input::Input;
+    use std::{cell::RefCell, collections::BTreeMap, rc::Rc};
+    let guards=timely::execute(timely::Config::process(2), move |worker| {
+        let peer=worker.index();
+        let observed=Rc::new(RefCell::new(BTreeMap::<(u32,u32,u32),i64>::new()));
+        let sink=observed.clone();
+        let (mut a,mut b,probe)=worker.dataflow::<u64,_,_>(|scope| {
+            let (a,left)=scope.new_collection::<(u32,u32),i64>();
+            let (b,right)=scope.new_collection::<(u32,u32),i64>();
+            let (probe,_)=left.join(right).consolidate().inspect(move |&((k,(v,w)),_,r)| {
+                *sink.borrow_mut().entry((k,v,w)).or_default()+=r;
+            }).probe();
+            (a,b,probe)
+        });
+        let mut random=seed;
+        let mut snapshots=Vec::new();
+        for epoch in 0..16 {
+            for side in 0..2 {
+                for _ in 0..4 {
+                    random=random.wrapping_mul(1664525).wrapping_add(1013904223);
+                    let index=(random>>8)%20;
+                    if ((random>>16)%2) as usize==peer {
+                        let diff=(random%5) as i64-2;
+                        if side==0 {a.update((index/5,index%5),diff);} else {b.update((index/5,index%5),diff);}
+                    }
+                }
+            }
+            a.advance_to(epoch+1); b.advance_to(epoch+1); a.flush(); b.flush();
+            while probe.less_than(a.time()) {worker.step();}
+            snapshots.push(observed.borrow().clone());
+        }
+        a.close(); b.close(); while !probe.done() {worker.step();}
+        snapshots
+    }).unwrap();
+    let peers=guards.join().into_iter().map(Result::unwrap).collect::<Vec<_>>();
+    (0..16).map(|epoch| {
+        let mut merged=BTreeMap::new();
+        for peer in &peers {
+            for (key,diff) in &peer[epoch] { *merged.entry(*key).or_insert(0i64)+=*diff; }
+        }
+        merged.iter().filter(|(_,r)| **r!=0).map(|(&(k,v,w),r)| format!("{k},{v},{w},{r}")).collect::<Vec<_>>().join(";")
     }).collect::<Vec<_>>().join("/")
 }
