@@ -1,6 +1,17 @@
 ///|
 #export_name("evaluate_batches")
 pub fn evaluate_batches(seed : Int32) -> String {
+  batches_case(seed, false)
+}
+
+///|
+#export_name("evaluate_columnar_batches")
+pub fn evaluate_columnar_batches(seed : Int32) -> String {
+  batches_case(seed, true)
+}
+
+///|
+fn batches_case(seed : Int32, columnar : Bool) -> String {
   let mut random = seed.reinterpret_as_uint()
   let batcher : @differential.Batcher[
     (Int32, Int32),
@@ -33,10 +44,11 @@ pub fn evaluate_batches(seed : Int32) -> String {
     )
     let batch = @differential.BatchBuilder::seal(chain, description)
     output.push(batch_records(batch) + "|" + batch_frontier(batcher.frontier()))
-    batches.push(batch)
+    batches.push(if columnar { batch.columnar().batch() } else { batch })
   }
   let (chain, description) = batcher.seal(Antichain([]))
-  batches.push(@differential.BatchBuilder::seal(chain, description))
+  let last = @differential.BatchBuilder::seal(chain, description)
+  batches.push(if columnar { last.columnar().batch() } else { last })
   let since = @differential.Antichain([
     @differential.Product(4L, 2L),
     Product(2L, 4L),

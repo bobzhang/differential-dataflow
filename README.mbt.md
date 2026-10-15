@@ -180,6 +180,14 @@ idle exertion. `shared_spine(minimum)` adds independently pinned readers;
 `collection.arrange_by_key(fueled=true)` selects that backend for arrangements.
 The default arrangement backend retains eager compaction for existing callers.
 
+`ColumnarBatch(updates, lower=..., upper=...)` stores keys, values, timestamps and
+weights in separate immutable arrays; offset tables share repeated keys and values.
+`batch()` shares those columns with the normal trace/cursor APIs. Use
+`arrange_by_key(columnar=true, fueled=true)` (or `arrange_by_self`) to retain that
+layout through live arrangements and compaction. Storage counts describe entries,
+not measured bytes. The current merge/compaction path uses temporary row groups;
+upstream's trie-native chunk transducers, spilling and binary codecs remain pending.
+
 `Cursor` merges retained batch views without copying stored update history.
 Times are visited per batch; callers consolidate them when needed.
 

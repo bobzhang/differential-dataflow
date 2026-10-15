@@ -1,6 +1,17 @@
 ///|
 #export_name("evaluate_cursors")
 pub fn evaluate_cursors(seed : Int32) -> String {
+  cursors_case(seed, false)
+}
+
+///|
+#export_name("evaluate_columnar_cursors")
+pub fn evaluate_columnar_cursors(seed : Int32) -> String {
+  cursors_case(seed, true)
+}
+
+///|
+fn cursors_case(seed : Int32, columnar : Bool) -> String {
   let mut random = seed.reinterpret_as_uint()
   let batches = []
   for epoch in 0L..<8L {
@@ -18,6 +29,7 @@ pub fn evaluate_cursors(seed : Int32) -> String {
       lower=Antichain([epoch]),
       upper=Antichain([epoch + 1]),
     )
+    let batch = if columnar { batch.columnar().batch() } else { batch }
     batches.push(batch.view())
   }
   let cursor = @differential.Cursor(batches)

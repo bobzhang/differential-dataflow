@@ -23,7 +23,7 @@ until resolved. A small core port does not satisfy this target.
 | General operator builders/notifications/capabilities | Heterogeneous builders implemented | Multiple input/output types, summary-aware connectivity, borrowed input capabilities, notifications and local activators; thread-safe activators and broader scheduling/lifecycle interfaces remain |
 | Nested scopes and iteration | Product nesting, custom refinements and identity regions implemented | 256 Rust feedback epochs and 256 cyclic graph fixed-point epochs; nested feedback cycles tested locally and across processes; 256 Rust epochs with signed-summary edges in advancing cycles |
 | Multi-worker/distributed runtime | Cooperative groups and TCP process clusters | Globally counted serialized exchange and nested iteration tested in two and three native processes; shared-memory parallel threads and asynchronous transport scheduling remain |
-| Columnar/spilling/fueled trace variants | Fueled spine and shared arrangement backend implemented | 1,024 partial-order batching epochs and 2,048 fueled spine epochs match Rust; nested joins, graph loops and slow-reader retention tested; columnar and spilling layouts remain |
+| Columnar/spilling/fueled trace variants | Fueled spine and resident columnar arrangements implemented | 1,024 partial-order batching epochs and 2,048 fueled spine epochs match Rust; columnar storage also checked against upstream columnar spines, 16,384 cursor steps, 1,024 nested join and 768 partial-order reduction epochs; trie-native chunk transducers, spilling and columnar binary codecs remain |
 | Capture/replay, logging, diagnostics | Partial | Capture protocol and reordering iterator match Rust in 256 cases; async durable sources/sinks, distributed replay, logging and diagnostics remain |
 | Graph and auxiliary algorithms | BFS, label propagation and SCC edges | 192 dynamic graph epochs against Rust and independent BFS/transitive closure, including duplicate edges and scheduled labels; generic Ring weights tested; arranged graph APIs reuse shared indexes across feedback; bidijkstra and sequential updates match 192 Rust epochs; prefix aggregate/broadcast match 192 Rust epochs; identifiers match 384 collision/retraction epochs |
 
@@ -64,7 +64,7 @@ views match Rust in 128 seeds; another 1,024 join epochs cover assigned inner
 times across two nested scopes. Trace imports use the same retained views.
 Arranged joins reuse shared sorted batch indexes with binary key lookup; collection
 joins retain private keyed histories. Arranged reductions read shared key ranges and retain output corrections separately.
-Full trace layouts and fueled computation remain unfinished. Capture/replay currently has a synchronous
+Full trace layouts, columnar chunk transducers and fueled operator computation remain unfinished. Capture/replay currently has a synchronous
 callback/message interface and no durable or distributed replay protocol.
 
 Built-in String ordering follows MoonBit (length-first), so lexical Rust behavior

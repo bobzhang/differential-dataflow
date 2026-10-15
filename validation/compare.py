@@ -12,6 +12,14 @@ for name, pin in pins.items():
     assert not run(['git','-C',f'.repos/{name}','status','--porcelain'],capture_output=True).stdout.strip()
 run(['cargo','build','--release','--locked','--manifest-path','validation/rust/Cargo.toml'])
 run(['moon','build','--release','--target','js'])
+for mode, seeds in [('cursors', 128), ('batches', 128), ('spines', 64), ('join', 64), ('stream_reduce', 32)]:
+    columnar_mode = 'reduce' if mode == 'stream_reduce' else mode
+    data = ''.join(f'{seed}\n' for seed in range(1, seeds+1))
+    reference = run(['validation/rust/target/release/differential-reference-check', 'columnar_spines' if mode == 'spines' else mode], input=data, capture_output=True).stdout.splitlines()
+    columnar = run(['node', 'validation/run.cjs', 'columnar_' + columnar_mode], input=data, capture_output=True).stdout.splitlines()
+    assert len(reference) == len(columnar) == seeds
+    for seed, (r, m) in enumerate(zip(reference, columnar), 1):
+        assert r == m, f'columnar {mode} differs seed={seed}\nRust: {r}\nMoon: {m}'
 cursor_seeds = range(1, 129)
 cursor_inputs = ''.join(f'{seed}\n' for seed in cursor_seeds)
 rust = run(['validation/rust/target/release/differential-reference-check', 'cursors'], input=cursor_inputs, capture_output=True).stdout.splitlines()
@@ -430,7 +438,7 @@ for seed, r, m in zip(search_seeds, rust, moon):
     assert r == m == 'GRAPH_SEARCH|' + '/'.join(expected), f'graph search differential failure seed={seed}\nRust: {r}\nMoon: {m}\nOracle: {"/".join(expected)}'
 summary = {
     'references': pins,
-    'activation_rounds': len(cursor_seeds) * 64,
+    'columnar_checks': ['16384 cursor steps', '1024 partial-order batch epochs', '2048 fueled spine epochs', '1024 nested join epochs', '768 partial-order reduction epochs'], 'activation_rounds': len(cursor_seeds) * 64,
     'activation_checks': ['coalesced external wakeups', 'zero-delay timers', 'independent scheduling model'],
     'spine_epochs': len(spine_seeds) * 32,
     'spine_checks': ['incremental merge exertion', 'shared fueled nested joins and graph loops', 'reader compaction', 'retained historical snapshots', 'independent prefix-sum model'],

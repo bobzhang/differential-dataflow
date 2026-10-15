@@ -15,6 +15,7 @@ fn stream_reduce_case(
   seed : Int32,
   arranged : Bool,
   entered~ : Bool = false,
+  columnar~ : Bool = false,
 ) -> String {
   let worker = @differential.Worker()
   let scope = worker.scope(
@@ -47,7 +48,7 @@ fn stream_reduce_case(
     [(values.iter().fold(init=0L, fn(sum, x) { sum + x.1 }), 1L)]
   }
   let reduced = if arranged {
-    let index = source.arrange_by_key()
+    let index = source.arrange_by_key(columnar~, fueled=columnar)
     let result = if entered {
       let nested = scope.nested(0L, @differential.SummaryDomain::int64())
       let view = index.enter(nested)
@@ -112,4 +113,10 @@ fn stream_reduce_case(
 #export_name("evaluate_entered_reduce")
 pub fn evaluate_entered_reduce(seed : Int32) -> String {
   stream_reduce_case(seed, true, entered=true)
+}
+
+///|
+#export_name("evaluate_columnar_reduce")
+pub fn evaluate_columnar_reduce(seed : Int32) -> String {
+  stream_reduce_case(seed, true, entered=true, columnar=true)
 }

@@ -18,6 +18,7 @@ fn join_case(
   entered~ : Bool = false,
   assigned~ : Bool = false,
   fueled~ : Bool = false,
+  columnar~ : Bool = false,
 ) -> String {
   let worker = @differential.Worker()
   let scope = worker.scope(0L, @differential.SummaryDomain::int64())
@@ -31,8 +32,8 @@ fn join_case(
   ) = if counted { scope.input() } else { worker.input(0) }
   let observed : Map[(Int32, Int32, Int32), Int64] = Map([])
   let joined = if arranged {
-    let l = left.arrange_by_key(fueled~)
-    let r = right.arrange_by_key(fueled~)
+    let l = left.arrange_by_key(fueled~, columnar~)
+    let r = right.arrange_by_key(fueled~, columnar~)
     let joined = if entered {
       let first = scope.nested(0L, @differential.SummaryDomain::int64())
       let second = first
@@ -135,4 +136,18 @@ pub fn evaluate_assigned_join(seed : Int32) -> String {
 #export_name("evaluate_fueled_join")
 pub fn evaluate_fueled_join(seed : Int32) -> String {
   join_case(seed, true, true, entered=true, assigned=true, fueled=true)
+}
+
+///|
+#export_name("evaluate_columnar_join")
+pub fn evaluate_columnar_join(seed : Int32) -> String {
+  join_case(
+    seed,
+    true,
+    true,
+    entered=true,
+    assigned=true,
+    fueled=true,
+    columnar=true,
+  )
 }
