@@ -68,14 +68,16 @@ fn join_case(
       } else {
         r1.enter(second)
       }
-      let result = first.leave(second.leave(l2.join(r2)))
+      let result = first.leave(
+        second.leave(l2.join(r2, fuel=if fueled { 3 } else { 100000 })),
+      )
       l1.release()
       r1.release()
       l2.release()
       r2.release()
       result
     } else {
-      l.join(r)
+      l.join(r, fuel=if fueled { 3 } else { 100000 })
     }
     l.release()
     r.release()

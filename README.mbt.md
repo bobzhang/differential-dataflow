@@ -278,6 +278,11 @@ adapters replicate protocol state per peer, so memory use scales differently
 from upstream's partitioned capture source. A paused source keeps progress open;
 wake its handle when messages arrive and cancel every peer to abandon a replay.
 
+Arrangement `join` and `join_map` accept `fuel` (default 100,000). A turn performs
+at most that many cursor/emission steps before yielding. Pending work retains
+immutable batch views and timestamp capabilities, so probes cannot report its
+results complete prematurely. Empty historical intervals do not hold old times.
+
 ## Persistent capture
 
 The native `bobzhang/differential/capture_journal` package stores capture messages

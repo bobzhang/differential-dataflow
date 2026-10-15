@@ -17,7 +17,7 @@ until resolved. A small core port does not satisfy this target.
 | Buffered input | Implemented callback and worker integration | Explicit close replaces Rust Drop |
 | Worker scheduling | Cooperative workers | Counted scopes, local/timed activators with explicit monotonic host clock, activation deduplication, re-entry guards, bounded queues, disposal tests; 8,192 activation rounds match Rust; fresh scopes and live trace queries can be added between runs |
 | Unary and binary collection operators | Implemented baseline | Map/filter/flat-map/explode/negate/concat/consolidate and weighted join family |
-| Live weighted joins | Shared indexed arrangements and collection joins | 1,024 Rust epochs in four runtime variants, including twice-entered shared indexes; shared-reader lifetime and self-join tests |
+| Live weighted joins | Shared indexed arrangements and collection joins | 1,024 Rust epochs in four runtime variants, including twice-entered shared indexes; shared-reader lifetime and self-join tests; bounded cursor/emission work with explicit output capabilities, including compaction while joins are unfinished |
 | Reduce/count/threshold/distinct | Arbitrary-frontier compaction | 768 streamed Rust antichain epochs for collections, arrangements and entered views; 20,000 total-order and 5,000 incomparable-frontier retention epochs; unchanged keys cache pending corrections |
 | Shared arrangements/imports/lookups/upsert | Implemented baseline | 1,024 Rust reader-compaction epochs, 8,192 Rust upsert records; live imports, deferred lookups, shared indexed joins and reductions tested |
 | General operator builders/notifications/capabilities | Heterogeneous builders implemented | Multiple input/output types, summary-aware connectivity, borrowed input capabilities, notifications, local activators, build_reschedule and automatic callback retirement; 6,144 lifecycle rounds match Rust resource-lifetime behavior; thread-safe activators and broader scheduling interfaces remain |
@@ -64,7 +64,9 @@ views match Rust in 128 seeds; another 1,024 join epochs cover assigned inner
 times across two nested scopes. Trace imports use the same retained views.
 Arranged joins reuse shared sorted batch indexes with binary key lookup; collection
 joins retain private keyed histories. Arranged reductions read shared key ranges and retain output corrections separately.
-Full trace layouts, columnar chunk transducers and fueled operator computation remain unfinished. Capture/replay supports nonblocking writer retries, explicit commit completion, cancellation,
+Arranged joins now expose a per-activation fuel budget and retain immutable views
+for unfinished work. Full trace layouts, columnar chunk transducers and bounded
+computation for the remaining operator families remain unfinished. Capture/replay supports nonblocking writer retries, explicit commit completion, cancellation,
 and bounded activated sources. POSIX capture journals persist versioned checksummed frames and can replay complete
 prefixes after interruption; missing terminal progress keeps replay incomplete.
 Creation is exclusive and append calls fsync; automatic crashed-writer resumption

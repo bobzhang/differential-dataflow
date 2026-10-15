@@ -40,20 +40,25 @@ pub fn[
   other : Arranged[K, W, T, S],
   logic : (K, V, W) -> D,
   multiply~ : (R, S) -> O,
+  fuel~ : Int32 = 100000,
 ) -> Collection[D, T, O] {
   let left = self.view()
   let right = other.view()
   defer left.release()
   defer right.release()
-  left.join_map(right, logic, multiply~)
+  left.join_map(right, logic, multiply~, fuel~)
 }
 
 ///|
 pub fn[K : Compare, V : Compare, W : Compare, T : Lattice] Arranged::join(
   self : Arranged[K, V, T, Int64],
   other : Arranged[K, W, T, Int64],
+  fuel~ : Int32 = 100000,
 ) -> Collection[(K, (V, W)), T, Int64] {
-  self.join_map(other, fn(key, v, w) { (key, (v, w)) }, multiply=fn(a, b) {
-    a * b
-  })
+  self.join_map(
+    other,
+    fn(key, v, w) { (key, (v, w)) },
+    multiply=fn(a, b) { a * b },
+    fuel~,
+  )
 }
