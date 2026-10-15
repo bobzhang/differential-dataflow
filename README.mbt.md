@@ -130,7 +130,16 @@ including from their own callback. `activate_after(Duration(...))` schedules a
 local timer using an explicit `Worker(clock=...)` monotonic host clock; zero delay
 needs no clock. The host calls `step()`/`run()` and can use `next_activation()` to
 choose its next wakeup. `Quiescent` does not wait for future timers. Handles become
-inert on disposal. Thread-safe cross-thread activators are not implemented.
+inert on retirement or disposal. Thread-safe cross-thread activators are not implemented.
+
+`builder.build_reschedule(...)` accepts a callback returning whether external work
+is still unfinished. Returning `true` retains the operator but does not queue another
+invocation: use its activator for that. Once it returns `false`, all input records
+and final frontiers have been consumed, and output capabilities are released, the
+worker drops the callback. Both builder methods accept `on_shutdown=...` for explicit
+resource cleanup, called exactly once on completion or worker disposal. Scheduling
+may coalesce progress wakeups differently from Rust; invocation counts are not a
+portable contract.
 
 `WorkerGroup(peers)` coordinates workers in one process with globally counted
 progress and keyed exchange. It executes cooperatively on one thread; it does

@@ -429,7 +429,8 @@ pub struct OperatorBuilder[T, S] {
   // private fields
 }
 pub fn[T, S] OperatorBuilder::activator(Self[T, S]) -> Activator
-pub fn[T, S] OperatorBuilder::build(Self[T, S], (Array[Capability[T, S]]) -> () -> Unit) -> Unit
+pub fn[T : Compare, S] OperatorBuilder::build(Self[T, S], (Array[Capability[T, S]]) -> () -> Unit, on_shutdown? : () -> Unit) -> Unit
+pub fn[T : Compare, S] OperatorBuilder::build_reschedule(Self[T, S], (Array[Capability[T, S]]) -> () -> Bool, on_shutdown? : () -> Unit) -> Unit
 pub fn[D, T : Lattice, R, S] OperatorBuilder::new_input(Self[T, S], Collection[D, T, R]) -> OperatorInput[D, T, R, S]
 pub fn[D, T : Lattice, R, S] OperatorBuilder::new_output(Self[T, S]) -> (Output[D, T, R, S], Collection[D, T, R])
 pub fn[D, E, T, R, U, S] OperatorBuilder::set_connection(Self[T, S], OperatorInput[D, T, R, S], Output[E, T, U, S], Array[S]) -> Unit

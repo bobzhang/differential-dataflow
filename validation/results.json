@@ -11,6 +11,7 @@
     "768 partial-order reduction epochs"
   ],
   "activation_rounds": 8192,
+  "operator_lifecycle_rounds": 6144,
   "activation_checks": [
     "coalesced external wakeups",
     "zero-delay timers",

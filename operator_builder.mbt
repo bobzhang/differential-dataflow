@@ -5,6 +5,7 @@ priv struct OperatorPorts[T, S] {
   connections : Map[(Int32, Int32), Array[S]]
   inputs : Array[Int32]
   outputs : Array[Int32]
+  pending_inputs : Array[() -> Bool]
   mut built : Bool
   mut running : Bool
 }
@@ -52,6 +53,7 @@ pub fn[T, S] Scope::operator(self : Scope[T, S]) -> OperatorBuilder[T, S] {
     connections: Map([]),
     inputs: [],
     outputs: [],
+    pending_inputs: [],
     built: false,
     running: false,
   }
@@ -100,6 +102,7 @@ pub fn[D, T : Lattice, R, S] OperatorBuilder::new_input(
   let channel = source.channel
   let context = self.scope.context
   let frames = mailbox.frames
+  self.ports.pending_inputs.push(fn() { !frames.is_empty() })
   let scheduler = self.scope.worker.scheduler
   self.bind.push(fn(task) {
     mailbox.task = task
@@ -141,9 +144,32 @@ pub fn[D, E, T, R, U, S] OperatorBuilder::set_connection(
 /// Initial capabilities are owned by the builder callback, in output creation
 /// order. Release them when no longer needed. The returned function runs when
 /// any input has data or a frontier change; it may drain heterogeneous inputs.
-pub fn[T, S] OperatorBuilder::build(
+pub fn[T : Compare, S] OperatorBuilder::build(
   self : OperatorBuilder[T, S],
   construct : (Array[Capability[T, S]]) -> () -> Unit,
+  on_shutdown? : () -> Unit,
+) -> Unit {
+  self.build_reschedule(
+    fn(capabilities) {
+      let logic = construct(capabilities)
+      fn() {
+        logic()
+        false
+      }
+    },
+    on_shutdown?,
+  )
+}
+
+///|
+/// Returning true keeps the operator alive for unfinished external work; it does
+/// not automatically schedule another invocation. Returning false permits shutdown
+/// once inputs are complete and output capabilities are released. on_shutdown is
+/// called exactly once on retirement or worker disposal, with re-entry forbidden.
+pub fn[T : Compare, S] OperatorBuilder::build_reschedule(
+  self : OperatorBuilder[T, S],
+  construct : (Array[Capability[T, S]]) -> () -> Bool,
+  on_shutdown? : () -> Unit,
 ) -> Unit {
   guard !self.ports.built else { abort("operator is already built") }
   guard self.scope.worker.scheduler.active &&
@@ -160,11 +186,62 @@ pub fn[T, S] OperatorBuilder::build(
   self.initial.clear()
   let run = construct(capabilities)
   let ports = self.ports
+  let incomplete = Ref(true)
+  let ran = Ref(false)
+  let closing = Ref(false)
   let task = self.scope.worker.register(fn() {
+    closing.val = false
     ports.running = true
-    run()
+    incomplete.val = run()
+    ran.val = true
     ports.running = false
   })
+  let progress = self.scope.progress
+  let shutdown = Ref(on_shutdown)
+  let finish = fn() {
+    if shutdown.val is Some(close) {
+      shutdown.val = None
+      close()
+    }
+  }
+  self.scope.worker.cleanup.push(finish)
+  self.scope.worker.retirement.push(
+    (
+      task,
+      fn() {
+        if !ran.val || incomplete.val || closing.val {
+          return false
+        }
+        for pending in ports.pending_inputs {
+          if pending() {
+            return false
+          }
+        }
+        guard progress.tracker is Some(tracker) else { return false }
+        for input in ports.inputs {
+          if !tracker.frontiers[input].is_empty() {
+            return false
+          }
+        }
+        for ((port, _), count) in tracker.counts.to_array() {
+          if count != 0 && ports.outputs.contains(port) {
+            return false
+          }
+        }
+        true
+      },
+      finish,
+    ),
+  )
+  let scheduler = self.scope.worker.scheduler
+  for output in ports.outputs {
+    (self.scope.context.observe)(output, fn(frontier) {
+      if frontier.is_empty() {
+        closing.val = true
+        scheduler.schedule(task)
+      }
+    })
+  }
   self.activation_slot.val = Some(task)
   for bind in self.bind {
     bind(task)

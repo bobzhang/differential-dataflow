@@ -1,3 +1,4 @@
+mod lifecycle;
 mod columnar;
 mod activators;
 mod spines;
@@ -55,6 +56,7 @@ fn main() {
             "{}",
             match mode.as_str() {
                 "columnar_spines" => columnar::evaluate(seed),
+                "lifecycle" => lifecycle::evaluate(seed),
                 "activators" => activators::evaluate(seed),
                 "spines" => spines::evaluate(seed),
                 "batches" => batches::evaluate(seed),

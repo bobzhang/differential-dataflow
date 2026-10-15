@@ -46,6 +46,8 @@ pub fn evaluate_iteration(Int) -> String
 
 pub fn evaluate_join(Int) -> String
 
+pub fn evaluate_lifecycle(Int) -> String
+
 pub fn evaluate_numeric(Int) -> String
 
 pub fn evaluate_prefix(Int) -> String

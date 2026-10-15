@@ -2,6 +2,7 @@
 priv struct Scheduler {
   queue : Array[Int32]
   queued : Array[Bool]
+  live : Array[Bool]
   mut head : Int32
   mut started : Bool
   mut active : Bool
@@ -17,7 +18,8 @@ pub struct Worker {
   priv network : ProgressNetwork
   priv gate : Ref[Bool]
   priv scheduler : Scheduler
-  priv tasks : Array[() -> Unit]
+  priv tasks : Array[(() -> Unit)?]
+  priv retirement : Array[(Int32, () -> Bool, () -> Unit)]
   priv progress : Array[() -> Unit]
   priv cleanup : Array[() -> Unit]
 }
@@ -40,6 +42,7 @@ fn Worker::with_gate(
     scheduler: {
       queue: [],
       queued: [],
+      live: [],
       head: 0,
       started: false,
       active: true,
@@ -49,6 +52,7 @@ fn Worker::with_gate(
       timers: [],
     },
     tasks: [],
+    retirement: [],
     progress: [],
     cleanup: [],
   }
@@ -57,7 +61,7 @@ fn Worker::with_gate(
 ///|
 fn Scheduler::schedule(self : Scheduler, id : Int32) -> Unit {
   guard self.active else { abort("worker is disposed") }
-  if !self.queued[id] {
+  if self.live[id] && !self.queued[id] {
     self.queued[id] = true
     self.queue.push(id)
   }
@@ -69,7 +73,8 @@ fn Worker::register(self : Worker, task : () -> Unit) -> Int32 {
     abort("build graph before running or sending input")
   }
   let id = self.tasks.length()
-  self.tasks.push(task)
+  self.tasks.push(Some(task))
+  self.scheduler.live.push(true)
   self.scheduler.queued.push(false)
   id
 }
@@ -89,6 +94,7 @@ pub fn Worker::step(self : Worker) -> Bool {
     pump()
   }
   self.network.pump()
+  self.retire_completed()
   if self.scheduler.head >= self.scheduler.queue.length() {
     self.scheduler.stepping = false
     self.gate.val = false
@@ -110,11 +116,12 @@ pub fn Worker::step(self : Worker) -> Bool {
     self.scheduler.head = 0
   }
   self.scheduler.stepping = true
-  self.tasks[id]()
+  self.tasks[id].unwrap()()
   for pump in self.progress {
     pump()
   }
   self.network.pump()
+  self.retire_completed()
   self.scheduler.stepping = false
   self.gate.val = false
   true
@@ -146,6 +153,7 @@ pub fn Worker::run(self : Worker, max_steps~ : Int32 = 100000) -> RunResult {
     pump()
   }
   self.network.pump()
+  self.retire_completed()
   self.scheduler.stepping = false
   self.gate.val = false
   let mut steps = 0
@@ -176,9 +184,11 @@ pub fn Worker::dispose(self : Worker) -> Unit {
   }
   self.cleanup.clear()
   self.tasks.clear()
+  self.retirement.clear()
   self.progress.clear()
   self.scheduler.queue.clear()
   self.scheduler.queued.clear()
+  self.scheduler.live.clear()
   self.scheduler.timers.clear()
   self.scheduler.head = 0
   self.network.workers -= 1

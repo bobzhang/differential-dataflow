@@ -30,6 +30,9 @@ pub fn Activator::try_activate(self : Activator) -> Bool {
     return false
   }
   if self.slot.val is Some(task) {
+    if !self.scheduler.live[task] {
+      return false
+    }
     self.scheduler.schedule(task)
   }
   true
@@ -40,7 +43,8 @@ pub fn Activator::try_activate(self : Activator) -> Bool {
 /// delay is an ordinary activation. The host drives step/run and can use
 /// next_activation to decide when to call again; no backend-specific sleep runs.
 pub fn Activator::activate_after(self : Activator, delay : Duration) -> Unit {
-  if !self.scheduler.active {
+  if !self.scheduler.active ||
+    (self.slot.val is Some(task) && !self.scheduler.live[task]) {
     return
   }
   if delay == Duration(0UL) {

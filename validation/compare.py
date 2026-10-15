@@ -67,6 +67,13 @@ for seed, r, m in zip(cursor_seeds, rust, moon):
         count += ((state >> 8) % 7 != 0)
         expected.append(str(count))
     assert r == m == ','.join(expected), f'operator activation differs seed={seed}'
+rust = run(['validation/rust/target/release/differential-reference-check', 'lifecycle'], input=cursor_inputs, capture_output=True).stdout.splitlines()
+moon = run(['node', 'validation/run.cjs', 'lifecycle'], input=cursor_inputs, capture_output=True).stdout.splitlines()
+assert len(rust) == len(moon) == len(cursor_seeds)
+for seed, r, m in zip(cursor_seeds, rust, moon):
+    last = max(seed % 24, (seed // 3) % 24)
+    expected = ';'.join(f'{int(i <= last)},{int(i >= last)}' for i in range(48))
+    assert r == m == expected, f'operator lifecycle differs seed={seed}'
 seeds = range(1,257)
 inputs = ''.join(f'{s}\n' for s in seeds)
 rust = run(['validation/rust/target/release/differential-reference-check'],input=inputs,capture_output=True).stdout.splitlines()
@@ -439,6 +446,7 @@ for seed, r, m in zip(search_seeds, rust, moon):
 summary = {
     'references': pins,
     'columnar_checks': ['16384 cursor steps', '1024 partial-order batch epochs', '2048 fueled spine epochs', '1024 nested join epochs', '768 partial-order reduction epochs'], 'activation_rounds': len(cursor_seeds) * 64,
+    'operator_lifecycle_rounds': len(cursor_seeds) * 48,
     'activation_checks': ['coalesced external wakeups', 'zero-delay timers', 'independent scheduling model'],
     'spine_epochs': len(spine_seeds) * 32,
     'spine_checks': ['incremental merge exertion', 'shared fueled nested joins and graph loops', 'reader compaction', 'retained historical snapshots', 'independent prefix-sum model'],

@@ -35,7 +35,7 @@ test "custom source activations are coalesced and can cooperatively resume" {
   activate.clone().activate()
   assert_true(worker.run(max_steps=5) is StepLimit(_))
   assert_true(worker.run() is Quiescent(_))
-  assert_eq(invocations, 16)
+  assert_eq(invocations, 17)
   assert_eq(seen, Array::makei(16, fn(i) { (i, i.to_int64(), 1L) }))
   assert_true(probe.done())
   assert_true(worker.next_activation() is None)
