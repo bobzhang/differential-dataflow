@@ -67,11 +67,13 @@ priv struct Reduction[V, W, T, R, S] {
   mut history : Array[(V, T, R)]
   mut emitted : Array[(W, T, S)]
   mut since : Antichain[T]?
+  mut dirty : Bool
+  mut corrections : Array[(W, T, S)]
 }
 
 ///|
 fn[V, W, T, R, S] Reduction::Reduction() -> Reduction[V, W, T, R, S] {
-  { history: [], emitted: [], since: None, }
+  { history: [], emitted: [], since: None, dirty: true, corrections: [], }
 }
 
 ///|
@@ -84,6 +86,7 @@ fn[V : Compare, W, T : Lattice, R : Semigroup, S] Reduction::update(
   guard self.since is None || self.since.unwrap().less_equal(time) else {
     abort("reduction update precedes compaction")
   }
+  self.dirty = true
   self.history.push((value, time, diff))
   self.history = consolidate_updates(self.history)
 }
@@ -97,12 +100,19 @@ fn[V : Compare, W : Compare, T : Lattice, R : Semigroup, S : Abelian] Reduction:
   guard self.since is None || self.since.unwrap().precedes(frontier) else {
     abort("reduction frontier cannot move backward")
   }
-  let delta = reduce_history(self.history, self.emitted, self.since, logic)
+  let delta = if self.dirty {
+    reduce_history(self.history, self.emitted, self.since, logic)
+  } else {
+    self.corrections.copy()
+  }
+  self.dirty = false
+  self.corrections = []
   let ready = []
   let pending = []
   for update in consolidate_updates(delta) {
     if frontier.less_equal(update.1) {
       pending.push(update.1)
+      self.corrections.push(update)
     } else {
       ready.push(update)
     }

@@ -1,6 +1,17 @@
 ///|
 #export_name("evaluate_stream_reduce")
 pub fn evaluate_stream_reduce(seed : Int32) -> String {
+  stream_reduce_case(seed, false)
+}
+
+///|
+#export_name("evaluate_arranged_reduce")
+pub fn evaluate_arranged_reduce(seed : Int32) -> String {
+  stream_reduce_case(seed, true)
+}
+
+///|
+fn stream_reduce_case(seed : Int32, arranged : Bool) -> String {
   let worker = @differential.Worker()
   let scope = worker.scope(
     @differential.Product(0L, 0L),
@@ -28,11 +39,20 @@ pub fn evaluate_stream_reduce(seed : Int32) -> String {
   ) = scope.source()
   let capabilities = @differential.CapabilitySet(initial)
   let seen = []
-  let probe = source
-    .reduce(fn(_, values) {
-      [(values.iter().fold(init=0L, fn(sum, x) { sum + x.1 }), 1L)]
-    })
-    .inspect(fn(data, time, diff) { seen.push((data.1, time, diff)) })
+  let logic = fn(_ : Int32, values : Array[(Int32, Int64)]) {
+    [(values.iter().fold(init=0L, fn(sum, x) { sum + x.1 }), 1L)]
+  }
+  let reduced = if arranged {
+    let index = source.arrange_by_key()
+    let result = index.reduce(logic)
+    index.release()
+    result
+  } else {
+    source.reduce(logic)
+  }
+  let probe = reduced.inspect(fn(data, time, diff) {
+    seen.push((data.1, time, diff))
+  })
   let mut random = seed.reinterpret_as_uint()
   let results = []
   for epoch in 0L..<24L {

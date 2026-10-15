@@ -36,7 +36,8 @@
   "stream_reduce_checks": [
     "incomparable capability frontiers",
     "exact incremental corrections",
-    "arbitrary-frontier compaction"
+    "arbitrary-frontier compaction",
+    "shared arranged reduction"
   ],
   "feedback_seeds": 64,
   "feedback_epochs_per_seed": 4,

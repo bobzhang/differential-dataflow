@@ -218,6 +218,8 @@ moon = run(['node','validation/run.cjs','stream_reduce'],input=inputs,capture_ou
 assert len(rust) == len(moon) == len(stream_reduce_seeds)
 for seed,r,m in zip(stream_reduce_seeds,rust,moon):
     assert r == m, f'streamed incomparable reduction failure seed={seed}'
+arranged_reduce = run(['node','validation/run.cjs','arranged_reduce'],input=inputs,capture_output=True).stdout.splitlines()
+assert arranged_reduce == moon, 'shared arranged reduction differs'
 summary = {
     'references': pins,
     'frontier_seeds': len(seeds),
@@ -232,7 +234,7 @@ summary = {
     'reduce_checks': ['distinct', 'count', 'group minimum', 'exact product-timestamp corrections', 'independent grid snapshots'],
     'stream_reduce_seeds': len(stream_reduce_seeds),
     'stream_reduce_epochs_per_seed': 24,
-    'stream_reduce_checks': ['incomparable capability frontiers', 'exact incremental corrections', 'arbitrary-frontier compaction'],
+    'stream_reduce_checks': ['incomparable capability frontiers', 'exact incremental corrections', 'arbitrary-frontier compaction', 'shared arranged reduction'],
     'feedback_seeds': len(feedback_seeds),
     'feedback_epochs_per_seed': 4,
     'iteration_seeds': len(iteration_seeds),

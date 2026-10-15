@@ -6,6 +6,8 @@ pub fn evaluate(Int) -> String
 
 pub fn evaluate_arranged_join(Int) -> String
 
+pub fn evaluate_arranged_reduce(Int) -> String
+
 pub fn evaluate_arrangement(Int) -> String
 
 pub fn evaluate_feedback(Int) -> String
