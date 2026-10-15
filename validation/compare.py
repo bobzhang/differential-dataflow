@@ -92,6 +92,24 @@ for seed,r,m in zip(reduce_seeds,rust,moon):
                 if a<=x and b<=y: snapshot[op,k,v]=snapshot.get((op,k,v),0)+d
             snapshot={key:d for key,d in snapshot.items() if d}
             assert snapshot==expected, f'reduction snapshot failure seed={seed} time={(x,y)}'
-summary={'references':pins,'frontier_seeds':len(seeds),'frontier_rounds_per_seed':40,'frontier_checks':['membership changes','minimal positive timestamps','lattice advance_by'],'join_seeds':len(join_seeds),'join_epochs_per_seed':16,'oracles':['independent positive-count partial-order model','full weighted join recomputation each epoch'],'runtimes':['acyclic forwarding','counted pointstamp scopes'],'reduce_seeds':len(reduce_seeds),'reduce_queries_per_seed':25,'reduce_checks':['distinct','count','group minimum','exact product-timestamp corrections','independent grid snapshots'],'status':'passed'}
+feedback_seeds = range(1,65)
+inputs = ''.join(f'{s}\n' for s in feedback_seeds)
+rust = run(['validation/rust/target/release/differential-reference-check','feedback'],input=inputs,capture_output=True).stdout.splitlines()
+moon = run(['node','validation/run.cjs','feedback'],input=inputs,capture_output=True).stdout.splitlines()
+assert len(rust) == len(moon) == len(feedback_seeds)
+for seed,r,m in zip(feedback_seeds,rust,moon):
+    state=seed
+    observed={}
+    expected=[]
+    for epoch in range(4):
+        for _ in range(8):
+            state=(state*1664525+1013904223)&0xffffffff
+            start=(state>>8)%8
+            for d in range(start,12):
+                key=(d,epoch*64+(d-start)*(seed%3+1))
+                observed[key]=observed.get(key,0)+state%5-2
+        expected.append(';'.join(f'{d},{t},{r}' for (d,t),r in sorted(observed.items()) if r))
+    assert r==m=='/'.join(expected), f'feedback failure seed={seed}'
+summary={'references':pins,'frontier_seeds':len(seeds),'frontier_rounds_per_seed':40,'frontier_checks':['membership changes','minimal positive timestamps','lattice advance_by'],'join_seeds':len(join_seeds),'join_epochs_per_seed':16,'oracles':['independent positive-count partial-order model','full weighted join recomputation each epoch'],'runtimes':['acyclic forwarding','counted pointstamp scopes'],'reduce_seeds':len(reduce_seeds),'reduce_queries_per_seed':25,'reduce_checks':['distinct','count','group minimum','exact product-timestamp corrections','independent grid snapshots'],'feedback_seeds':len(feedback_seeds),'feedback_epochs_per_seed':4,'status':'passed'}
 (ROOT/'validation/results.json').write_text(json.dumps(summary,indent=2)+'\n')
 print(json.dumps(summary))

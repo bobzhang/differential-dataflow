@@ -31,3 +31,38 @@ test "continuously active scheduler keeps bounded queue storage" {
   assert_true(max_size.val <= 1025)
   assert_true(scheduler.queue.is_empty())
 }
+
+///|
+test "counted feedback releases pointstamps over two thousand input epochs" {
+  let worker = Worker()
+  let scope = worker.scope(0L, SummaryDomain::int64())
+  let (input, values) : (
+    InputSession[Int32, Int64, Int64],
+    Collection[Int32, Int64, Int64],
+  ) = scope.input()
+  let (feedback, looped) = scope.feedback(1L)
+  let all = values.concat(looped)
+  feedback.connect(
+    all.map(fn(x) { x + 1 }).filter(fn(x) { x < 4 }).consolidate(),
+  )
+  let total = Ref(0L)
+  let probe = all.inspect(fn(_, _, r) { total.val += r })
+  for epoch in 0L..<2000L {
+    input.insert(0)
+    input.advance_to((epoch + 1) * 8)
+    input.flush()
+    guard worker.run(max_steps=200) is Quiescent(_) else {
+      fail("feedback stalled")
+    }
+    assert_eq(total.val, (epoch + 1) * 4)
+    assert_true(!probe.less_than(input.time()))
+    assert_eq(scope.progress.tracker.unwrap().counts.to_array().length(), 1)
+    assert_true(scope.progress.pending.is_empty())
+    assert_true(worker.scheduler.queue.is_empty())
+  }
+  input.close()
+  let _ = worker.run()
+  assert_true(probe.done())
+  assert_true(scope.progress.tracker.unwrap().counts.is_empty())
+  worker.dispose()
+}

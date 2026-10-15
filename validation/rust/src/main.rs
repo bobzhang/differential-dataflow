@@ -29,7 +29,7 @@ fn evaluate(seed: u32) -> String {
 }
 fn main() {
     let mode = std::env::args().nth(1).unwrap_or_default();
-    for line in io::stdin().lock().lines() { let seed = line.unwrap().parse().unwrap(); println!("{}", match mode.as_str() { "join" => evaluate_join(seed), "reduce" => evaluate_reduce(seed), _ => evaluate(seed) }); }
+    for line in io::stdin().lock().lines() { let seed = line.unwrap().parse().unwrap(); println!("{}", match mode.as_str() { "join" => evaluate_join(seed), "reduce" => evaluate_reduce(seed), "feedback" => evaluate_feedback(seed), _ => evaluate(seed) }); }
 }
 fn evaluate_join(seed: u32) -> String {
     use differential_dataflow::input::Input;
@@ -102,5 +102,39 @@ fn evaluate_reduce(seed: u32) -> String {
         while probes.iter().any(|p| !p.done()) { worker.step(); }
         let result = observed.borrow().iter().filter(|(_,d)| **d != 0).map(|(&(op,k,v,x,y),d)| format!("{op},{k},{v},{x},{y},{d}")).collect::<Vec<_>>().join(";");
         result
+    })
+}
+
+fn evaluate_feedback(seed: u32) -> String {
+    use differential_dataflow::{input::Input, operators::iterate::VecVariable};
+    use std::{cell::RefCell, collections::BTreeMap, rc::Rc};
+    timely::execute_directly(move |worker| {
+        let observed = Rc::new(RefCell::new(BTreeMap::<(u32,u64),i64>::new()));
+        let sink = observed.clone();
+        let delay = (seed % 3 + 1) as u64;
+        let (mut input, probe) = worker.dataflow::<u64,_,_>(|scope| {
+            let (input, values) = scope.new_collection::<u32,i64>();
+            let (feedback, looped) = VecVariable::new(scope, delay);
+            let all = values.concat(looped);
+            feedback.set(all.clone().map(|x| x+1).filter(|x| *x<12).consolidate());
+            let (probe,_) = all.consolidate().inspect(move |&(d,t,r)| {
+                *sink.borrow_mut().entry((d,t)).or_default() += r;
+            }).probe();
+            (input, probe)
+        });
+        let mut random = seed;
+        let mut result = Vec::new();
+        for epoch in 0..4 {
+            for _ in 0..8 {
+                random = random.wrapping_mul(1664525).wrapping_add(1013904223);
+                input.update((random >> 8) % 8, (random % 5) as i64 - 2);
+            }
+            input.advance_to((epoch+1)*64); input.flush();
+            while probe.less_than(input.time()) { worker.step(); }
+            result.push(observed.borrow().iter().filter(|(_,r)| **r!=0).map(|(&(d,t),r)| format!("{d},{t},{r}")).collect::<Vec<_>>().join(";"));
+        }
+        input.close();
+        while !probe.done() { worker.step(); }
+        result.join("/")
     })
 }

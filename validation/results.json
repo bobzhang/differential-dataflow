@@ -29,5 +29,7 @@
     "exact product-timestamp corrections",
     "independent grid snapshots"
   ],
+  "feedback_seeds": 64,
+  "feedback_epochs_per_seed": 4,
   "status": "passed"
 }
