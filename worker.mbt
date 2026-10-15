@@ -3,6 +3,9 @@ priv struct Scheduler {
   queue : Array[Int32]
   queued : Array[Bool]
   live : Array[Bool]
+  input_done : Array[Array[() -> Bool]]
+  output_done : Array[Array[() -> Bool]]
+  finalizers : Array[Array[() -> Unit]]
   mut head : Int32
   mut started : Bool
   mut active : Bool
@@ -44,6 +47,9 @@ fn Worker::with_gate(
       queue: [],
       queued: [],
       live: [],
+      input_done: [],
+      output_done: [],
+      finalizers: [],
       head: 0,
       started: false,
       active: true,
@@ -69,7 +75,11 @@ fn Scheduler::schedule(self : Scheduler, id : Int32) -> Unit {
 }
 
 ///|
-fn Worker::register(self : Worker, task : () -> Unit) -> Int32 {
+fn Worker::register(
+  self : Worker,
+  task : () -> Unit,
+  automatic~ : Bool = true,
+) -> Int32 {
   guard self.scheduler.active && !self.scheduler.stepping && !self.gate.val else {
     abort("build graph only on an idle active worker")
   }
@@ -77,6 +87,33 @@ fn Worker::register(self : Worker, task : () -> Unit) -> Int32 {
   self.tasks.push(Some(task))
   self.scheduler.live.push(true)
   self.scheduler.queued.push(false)
+  self.scheduler.input_done.push([])
+  self.scheduler.output_done.push([])
+  self.scheduler.finalizers.push([])
+  if automatic {
+    let scheduler = self.scheduler
+    self.retirement.push(
+      (
+        id,
+        fn() {
+          !scheduler.queued[id] &&
+          !scheduler.input_done[id].is_empty() &&
+          scheduler.input_done[id].iter().all(fn(done) { done() }) &&
+          scheduler.output_done[id].iter().all(fn(done) { done() })
+        },
+        fn() {
+          for offset in 0..<scheduler.finalizers[id].length() {
+            scheduler.finalizers[id][scheduler.finalizers[id].length() -
+            1 -
+            offset]()
+          }
+          scheduler.finalizers[id].clear()
+          scheduler.input_done[id].clear()
+          scheduler.output_done[id].clear()
+        },
+      ),
+    )
+  }
   id
 }
 
@@ -190,6 +227,9 @@ pub fn Worker::dispose(self : Worker) -> Unit {
   self.scheduler.queue.clear()
   self.scheduler.queued.clear()
   self.scheduler.live.clear()
+  self.scheduler.input_done.clear()
+  self.scheduler.output_done.clear()
+  self.scheduler.finalizers.clear()
   self.scheduler.timers.clear()
   self.scheduler.head = 0
   self.network.workers -= 1
@@ -198,4 +238,23 @@ pub fn Worker::dispose(self : Worker) -> Unit {
     self.network.links.clear()
     self.network.topology.clear()
   }
+}
+
+///|
+// The worker keeps a once-only wrapper, not the resource-owning closure, after
+// the task finishes. Disposal preserves reverse registration order.
+fn Worker::on_task_shutdown(
+  self : Worker,
+  task : Int32,
+  close : () -> Unit,
+) -> Unit {
+  let pending = Ref(Some(close))
+  let finish = fn() {
+    if pending.val is Some(close) {
+      pending.val = None
+      close()
+    }
+  }
+  self.cleanup.push(finish)
+  self.scheduler.finalizers[task].push(finish)
 }

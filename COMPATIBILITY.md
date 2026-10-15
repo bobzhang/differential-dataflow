@@ -87,7 +87,7 @@ The pinned Rust spine rejects noncontiguous and zero-width insertions, despite
 the generic Trace trait documentation describing automatic gap filling. The port
 follows the pinned implementation: callers explicitly seal empty intervals.
 
-Dynamic scopes preserve existing graph immutability. Completed built-in dataflow
-tasks and topology metadata currently remain until worker disposal; automatic
-whole-dataflow reclamation is still pending. Custom operator callbacks retire
-independently once their completion conditions hold.
+Dynamic scopes preserve existing graph immutability. Completed built-in operators and imports now release task closures and resource-owning
+finalizers after their mailboxes and outputs finish. Custom operators retain their
+explicit incomplete-work condition. Topology metadata and whole-dataflow
+reclamation remain pending.

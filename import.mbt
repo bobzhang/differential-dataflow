@@ -80,7 +80,12 @@ pub fn[D : Compare, T : Lattice, R : Semigroup, S] TraceReader::import_into(
     scheduler.schedule(task)
   })
   scheduler.schedule(task)
-  scope.worker.cleanup.push(cleanup)
+  scheduler.input_done[task].push(fn() {
+    frames.is_empty() && held.val.is_empty()
+  })
+  let frontier = output.frontier
+  scheduler.output_done[task].push(fn() { frontier.val.is_empty() })
+  scope.worker.on_task_shutdown(task, cleanup)
   { worker: scope.worker, channel: output, }
 }
 

@@ -163,7 +163,7 @@ pub fn[K : Compare, V, W, D, T : Lattice, R, S, O] ArrangementView::join_map(
     batches2.push((batch, lower))
     scheduler.schedule(task)
   })
-  self.collection.worker.cleanup.push(cleanup)
+  self.collection.worker.on_task_shutdown(task, cleanup)
   { worker: self.collection.worker, channel: output, }
 }
 

@@ -89,6 +89,6 @@ pub fn[K : Compare, V : Compare, T : Lattice, R : Semigroup, Q, O] TraceAgent::l
   let scheduler = queries.worker.scheduler
   let task = input.task
   shared.listeners[listener] = fn(_) { scheduler.schedule(task) }
-  queries.worker.cleanup.push(cleanup)
+  queries.worker.on_task_shutdown(task, cleanup)
   { worker: queries.worker, channel: output, }
 }

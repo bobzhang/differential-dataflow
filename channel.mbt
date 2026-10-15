@@ -7,6 +7,7 @@ priv enum Frame[D, T, R] {
 ///|
 priv struct Mailbox[D, T, R] {
   frames : Array[Frame[D, T, R]]
+  ended : Ref[Bool]
   mut task : Int32
   mut counter : (ChangeBatch[(Int32, T)], Int32)?
 }
@@ -81,6 +82,11 @@ fn[D, T : Lattice, R] Channel::subscribe(
   mailbox : Mailbox[D, T, R],
 ) -> Unit {
   self.subscribers.push(mailbox)
+  let frames = mailbox.frames
+  let ended = mailbox.ended
+  self.scheduler.input_done[mailbox.task].push(fn() {
+    ended.val && frames.is_empty()
+  })
   match self.context {
     None => {
       guard !self.scheduler.started else { abort("unscoped graph is frozen") }
@@ -108,6 +114,11 @@ fn[D, T : Lattice, R] Mailbox::drain(
 ) -> Array[Frame[D, T, R]] {
   let frames = self.frames.copy()
   self.frames.clear()
+  for frame in frames {
+    if frame is Progress(frontier) {
+      self.ended.val = frontier.is_empty()
+    }
+  }
   if self.counter is Some((pending, port)) {
     for frame in frames {
       if frame is Data(updates) {
@@ -143,7 +154,7 @@ fn[D, T : Lattice, R] Channel::Channel(
 
 ///|
 fn[D, T, R] Mailbox::Mailbox() -> Mailbox[D, T, R] {
-  { frames: [], task: -1, counter: None, }
+  { frames: [], ended: Ref(false), task: -1, counter: None, }
 }
 
 ///|
@@ -163,6 +174,8 @@ fn[D, E, T, R, S] Channel::depends_on(
   self : Channel[D, T, R],
   input : Mailbox[E, T, S],
 ) -> Unit {
+  let frontier = self.frontier
+  self.scheduler.output_done[input.task].push(fn() { frontier.val.is_empty() })
   if self.context is Some(context) && input.counter is Some((_, port)) {
     (context.connect)(port, self.port)
   }

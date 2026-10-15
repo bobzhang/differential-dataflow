@@ -81,7 +81,7 @@ pub fn[K : Compare, V : Compare, T : Lattice, R : Semigroup] Collection::arrange
   output.depends_on(input)
   // Rust TraceWriter::drop seals an empty final batch. Surviving imports must
   // receive the same closure even when the producer is explicitly disposed.
-  self.worker.cleanup.push(fn() {
+  self.worker.on_task_shutdown(input.task, fn() {
     pending.val.clear()
     writer.close()
   })

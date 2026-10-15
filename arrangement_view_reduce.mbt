@@ -94,7 +94,7 @@ pub fn[
   })
   self.collection.channel.subscribe(input)
   output.depends_on(input)
-  self.collection.worker.cleanup.push(fn() {
+  self.collection.worker.on_task_shutdown(input.task, fn() {
     reader.release()
     states.clear()
     held.val.clear()

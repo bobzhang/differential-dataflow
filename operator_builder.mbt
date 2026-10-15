@@ -192,13 +192,16 @@ pub fn[T : Compare, S] OperatorBuilder::build_reschedule(
   let incomplete = Ref(true)
   let ran = Ref(false)
   let closing = Ref(false)
-  let task = self.scope.worker.register(fn() {
-    closing.val = false
-    ports.running = true
-    incomplete.val = run()
-    ran.val = true
-    ports.running = false
-  })
+  let task = self.scope.worker.register(
+    fn() {
+      closing.val = false
+      ports.running = true
+      incomplete.val = run()
+      ran.val = true
+      ports.running = false
+    },
+    automatic=false,
+  )
   let progress = self.scope.progress
   let shutdown = Ref(on_shutdown)
   let finish = fn() {
