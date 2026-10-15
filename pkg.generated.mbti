@@ -72,6 +72,20 @@ pub fn[T : Lattice] Description::lower(Self[T]) -> Antichain[T]
 pub fn[T : Lattice] Description::since(Self[T]) -> Antichain[T]
 pub fn[T : Lattice] Description::upper(Self[T]) -> Antichain[T]
 
+pub struct InputSession[D, T, R] {
+  // private fields
+}
+pub fn[D, T : Lattice, R] InputSession::InputSession(T, deliver~ : (Array[(D, T, R)], Antichain[T]) -> Unit, buffer_limit? : Int) -> Self[D, T, R]
+pub fn[D, T : Lattice, R] InputSession::advance_to(Self[D, T, R], T) -> Unit
+pub fn[D, T : Lattice, R] InputSession::close(Self[D, T, R]) -> Unit
+pub fn[D, T : Lattice, R] InputSession::flush(Self[D, T, R]) -> Unit
+pub fn[D, T : Lattice, R] InputSession::frontier(Self[D, T, R]) -> Antichain[T]
+pub fn[D, T : Lattice] InputSession::insert(Self[D, T, Int64], D) -> Unit
+pub fn[D, T : Lattice] InputSession::remove(Self[D, T, Int64], D) -> Unit
+pub fn[D, T, R] InputSession::time(Self[D, T, R]) -> T
+pub fn[D, T : Lattice, R] InputSession::update(Self[D, T, R], D, R) -> Unit
+pub fn[D, T : Lattice, R] InputSession::update_at(Self[D, T, R], D, T, R) -> Unit
+
 pub struct MutableAntichain[T] {
   // private fields
 }
