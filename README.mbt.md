@@ -144,6 +144,11 @@ must obey their mathematical laws. Callbacks must be deterministic and must not
 re-enter the worker or mutate the graph. Signed weights use MoonBit integer
 arithmetic; applications are responsible for avoiding unwanted overflow.
 
+`Int8`, `Int128`, and `UInt128` cover integer widths absent from native MoonBit
+types. `Wrapping` preserves explicit signed wrapping types; `SingletonDiff`
+adapts Rust one-element tuples. Graph propagation and SCC accept any `Ring`
+difference, which supplies multiplication and one in addition to Abelian addition.
+
 `join_map` accepts explicit weight multiplication so different input and output
 weight types can be used without Rust associated types. `antijoin` implements
 weighted subtraction; its key input must have weights zero or one for set-style

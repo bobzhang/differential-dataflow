@@ -27,23 +27,23 @@ pub fn[N : Compare + Hash, T : Lattice, S : Compare] Scope::bfs(
 
 ///|
 /// Forward propagation of the minimum label reachable at each node.
-pub fn[N : Compare + Hash, L : Compare, T : Lattice, S : Compare] Scope::propagate(
+pub fn[N : Compare + Hash, L : Compare, T : Lattice, S : Compare, R : Ring] Scope::propagate(
   self : Scope[T, S],
-  edges : Collection[(N, N), T, Int64],
-  nodes : Collection[(N, L), T, Int64],
-) -> Collection[(N, L), T, Int64] {
+  edges : Collection[(N, N), T, R],
+  nodes : Collection[(N, L), T, R],
+) -> Collection[(N, L), T, R] {
   self.propagate_at(edges, nodes, fn(_) { 0UL })
 }
 
 ///|
 /// Stagger label introduction with upstream's 256 * bit_length(priority) schedule.
 /// Scheduling affects intermediate work; converged labels retain original times.
-pub fn[N : Compare + Hash, L : Compare, T : Lattice, S : Compare] Scope::propagate_at(
+pub fn[N : Compare + Hash, L : Compare, T : Lattice, S : Compare, R : Ring] Scope::propagate_at(
   self : Scope[T, S],
-  edges : Collection[(N, N), T, Int64],
-  nodes : Collection[(N, L), T, Int64],
+  edges : Collection[(N, N), T, R],
+  nodes : Collection[(N, L), T, R],
   priority : (L) -> UInt64,
-) -> Collection[(N, L), T, Int64] {
+) -> Collection[(N, L), T, R] {
   same_worker(edges, nodes)
   let nested = self.nested(0L, SummaryDomain::int64())
   let child = nested.scope()
@@ -60,13 +60,13 @@ pub fn[N : Compare + Hash, L : Compare, T : Lattice, S : Compare] Scope::propaga
   let (variable, proposals) = child.variable(Product(self.domain.identity, 1L))
   let labels = proposals
     .concat(seeds)
-    .reduce(fn(_, values) { [(values[0].0, 1L)] })
+    .reduce(fn(_, values) { [(values[0].0, R::one())] })
   variable.set(
     labels.join_map(links, fn(_, label, target) { (target, label) }, multiply=fn(
       a,
       b,
     ) {
-      a * b
+      a.multiply(b)
     }),
   )
   nested.leave(labels)
@@ -75,19 +75,19 @@ pub fn[N : Compare + Hash, L : Compare, T : Lattice, S : Compare] Scope::propaga
 ///|
 /// Keep precisely the original edges whose endpoints are in the same strongly
 /// connected component. Edge weights are retained; this is not a component-ID map.
-pub fn[N : Compare + Hash, T : Lattice, S : Compare] Scope::strongly_connected(
+pub fn[N : Compare + Hash, T : Lattice, S : Compare, R : Ring] Scope::strongly_connected(
   self : Scope[T, S],
-  graph : Collection[(N, N), T, Int64],
-) -> Collection[(N, N), T, Int64] {
+  graph : Collection[(N, N), T, R],
+) -> Collection[(N, N), T, R] {
   self.strongly_connected_at(graph, fn(_) { 0UL })
 }
 
 ///|
-pub fn[N : Compare + Hash, T : Lattice, S : Compare] Scope::strongly_connected_at(
+pub fn[N : Compare + Hash, T : Lattice, S : Compare, R : Ring] Scope::strongly_connected_at(
   self : Scope[T, S],
-  graph : Collection[(N, N), T, Int64],
+  graph : Collection[(N, N), T, R],
   priority : (N) -> UInt64,
-) -> Collection[(N, N), T, Int64] {
+) -> Collection[(N, N), T, R] {
   let nested = self.nested(0L, SummaryDomain::int64())
   let child = nested.scope()
   let edges = nested.enter(graph)
@@ -107,12 +107,12 @@ pub fn[N : Compare + Hash, T : Lattice, S : Compare] Scope::strongly_connected_a
 }
 
 ///|
-fn[N : Compare + Hash, T : Lattice, S : Compare] trim_graph_edges(
+fn[N : Compare + Hash, T : Lattice, S : Compare, R : Ring] trim_graph_edges(
   scope : Scope[T, S],
-  cycle : Collection[(N, N), T, Int64],
-  edges : Collection[(N, N), T, Int64],
+  cycle : Collection[(N, N), T, R],
+  edges : Collection[(N, N), T, R],
   priority : (N) -> UInt64,
-) -> Collection[(N, N), T, Int64] {
+) -> Collection[(N, N), T, R] {
   let nodes = edges.map(fn(edge) { (edge.1, edge.1) }).consolidate()
   let labels = scope.propagate_at(cycle, nodes, priority)
   edges
@@ -120,12 +120,12 @@ fn[N : Compare + Hash, T : Lattice, S : Compare] trim_graph_edges(
     a,
     b,
   ) {
-    a * b
+    a.multiply(b)
   })
   .join_map(
     labels,
     fn(target, previous, label) { ((previous.0, target), (previous.1, label)) },
-    multiply=fn(a, b) { a * b },
+    multiply=fn(a, b) { a.multiply(b) },
   )
   .filter(fn(value) { value.1.0 == value.1.1 })
   .map(fn(value) { (value.0.1, value.0.0) })

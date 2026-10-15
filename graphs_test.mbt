@@ -59,3 +59,43 @@ test "graph algorithms retract distances labels and SCC edges after a cycle brea
   assert_eq(labels, [((0, 0), 1L), ((1, 0), 1L)])
   worker.dispose()
 }
+
+///|
+test "SCC and propagation accept wrapping ring weights" {
+  let worker = @differential.Worker()
+  let scope = worker.scope(0L, @differential.SummaryDomain::int64())
+  let (input, graph) : (
+    @differential.InputSession[
+      (Int32, Int32),
+      Int64,
+      @differential.Wrapping[Int32],
+    ],
+    @differential.Collection[
+      (Int32, Int32),
+      Int64,
+      @differential.Wrapping[Int32],
+    ],
+  ) = scope.input()
+  let observed : Map[(Int32, Int32), Int32] = Map([])
+  let probe = scope
+    .strongly_connected(graph)
+    .inspect(fn(data, _, diff) {
+      observed[data] = observed.get(data).unwrap_or(0) + diff.value()
+    })
+  for edge in [(0, 1), (1, 2), (2, 1)] {
+    input.update(edge, Wrapping(2))
+  }
+  input.advance_to(1)
+  input.flush()
+  assert_true(worker.run() is Quiescent(_))
+  assert_true(!probe.less_than(1))
+  assert_eq(observed.get((1, 2)), Some(2))
+  assert_eq(observed.get((2, 1)), Some(2))
+  assert_eq(observed.get((0, 1)).unwrap_or(0), 0)
+  input.update((1, 2), Wrapping(-2))
+  input.close()
+  assert_true(worker.run() is Quiescent(_))
+  assert_true(probe.done())
+  assert_true(observed.to_array().iter().all(fn(x) { x.1 == 0 }))
+  worker.dispose()
+}
