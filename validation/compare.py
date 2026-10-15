@@ -154,6 +154,30 @@ for seed,r,m in zip(arrangement_seeds,rust,moon):
         snapshots.append(';'.join(f'{idx//4},{idx%4},{count}' for idx,count in enumerate(counts) if count))
         expected.append(snapshots[epoch//4*4]+'|'+snapshots[epoch])
     assert r==m=='/'.join(expected), f'arrangement reader failure seed={seed}'
-summary={'references':pins,'frontier_seeds':len(seeds),'frontier_rounds_per_seed':40,'frontier_checks':['membership changes','minimal positive timestamps','lattice advance_by'],'join_seeds':len(join_seeds),'join_epochs_per_seed':16,'oracles':['independent positive-count partial-order model','full weighted join recomputation each epoch'],'runtimes':['acyclic forwarding','counted pointstamp scopes'],'reduce_seeds':len(reduce_seeds),'reduce_queries_per_seed':25,'reduce_checks':['distinct','count','group minimum','exact product-timestamp corrections','independent grid snapshots'],'feedback_seeds':len(feedback_seeds),'feedback_epochs_per_seed':4,'iteration_seeds':len(iteration_seeds),'iteration_epochs_per_seed':8,'iteration_checks':['nested fixed points','root insertions and retractions','cyclic graph BFS oracle'],'arrangement_seeds':len(arrangement_seeds),'arrangement_epochs_per_seed':16,'arrangement_checks':['independent readers','logical and physical compaction','past and current snapshots'],'status':'passed'}
+upsert_seeds = range(1,129)
+inputs = ''.join(f'{s}\n' for s in upsert_seeds)
+rust = run(['validation/rust/target/release/differential-reference-check','upsert'],input=inputs,capture_output=True).stdout.splitlines()
+moon = run(['node','validation/run.cjs','upsert'],input=inputs,capture_output=True).stdout.splitlines()
+assert len(rust) == len(moon) == len(upsert_seeds)
+for seed,r,m in zip(upsert_seeds,rust,moon):
+    state=seed
+    latest={}
+    for _ in range(64):
+        state=(state*1664525+1013904223)&0xffffffff
+        idx=(state>>8)%256
+        key=(idx//64,idx//8%8)
+        value=-1 if state%4==0 else idx%8
+        latest[key]=max(latest.get(key,-1),value)
+    previous={}
+    changes={}
+    for (k,t),v in sorted(latest.items(),key=lambda row:(row[0][1],row[0][0])):
+        old=previous.get(k,-1)
+        if old!=v:
+            if old!=-1: changes[k,old,t]=changes.get((k,old,t),0)-1
+            if v!=-1: changes[k,v,t]=changes.get((k,v,t),0)+1
+            previous[k]=v
+    expected=';'.join(f'{k},{v},{t},{r}' for (k,v,t),r in sorted(changes.items()) if r)
+    assert r==m==expected, f'upsert failure seed={seed}'
+summary={'references':pins,'frontier_seeds':len(seeds),'frontier_rounds_per_seed':40,'frontier_checks':['membership changes','minimal positive timestamps','lattice advance_by'],'join_seeds':len(join_seeds),'join_epochs_per_seed':16,'oracles':['independent positive-count partial-order model','full weighted join recomputation each epoch'],'runtimes':['acyclic forwarding','counted pointstamp scopes'],'reduce_seeds':len(reduce_seeds),'reduce_queries_per_seed':25,'reduce_checks':['distinct','count','group minimum','exact product-timestamp corrections','independent grid snapshots'],'feedback_seeds':len(feedback_seeds),'feedback_epochs_per_seed':4,'iteration_seeds':len(iteration_seeds),'iteration_epochs_per_seed':8,'iteration_checks':['nested fixed points','root insertions and retractions','cyclic graph BFS oracle'],'arrangement_seeds':len(arrangement_seeds),'arrangement_epochs_per_seed':16,'arrangement_checks':['independent readers','logical and physical compaction','past and current snapshots'],'upsert_seeds':len(upsert_seeds),'upsert_records_per_seed':64,'upsert_checks':['out-of-order times','greatest-value tie breaking','deletion and repeated values'],'status':'passed'}
 (ROOT/'validation/results.json').write_text(json.dumps(summary,indent=2)+'\n')
 print(json.dumps(summary))

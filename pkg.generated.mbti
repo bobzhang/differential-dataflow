@@ -86,6 +86,7 @@ pub struct Collection[D, T, R] {
 pub fn[K : Compare + Hash, V : Compare, T : Lattice] Collection::antijoin(Self[(K, V), T, Int64], Self[K, T, Int64]) -> Self[(K, V), T, Int64]
 pub fn[K : Compare, V : Compare, T : Lattice, R : Semigroup] Collection::arrange_by_key(Self[(K, V), T, R]) -> Arranged[K, V, T, R]
 pub fn[K : Compare, T : Lattice, R : Semigroup] Collection::arrange_by_self(Self[K, T, R]) -> Arranged[K, Unit, T, R]
+pub fn[K : Compare + Hash, V : Compare, T : TotalOrder] Collection::arrange_from_upsert(Self[(K, V?), T, Present]) -> Arranged[K, V, T, Int64]
 pub fn[D, T : Lattice, R] Collection::concat(Self[D, T, R], Self[D, T, R]) -> Self[D, T, R]
 pub fn[D : Compare, T : Lattice, R : Semigroup] Collection::consolidate(Self[D, T, R]) -> Self[D, T, R]
 pub fn[D : Compare + Hash, T : Lattice, R : Semigroup + Compare] Collection::count(Self[D, T, R]) -> Self[(D, R), T, Int64]
@@ -353,3 +354,7 @@ pub(open) trait Semigroup {
 }
 pub impl Semigroup for Int
 pub impl Semigroup for Int64
+
+pub(open) trait TotalOrder : Lattice {
+}
+pub impl TotalOrder for Int64

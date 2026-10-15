@@ -45,5 +45,12 @@
     "logical and physical compaction",
     "past and current snapshots"
   ],
+  "upsert_seeds": 128,
+  "upsert_records_per_seed": 64,
+  "upsert_checks": [
+    "out-of-order times",
+    "greatest-value tie breaking",
+    "deletion and repeated values"
+  ],
   "status": "passed"
 }

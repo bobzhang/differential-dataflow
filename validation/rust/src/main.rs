@@ -29,7 +29,7 @@ fn evaluate(seed: u32) -> String {
 }
 fn main() {
     let mode = std::env::args().nth(1).unwrap_or_default();
-    for line in io::stdin().lock().lines() { let seed = line.unwrap().parse().unwrap(); println!("{}", match mode.as_str() { "join" => evaluate_join(seed), "reduce" => evaluate_reduce(seed), "feedback" => evaluate_feedback(seed), "iteration" => evaluate_iteration(seed), "arrangement" => evaluate_arrangement(seed), _ => evaluate(seed) }); }
+    for line in io::stdin().lock().lines() { let seed = line.unwrap().parse().unwrap(); println!("{}", match mode.as_str() { "join" => evaluate_join(seed), "reduce" => evaluate_reduce(seed), "feedback" => evaluate_feedback(seed), "iteration" => evaluate_iteration(seed), "arrangement" => evaluate_arrangement(seed), "upsert" => evaluate_upsert(seed), _ => evaluate(seed) }); }
 }
 fn evaluate_join(seed: u32) -> String {
     use differential_dataflow::input::Input;
@@ -223,5 +223,30 @@ fn evaluate_arrangement(seed: u32) -> String {
         }
         input.close(); while !probe.done() {worker.step();}
         result.join("/")
+    })
+}
+
+fn evaluate_upsert(seed: u32) -> String {
+    use differential_dataflow::{operators::arrange::upsert::arrange_from_upsert, trace::implementations::{ValBuilder, ValSpine}};
+    use timely::dataflow::operators::ToStream;
+    use std::{cell::RefCell, collections::BTreeMap, rc::Rc};
+    timely::execute_directly(move |worker| {
+        let mut random=seed;
+        let mut updates=Vec::new();
+        for _ in 0..64 {
+            random=random.wrapping_mul(1664525).wrapping_add(1013904223);
+            let index=(random>>8)%256;
+            updates.push((index/64,if random%4==0 {None} else {Some(index%8)},(index/8%8) as u64));
+        }
+        let observed=Rc::new(RefCell::new(BTreeMap::<(u32,u32,u64),i64>::new()));
+        let sink=observed.clone();
+        let probe=worker.dataflow::<u64,_,_>(|scope| {
+            let arranged=arrange_from_upsert::<ValBuilder<u32,u32,u64,isize>,ValSpine<u32,u32,u64,isize>,u32,u32>(updates.to_stream(scope),"UpsertCheck");
+            let (probe,_)=arranged.as_collection(|k,v| (*k,*v)).inspect(move |&((k,v),t,r)| { *sink.borrow_mut().entry((k,v,t)).or_default()+=r as i64; }).probe();
+            probe
+        });
+        while !probe.done() { worker.step(); }
+        let result=observed.borrow().iter().filter(|(_,r)| **r!=0).map(|(&(k,v,t),r)| format!("{k},{v},{t},{r}")).collect::<Vec<_>>().join(";");
+        result
     })
 }
