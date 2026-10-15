@@ -106,10 +106,10 @@ pub fn[D, T, U : Lattice, R] BatchView::map_times(
 }
 
 ///|
-pub fn[K : Compare, V : Compare, T : Compare, R : Semigroup] BatchView::cursor(
+pub fn[K : Compare, V : Compare, T, R] BatchView::cursor(
   self : BatchView[(K, V), T, R],
 ) -> Cursor[K, V, T, R] {
-  Cursor(self.to_array())
+  Cursor([self])
 }
 
 ///|

@@ -61,3 +61,46 @@ test "empty trace cursor and vanished key after consolidation" {
   assert_eq(trace.cursor().key(), Some(2))
   assert_eq(trace.cursor_through(Antichain([0L])).unwrap().key(), None)
 }
+
+///|
+test "cursor retains lazy batch views without materializing history" {
+  let batch = @differential.Batch(
+    Array::makei(4096, fn(i) { ((1, 10), i.to_int64(), 1L) }),
+    lower=Antichain([0L]),
+    upper=Antichain([4096L]),
+  )
+  let mut reads = 0
+  let view = batch
+    .view()
+    .map_times(fn(time) {
+      reads += 1
+      time
+    })
+  let cursor = view.cursor()
+  assert_eq(cursor.key(), Some(1))
+  assert_eq(cursor.val(), Some(10))
+  assert_true(reads < 64)
+  let mut weight = 0L
+  cursor.map_times(fn(_, diff) { weight += diff })
+  assert_eq(weight, 4096L)
+  cursor.step_key()
+  assert_false(cursor.key_valid())
+}
+
+///|
+test "cursor list retains keys with canceling times across immutable batches" {
+  let trace : @differential.Trace[(Int32, Int32), Int64, Int64] = Trace(0L)
+  trace.insert(
+    Batch([((1, 2), 0L, 1L)], lower=Antichain([0L]), upper=Antichain([1L])),
+  )
+  trace.insert(
+    Batch([((1, 2), 1L, -1L)], lower=Antichain([1L]), upper=Antichain([2L])),
+  )
+  trace.set_logical_compaction(Antichain([2L]))
+  let cursor = trace.cursor()
+  assert_eq(cursor.key(), Some(1))
+  assert_eq(cursor.times(), [(2L, 1L), (2L, -1L)])
+  trace.set_physical_compaction(Antichain([2L]))
+  assert_false(trace.cursor().key_valid())
+  assert_eq(cursor.times(), [(2L, 1L), (2L, -1L)])
+}

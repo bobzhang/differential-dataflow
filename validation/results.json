@@ -3,6 +3,12 @@
     "differential-dataflow": "aa8745f93ea8abe131104fc7885ba4fd47e63902",
     "timely-dataflow": "eba4ae5298442cc2475e5ef82277bb135e4a7ea4"
   },
+  "cursor_steps": 16384,
+  "cursor_checks": [
+    "merged batch navigation",
+    "seeks and rewinds",
+    "per-batch time enumeration"
+  ],
   "frontier_seeds": 256,
   "frontier_rounds_per_seed": 40,
   "frontier_checks": [

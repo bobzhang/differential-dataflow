@@ -208,23 +208,19 @@ pub fn[D : Compare, T : Lattice, R : Semigroup] TraceReader::snapshot(
 }
 
 ///|
-pub fn[K : Compare, V : Compare, T : Lattice, R : Semigroup] TraceReader::cursor(
+pub fn[K : Compare, V : Compare, T : Lattice, R] TraceReader::cursor(
   self : TraceReader[(K, V), T, R],
 ) -> Cursor[K, V, T, R] {
   self.cursor_through(Antichain([])).unwrap()
 }
 
 ///|
-pub fn[K : Compare, V : Compare, T : Lattice, R : Semigroup] TraceReader::cursor_through(
+pub fn[K : Compare, V : Compare, T, R] TraceReader::cursor_through(
   self : TraceReader[(K, V), T, R],
   upper : Antichain[T],
 ) -> Cursor[K, V, T, R]? {
   guard self.batches_through(upper) is Some(batches) else { return None }
-  let updates = []
-  for batch in batches {
-    batch.for_each(fn(data, time, diff) { updates.push((data, time, diff)) })
-  }
-  Some(Cursor(updates))
+  Some(Cursor(batches))
 }
 
 ///|

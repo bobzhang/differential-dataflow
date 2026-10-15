@@ -56,7 +56,9 @@ Fault injection covers truncation, oversized frames, timeouts, malformed text,
 wrong peers and graph mismatches. Native workloads pass ASan and LSan locally.
 
 Reduction compacts history at arbitrary antichains but still enumerates a timestamp
-join-closure. Trace cursors materialize snapshots and lookups scan snapshots.
+join-closure. Trace cursors merge retained batch indexes lazily; lookups still scan snapshots.
+16,384 cursor navigation steps match Rust, including seeks, rewinds and
+per-batch timestamp enumeration.
 Arranged joins reuse shared sorted batch indexes with binary key lookup; collection
 joins retain private keyed histories. Arranged reductions read shared key ranges and retain output corrections separately.
 Full trace layouts and fueled computation remain unfinished. Capture/replay currently has a synchronous

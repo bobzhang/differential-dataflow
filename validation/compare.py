@@ -12,6 +12,13 @@ for name, pin in pins.items():
     assert not run(['git','-C',f'.repos/{name}','status','--porcelain'],capture_output=True).stdout.strip()
 run(['cargo','build','--release','--locked','--manifest-path','validation/rust/Cargo.toml'])
 run(['moon','build','--release','--target','js'])
+cursor_seeds = range(1, 129)
+cursor_inputs = ''.join(f'{seed}\n' for seed in cursor_seeds)
+rust = run(['validation/rust/target/release/differential-reference-check', 'cursors'], input=cursor_inputs, capture_output=True).stdout.splitlines()
+moon = run(['node', 'validation/run.cjs', 'cursors'], input=cursor_inputs, capture_output=True).stdout.splitlines()
+assert len(rust) == len(moon) == len(cursor_seeds)
+for seed, r, m in zip(cursor_seeds, rust, moon):
+    assert r == m, f'batch cursor navigation differs seed={seed}\nRust: {r}\nMoon: {m}'
 seeds = range(1,257)
 inputs = ''.join(f'{s}\n' for s in seeds)
 rust = run(['validation/rust/target/release/differential-reference-check'],input=inputs,capture_output=True).stdout.splitlines()
@@ -379,6 +386,8 @@ for seed, r, m in zip(search_seeds, rust, moon):
     assert r == m == 'GRAPH_SEARCH|' + '/'.join(expected), f'graph search differential failure seed={seed}\nRust: {r}\nMoon: {m}\nOracle: {"/".join(expected)}'
 summary = {
     'references': pins,
+    'cursor_steps': len(cursor_seeds) * 128,
+    'cursor_checks': ['merged batch navigation', 'seeks and rewinds', 'per-batch time enumeration'],
     'frontier_seeds': len(seeds),
     'frontier_rounds_per_seed': 40,
     'frontier_checks': ['membership changes', 'minimal positive timestamps', 'lattice advance_by'],

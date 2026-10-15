@@ -1,3 +1,4 @@
+mod cursors;
 mod search;
 mod identifiers;
 mod prefix;
@@ -49,6 +50,7 @@ fn main() {
         println!(
             "{}",
             match mode.as_str() {
+                "cursors" => cursors::evaluate(seed),
                 "numeric" => evaluate_numeric(seed),
                 "graphs" => evaluate_graphs(seed),
                 "prefix" => prefix::evaluate(seed),

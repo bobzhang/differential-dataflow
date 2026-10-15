@@ -163,6 +163,9 @@ keys. Retention tests cover 20,000 total-order and 5,000 incomparable-frontier
 epochs. Timestamp closure can still grow exponentially for some lattices;
 further incremental optimization remains necessary.
 
+`Cursor` merges retained batch views without copying stored update history.
+Times are visited per batch; callers consolidate them when needed.
+
 `Arranged.join` and `Arranged.join_map` share existing sorted batch indexes, using
 binary key lookup and independent compaction capabilities. Multiple joins reuse
 one arrangement without copying its history. `Arranged.reduce` also reuses shared

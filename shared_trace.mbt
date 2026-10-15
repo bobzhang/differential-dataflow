@@ -217,7 +217,7 @@ pub fn[D, T : Lattice, R] TraceWriter::upper(
 }
 
 ///|
-pub fn[K : Compare, V : Compare, T : Lattice, R : Semigroup] TraceAgent::cursor(
+pub fn[K : Compare, V : Compare, T : Lattice, R] TraceAgent::cursor(
   self : TraceAgent[(K, V), T, R],
 ) -> Cursor[K, V, T, R] {
   self.check()
@@ -252,7 +252,7 @@ pub fn[D, T : Lattice, R] TraceAgent::advance_upper(
 }
 
 ///|
-pub fn[K : Compare, V : Compare, T : Lattice, R : Semigroup] TraceAgent::cursor_through(
+pub fn[K : Compare, V : Compare, T : Lattice, R] TraceAgent::cursor_through(
   self : TraceAgent[(K, V), T, R],
   upper : Antichain[T],
 ) -> Cursor[K, V, T, R]? {
