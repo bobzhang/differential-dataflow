@@ -1,0 +1,103 @@
+///|
+fn main raise {
+  let args = @env.args()
+  let peer : Int32 = @json.from_json(@json.parse(args[1]))
+  let port : Int32 = @json.from_json(@json.parse(args[2]))
+  let seed : Int32 = @json.from_json(@json.parse(args[3]))
+  let peers : Int32 = @json.from_json(@json.parse(args[4]))
+  let transport = @transport.TcpTransport(
+    "127.0.0.1",
+    port,
+    peer,
+    peers,
+    timeout_ms=10000,
+  )
+  defer transport.close()
+  let cluster = @differential.ClusterWorker(peer, peers, exchange=fn(
+    value,
+  ) raise {
+    transport.exchange(value)
+  })
+  defer cluster.dispose()
+  let scope = cluster.scope(
+    0L,
+    @differential.SummaryDomain::int64(),
+    time_codec=@differential.WireCodec::json(),
+    summary_codec=@differential.WireCodec::json(),
+  )
+  let (a, left) : (
+    @differential.InputSession[(Int32, Int32), Int64, Int64],
+    @differential.Collection[(Int32, Int32), Int64, Int64],
+  ) = scope.input()
+  let (b, right) : (
+    @differential.InputSession[(Int32, Int32), Int64, Int64],
+    @differential.Collection[(Int32, Int32), Int64, Int64],
+  ) = scope.input()
+  let left = scope
+    .exchange(
+      left,
+      fn(x) { x.0.to_uint64() },
+      data_codec=@differential.WireCodec::json(),
+      time_codec=@differential.WireCodec::json(),
+      diff_codec=@differential.WireCodec::json(),
+    )
+    .arrange_by_key()
+  let right = scope
+    .exchange(
+      right,
+      fn(x) { x.0.to_uint64() },
+      data_codec=@differential.WireCodec::json(),
+      time_codec=@differential.WireCodec::json(),
+      diff_codec=@differential.WireCodec::json(),
+    )
+    .arrange_by_key()
+  let observed : Map[(Int32, Int32, Int32), Int64] = Map([])
+  let probe = left
+    .join(right)
+    .consolidate()
+    .inspect(fn(d, _, r) {
+      let key = (d.0, d.1.0, d.1.1)
+      observed[key] = observed.get(key).unwrap_or(0L) + r
+    })
+  left.release()
+  right.release()
+  let mut random = seed.reinterpret_as_uint()
+  let results = []
+  for epoch in 0L..<16L {
+    for side in 0..<2 {
+      for _ in 0..<4 {
+        random = random * 1664525U + 1013904223U
+        let index = ((random >> 8) % 20U).reinterpret_as_int()
+        let origin = ((random >> 16) % peers.reinterpret_as_uint()).reinterpret_as_int()
+        let diff = (random % 5U).to_int64() - 2L
+        if origin == peer {
+          if side == 0 {
+            a.update((index / 5, index % 5), diff)
+          } else {
+            b.update((index / 5, index % 5), diff)
+          }
+        }
+      }
+    }
+    a.advance_to(epoch + 1)
+    b.advance_to(epoch + 1)
+    a.flush()
+    b.flush()
+    guard cluster.run(max_rounds=1000) is Quiescent(_) else {
+      abort("cluster join round limit")
+    }
+    guard !probe.less_than(epoch + 1) else {
+      abort("cluster join progress stalled")
+    }
+    let current = observed.to_array().filter(fn(x) { x.1 != 0L })
+    current.sort()
+    results.push(
+      current.map(fn(x) { "\{x.0.0},\{x.0.1},\{x.0.2},\{x.1}" }).join(";"),
+    )
+  }
+  a.close()
+  b.close()
+  let _ = cluster.run()
+  guard probe.done() else { abort("cluster did not close") }
+  println(results.join("/"))
+}

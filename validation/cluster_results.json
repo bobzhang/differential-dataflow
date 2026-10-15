@@ -1,0 +1,25 @@
+{
+  "process_counts": [
+    2,
+    3
+  ],
+  "seeds": [
+    1,
+    7,
+    42,
+    2147483647
+  ],
+  "epochs_per_seed": 16,
+  "oracles": [
+    "pinned Rust two-worker join",
+    "independent full weighted join"
+  ],
+  "checks": [
+    "TCP startup retry",
+    "keyed exchange",
+    "shared arrangement joins",
+    "global progress each epoch",
+    "closure"
+  ],
+  "status": "passed"
+}

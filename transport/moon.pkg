@@ -1,0 +1,11 @@
+import {
+  "moonbitlang/core/json",
+  "moonbitlang/core/encoding/utf8",
+}
+
+options(
+  "native-stub": [ "tcp.c" ],
+  targets: { "tcp.mbt": [ "native" ], "tcp_test.mbt": [ "native" ] },
+)
+
+supported_targets = "-all+native"
