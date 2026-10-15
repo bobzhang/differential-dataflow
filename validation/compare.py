@@ -211,6 +211,13 @@ moon = run(['node','validation/run.cjs','group_join'],input=inputs,capture_outpu
 assert len(rust) == len(moon) == len(group_join_seeds)
 for seed,r,m in zip(group_join_seeds,rust,moon):
     assert r==m==join_cases[seed], f'two-worker join failure seed={seed}'
+stream_reduce_seeds = range(1,33)
+inputs = ''.join(f'{s}\n' for s in stream_reduce_seeds)
+rust = run(['validation/rust/target/release/differential-reference-check','stream_reduce'],input=inputs,capture_output=True).stdout.splitlines()
+moon = run(['node','validation/run.cjs','stream_reduce'],input=inputs,capture_output=True).stdout.splitlines()
+assert len(rust) == len(moon) == len(stream_reduce_seeds)
+for seed,r,m in zip(stream_reduce_seeds,rust,moon):
+    assert r == m, f'streamed incomparable reduction failure seed={seed}'
 summary = {
     'references': pins,
     'frontier_seeds': len(seeds),
@@ -223,6 +230,9 @@ summary = {
     'reduce_seeds': len(reduce_seeds),
     'reduce_queries_per_seed': 25,
     'reduce_checks': ['distinct', 'count', 'group minimum', 'exact product-timestamp corrections', 'independent grid snapshots'],
+    'stream_reduce_seeds': len(stream_reduce_seeds),
+    'stream_reduce_epochs_per_seed': 24,
+    'stream_reduce_checks': ['incomparable capability frontiers', 'exact incremental corrections', 'arbitrary-frontier compaction'],
     'feedback_seeds': len(feedback_seeds),
     'feedback_epochs_per_seed': 4,
     'iteration_seeds': len(iteration_seeds),

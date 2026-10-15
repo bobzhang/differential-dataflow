@@ -48,6 +48,7 @@ fn main() {
             match mode.as_str() {
                 "join" => evaluate_join(seed),
                 "reduce" => evaluate_reduce(seed),
+                "stream_reduce" => evaluate_stream_reduce(seed),
                 "feedback" => evaluate_feedback(seed),
                 "iteration" => evaluate_iteration(seed),
                 "arrangement" => evaluate_arrangement(seed),
@@ -550,4 +551,94 @@ fn evaluate_group_join(seed: u32) -> String {
         })
         .collect::<Vec<_>>()
         .join("/")
+}
+
+fn evaluate_stream_reduce(seed: u32) -> String {
+    use differential_dataflow::AsCollection;
+    use std::{cell::RefCell, collections::BTreeMap, rc::Rc};
+    use timely::dataflow::operators::vec::UnorderedInput;
+    use timely::order::PartialOrder;
+    timely::execute_directly(move |worker| {
+        let observed = Rc::new(RefCell::new(BTreeMap::<(i64, u64, u64), i64>::new()));
+        let sink = observed.clone();
+        let ((mut input, initial), probe) = worker.dataflow::<u64, _, _>(|outer| {
+            outer.scoped::<Product<u64, u64>, _, _>("StreamReduce", |scope| {
+                let (input, stream) =
+                    scope.new_unordered_input::<((u32, u32), Product<u64, u64>, i64)>();
+                let (probe, _) = stream
+                    .as_collection()
+                    .reduce(|_, values, output| {
+                        output.push((values.iter().map(|x| x.1).sum::<i64>(), 1i64))
+                    })
+                    .inspect(move |&((_, value), time, diff)| {
+                        *sink
+                            .borrow_mut()
+                            .entry((value, time.outer, time.inner))
+                            .or_default() += diff;
+                    })
+                    .probe();
+                (input, probe)
+            })
+        });
+        let mut caps = vec![initial];
+        let mut random = seed;
+        let mut results = Vec::new();
+        for epoch in 0..24u64 {
+            for side in 0..2 {
+                let time = if side == 0 {
+                    Product::new(epoch, epoch + 1)
+                } else {
+                    Product::new(epoch + 1, epoch)
+                };
+                let cap = caps
+                    .iter()
+                    .find(|c| c.time().less_equal(&time))
+                    .unwrap()
+                    .delayed(&time);
+                for _ in 0..3 {
+                    random = random.wrapping_mul(1664525).wrapping_add(1013904223);
+                    input.activate().session(&cap).give((
+                        (0, (random >> 8) % 4),
+                        time,
+                        (random % 5) as i64 - 2,
+                    ));
+                }
+            }
+            let frontier: Antichain<_> = [
+                Product::new(epoch + 2, epoch),
+                Product::new(epoch, epoch + 2),
+            ]
+            .into_iter()
+            .collect();
+            caps = frontier
+                .elements()
+                .iter()
+                .map(|time| {
+                    caps.iter()
+                        .find(|c| c.time().less_equal(time))
+                        .unwrap()
+                        .delayed(time)
+                })
+                .collect();
+            while probe.with_frontier(|f| f.iter().any(|t| !frontier.less_equal(t))) {
+                worker.step();
+            }
+            results.push(
+                observed
+                    .borrow()
+                    .iter()
+                    .filter(|((_, x, y), d)| {
+                        **d != 0 && !frontier.less_equal(&Product::new(*x, *y))
+                    })
+                    .map(|((v, x, y), d)| format!("{v},{x},{y},{d}"))
+                    .collect::<Vec<_>>()
+                    .join(";"),
+            );
+        }
+        drop(caps);
+        while !probe.done() {
+            worker.step();
+        }
+        results.join("/")
+    })
 }

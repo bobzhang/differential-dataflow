@@ -347,3 +347,85 @@ test "shared join readers release indexes and listeners after sustained updates"
   )
   worker.dispose()
 }
+
+///|
+test "incomparable reduction compaction preserves independent snapshot queries" {
+  for seed in 1U..<=32U {
+    let state : Reduction[Int32, Int64, Product[Int64, Int64], Int64, Int64] = Reduction()
+    let history : Array[(Int32, Product[Int64, Int64], Int64)] = []
+    let observed = []
+    let mut random = seed
+    for epoch in 0L..<24L {
+      for side in 0..<2 {
+        let time = if side == 0 {
+          Product(epoch, epoch + 1)
+        } else {
+          Product(epoch + 1, epoch)
+        }
+        for _ in 0..<3 {
+          random = random * 1664525U + 1013904223U
+          let value = ((random >> 8) % 4U).reinterpret_as_int()
+          let weight = (random % 5U).to_int64() - 2
+          history.push((value, time, weight))
+          state.update(value, time, weight)
+        }
+      }
+      let frontier = Antichain([
+        Product(epoch + 2, epoch),
+        Product(epoch, epoch + 2),
+      ])
+      let (ready, _) = state.advance(frontier, fn(values) {
+        [(values.iter().fold(init=0L, fn(sum, x) { sum + x.1 }), 1L)]
+      })
+      for update in ready {
+        observed.push(update)
+      }
+      for
+        query in [
+          Product(epoch, epoch + 1),
+          Product(epoch + 1, epoch),
+          Product(epoch + 1, epoch + 1),
+        ] {
+        let weights : Map[Int32, Int64] = Map([])
+        for (value, time, diff) in history {
+          if time.less_equal(query) {
+            weights[value] = weights.get(value).unwrap_or(0L) + diff
+          }
+        }
+        let values = weights.to_array().filter(fn(x) { x.1 != 0L })
+        let expected = if values.is_empty() {
+          []
+        } else {
+          [(values.iter().fold(init=0L, fn(sum, x) { sum + x.1 }), 1L)]
+        }
+        let actual = consolidate(
+          observed
+          .filter(fn(x) { x.1.less_equal(query) })
+          .map(fn(x) { (x.0, x.2) }),
+        )
+        assert_eq(actual, expected)
+      }
+      assert_true(state.history.length() <= 20)
+      assert_true(state.emitted.length() <= 20)
+    }
+  }
+}
+
+///|
+test "incomparable frontiers bound retained reduction history for five thousand epochs" {
+  let state : Reduction[Int32, Int64, Product[Int64, Int64], Int64, Int64] = Reduction()
+  for epoch in 0L..<5000L {
+    state.update(0, Product(epoch, epoch + 1), 1)
+    state.update(1, Product(epoch + 1, epoch), 1)
+    let (ready, pending) = state.advance(
+      Antichain([Product(epoch + 2, epoch), Product(epoch, epoch + 2)]),
+      fn(values) {
+        [(values.iter().fold(init=0L, fn(sum, x) { sum + x.1 }), 1L)]
+      },
+    )
+    assert_true(!ready.is_empty())
+    assert_true(pending.is_empty())
+    assert_true(state.history.length() <= 4)
+    assert_true(state.emitted.length() <= 8)
+  }
+}

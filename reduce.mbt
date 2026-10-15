@@ -1,13 +1,28 @@
 ///|
-/// Reference implementation over the finite join-closure of input timestamps.
+/// Corrections over the finite join-closure, relative to already emitted output.
+/// Restrict recomputation to the retained future region after compaction.
 fn[V : Compare, W : Compare, T : Lattice, R : Semigroup, S : Abelian] reduce_history(
   history : Array[(V, T, R)],
+  emitted : Array[(W, T, S)],
+  since : Antichain[T]?,
   logic : (Array[(V, R)]) -> Array[(W, S)],
 ) -> Array[(W, T, S)] {
   let times : Array[T] = []
   for (_, time, _) in history {
     if !times.contains(time) {
       times.push(time)
+    }
+  }
+  for (_, time, _) in emitted {
+    if !times.contains(time) {
+      times.push(time)
+    }
+  }
+  if since is Some(frontier) {
+    for time in frontier.elements {
+      if !times.contains(time) {
+        times.push(time)
+      }
     }
   }
   let mut index = 0
@@ -24,6 +39,9 @@ fn[V : Compare, W : Compare, T : Lattice, R : Semigroup, S : Abelian] reduce_his
   times.sort()
   let result : Array[(W, T, S)] = []
   for time in times {
+    if since is Some(frontier) && !frontier.less_equal(time) {
+      continue
+    }
     let input = []
     for (value, at, diff) in history {
       if at.less_equal(time) {
@@ -32,7 +50,7 @@ fn[V : Compare, W : Compare, T : Lattice, R : Semigroup, S : Abelian] reduce_his
     }
     let input = consolidate(input)
     let desired = if input.is_empty() { [] } else { logic(input).copy() }
-    for (value, at, diff) in result {
+    for (value, at, diff) in emitted + result {
       if at.less_equal(time) {
         desired.push((value, diff.negate()))
       }
@@ -48,11 +66,12 @@ fn[V : Compare, W : Compare, T : Lattice, R : Semigroup, S : Abelian] reduce_his
 priv struct Reduction[V, W, T, R, S] {
   mut history : Array[(V, T, R)]
   mut emitted : Array[(W, T, S)]
+  mut since : Antichain[T]?
 }
 
 ///|
 fn[V, W, T, R, S] Reduction::Reduction() -> Reduction[V, W, T, R, S] {
-  { history: [], emitted: [], }
+  { history: [], emitted: [], since: None, }
 }
 
 ///|
@@ -62,6 +81,9 @@ fn[V : Compare, W, T : Lattice, R : Semigroup, S] Reduction::update(
   time : T,
   diff : R,
 ) -> Unit {
+  guard self.since is None || self.since.unwrap().less_equal(time) else {
+    abort("reduction update precedes compaction")
+  }
   self.history.push((value, time, diff))
   self.history = consolidate_updates(self.history)
 }
@@ -72,10 +94,10 @@ fn[V : Compare, W : Compare, T : Lattice, R : Semigroup, S : Abelian] Reduction:
   frontier : Antichain[T],
   logic : (Array[(V, R)]) -> Array[(W, S)],
 ) -> (Array[(W, T, S)], Array[T]) {
-  let delta = reduce_history(self.history, logic)
-  for (value, time, diff) in self.emitted {
-    delta.push((value, time, diff.negate()))
+  guard self.since is None || self.since.unwrap().precedes(frontier) else {
+    abort("reduction frontier cannot move backward")
   }
+  let delta = reduce_history(self.history, self.emitted, self.since, logic)
   let ready = []
   let pending = []
   for update in consolidate_updates(delta) {
@@ -86,23 +108,27 @@ fn[V : Compare, W : Compare, T : Lattice, R : Semigroup, S : Abelian] Reduction:
     }
   }
   self.emitted = consolidate_updates(self.emitted + ready)
-  if frontier.elements is [time] {
-    // All future input/output queries are >= time. Joining both histories with
-    // this singleton preserves their snapshots on that entire future upset.
-    // Multiple incomparable frontier elements require a more general tactic.
+  if frontier.is_empty() {
+    self.history.clear()
+    self.emitted.clear()
+  } else {
+    // Advance-by preserves every snapshot in the future region of an arbitrary
+    // antichain. Recomputing only in that region avoids inventing corrections at
+    // compacted historical times outside it.
     self.history = consolidate_updates(
-      self.history.map(fn(u) { (u.0, u.1.join(time), u.2) }),
+      self.history.map(fn(u) { (u.0, advance_by(u.1, frontier), u.2) }),
     )
     self.emitted = consolidate_updates(
-      self.emitted.map(fn(u) { (u.0, u.1.join(time), u.2) }),
+      self.emitted.map(fn(u) { (u.0, advance_by(u.1, frontier), u.2) }),
     )
   }
+  self.since = Some(Antichain(frontier.elements))
   (ready, pending)
 }
 
 ///|
 /// Pure grouped reduction with partial-order timestamp semantics. Uses the
-/// join-closure reference algorithm, compacting history at singleton frontiers.
+/// join-closure algorithm, compacting history at arbitrary antichain frontiers.
 pub fn[
   K : Compare + Hash,
   V : Compare,

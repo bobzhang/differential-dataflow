@@ -31,6 +31,13 @@
     "exact product-timestamp corrections",
     "independent grid snapshots"
   ],
+  "stream_reduce_seeds": 32,
+  "stream_reduce_epochs_per_seed": 24,
+  "stream_reduce_checks": [
+    "incomparable capability frontiers",
+    "exact incremental corrections",
+    "arbitrary-frontier compaction"
+  ],
   "feedback_seeds": 64,
   "feedback_epochs_per_seed": 4,
   "iteration_seeds": 32,
