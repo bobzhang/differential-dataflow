@@ -158,3 +158,37 @@ test "external replay cancellation releases an idle source capability" {
   assert_false(handle.is_complete())
   worker.dispose()
 }
+
+///|
+test "activated replay emits unique records before progress is sealed" {
+  let worker = @differential.Worker()
+  let scope = worker.scope(0L, @differential.SummaryDomain::int64())
+  let inbox : Array[@differential.CaptureMessage[Int32, Int64, Int64]] = [
+    Updates([(7, 0L, 3L), (7, 0L, 3L)]),
+  ]
+  let (handle, stream) = scope.replay_from(fn(_) { fn() { inbox.pop() } })
+  let seen = []
+  let probe = stream.inspect(fn(d, t, r) { seen.push((d, t, r)) })
+  let _ = worker.run()
+  assert_eq(seen, [(7, 0L, 3L)])
+  assert_true(probe.less_than(1L))
+  inbox.push(
+    Progress(CaptureProgress(Antichain([0L]), Antichain([]), [(0L, 1L)])),
+  )
+  handle.activate()
+  let _ = worker.run()
+  assert_true(handle.is_complete())
+  assert_true(probe.done())
+  worker.dispose()
+}
+
+///|
+test "panic source replay rejects conflicting weights for one data and time" {
+  let worker = @differential.Worker()
+  let scope = worker.scope(0L, @differential.SummaryDomain::int64())
+  let inbox : Array[@differential.CaptureMessage[Int32, Int64, Int64]] = [
+    Updates([(7, 0L, 1L), (7, 0L, 2L)]),
+  ]
+  let _ = scope.replay_from(fn(_) { fn() { inbox.pop() } })
+  let _ = worker.run()
+}

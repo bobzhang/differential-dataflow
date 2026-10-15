@@ -12,6 +12,10 @@ for name, pin in pins.items():
     assert not run(['git','-C',f'.repos/{name}','status','--porcelain'],capture_output=True).stdout.strip()
 run(['cargo','build','--release','--locked','--manifest-path','validation/rust/Cargo.toml'])
 run(['moon','build','--release','--target','js'])
+eager_inputs = ''.join(f'{seed}\n' for seed in range(1,129))
+rust = run(['validation/rust/target/release/differential-reference-check', 'eager_replay'], input=eager_inputs, capture_output=True).stdout.splitlines()
+moon = run(['node', 'validation/run.cjs', 'eager_replay'], input=eager_inputs, capture_output=True).stdout.splitlines()
+assert rust == moon == ['1,true,false/1,false,false/1,false,true'] * 128
 capture_inputs = ''.join(f'{seed}\n' for seed in range(1,65))
 rust = run(['validation/rust/target/release/differential-reference-check', 'capture_async'], input=capture_inputs, capture_output=True).stdout.splitlines()
 moon = run(['node', 'validation/run.cjs', 'capture_async'], input=capture_inputs, capture_output=True).stdout.splitlines()
@@ -482,6 +486,7 @@ summary = {
     'references': pins,
     'columnar_checks': ['16384 cursor steps', '1024 partial-order batch epochs', '2048 fueled spine epochs', '1024 nested join epochs', '768 partial-order reduction epochs'], 'activation_rounds': len(cursor_seeds) * 64,
     'spill_checks': ['2048 upstream spilled spine epochs', '16384 paged cursor steps', '1024 nested paged join epochs'],
+    'eager_source_replay_cases': 128,
     'async_capture_replay_epochs': 64 * 24,
     'dynamic_dataflows': len(dynamic_seeds) * 16,
     'dynamic_import_snapshots': len(dynamic_seeds) * 136,

@@ -274,8 +274,11 @@ then returns `None`. Cursors snapshot their records and survive later compaction
 `ScopeGroup::replay_from` and `DistributedScope::replay_from` reconstruct one
 captured collection from messages arriving at any peer. Duplicate messages across
 peers are counted once globally; output goes to `hash(data) % peers`. These
-adapters replicate protocol state per peer, so memory use scales differently
-from upstream's partitioned capture source. A paused source keeps progress open;
+adapters partition record deduplication and timestamp counts, then exchange
+compact frontiers. `time_hash` controls count sharding; group replay defaults to
+peer zero, process replay hashes the timestamp codec. Source replay emits records
+eagerly and rejects different weights for the same data/time. The standalone
+`Replayer` waits for sealed intervals. A paused source keeps progress open;
 wake its handle when messages arrive and cancel every peer to abandon a replay.
 
 Arrangement `join` and `join_map` accept `fuel` (default 100,000). A turn performs
@@ -320,6 +323,7 @@ The pinned Rust comparisons cover:
 - 1,024 shared-arrangement epochs with independent reader compaction.
 - 8,192 upsert records, including equal-time conflicts and deletion.
 - 256 reordered/duplicated capture-replay cases, comparing exact progress transitions.
+- 128 eager source cases against Rust, with records available before sealed progress.
 - 1,536 activated capture/replay epochs with update retries, duplicate messages,
   progress arriving before data, and an independent accumulated-state oracle.
 - 512 partitioned join epochs against Rust running two workers.

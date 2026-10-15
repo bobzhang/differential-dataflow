@@ -60,6 +60,7 @@ fn main() {
             match mode.as_str() {
                 "spilled_spines" => columnar::spilled(seed),
                 "columnar_spines" => columnar::evaluate(seed),
+                "eager_replay" => capture_async::eager(seed),
                 "group_replay" => replay_distributed::evaluate(seed),
                 "capture_async" => capture_async::evaluate(seed),
                 "dynamic" => dynamic::evaluate(seed),

@@ -68,3 +68,33 @@ pub fn evaluate(seed: u32) -> String {
         output.join("/")
     })
 }
+
+pub fn eager(seed: u32) -> String {
+    timely::execute_directly(move |worker| {
+        let queue = Rc::new(RefCell::new(VecDeque::<Msg>::new()));
+        let input = queue.clone();
+        let seen = Rc::new(RefCell::new(0usize));
+        let count = seen.clone();
+        let mut wake = None;
+        let (token, probe) = worker.dataflow::<u64,_,_>(|scope| {
+            let (token, stream) = capture::source::build(scope, |activator| {
+                wake = Some(activator);
+                std::iter::from_fn(move || input.borrow_mut().pop_front())
+            });
+            let (probe, _) = Collection::new(stream).inspect(move |_| *count.borrow_mut() += 1).probe();
+            (token, probe)
+        });
+        let row = (seed, 0, (seed % 7 + 1) as i64);
+        queue.borrow_mut().push_back(Message::Updates(vec![row,row]));
+        let mut output = vec![];
+        for phase in 0..3 {
+            if phase == 1 { queue.borrow_mut().push_back(Message::Progress(capture::Progress { lower: vec![0], upper: vec![1], counts: vec![(0,1)] })); }
+            if phase == 2 { queue.borrow_mut().push_back(Message::Progress(capture::Progress { lower: vec![1], upper: vec![], counts: vec![] })); }
+            wake.as_ref().unwrap().activate().unwrap();
+            for _ in 0..256 { worker.step(); }
+            output.push(format!("{},{},{}",*seen.borrow(),probe.less_than(&1),probe.done()));
+        }
+        drop(token);
+        output.join("/")
+    })
+}

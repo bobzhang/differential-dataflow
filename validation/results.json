@@ -16,6 +16,7 @@
     "16384 paged cursor steps",
     "1024 nested paged join epochs"
   ],
+  "eager_source_replay_cases": 128,
   "async_capture_replay_epochs": 1536,
   "dynamic_dataflows": 512,
   "dynamic_import_snapshots": 4352,

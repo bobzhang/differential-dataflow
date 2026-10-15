@@ -9,6 +9,7 @@ test "replay deduplicates across peers with progress arriving before scattered d
     let streams = scopes.replay_from(
       fn(peer, _) { fn() { inboxes[peer].pop() } },
       hash=fn(data) { data.to_uint64() },
+      time_hash=fn(time) { time.reinterpret_as_uint64() },
       messages_per_turn=1,
     )
     let seen = Array::makei(peers, fn(_) { [] })
@@ -89,6 +90,107 @@ test "distributed replay cancellation releases local capabilities only" {
     pair.0.cancel()
   }
   let _ = group.run()
+  for probe in probes {
+    assert_true(probe.done())
+  }
+  group.dispose()
+}
+
+///|
+test "partitioned replay coordinates incomparable time counts and delayed records" {
+  let group = @differential.WorkerGroup(3)
+  let scopes = group.scopes(
+    @differential.Product(0L, 0L),
+    @differential.SummaryDomain::product(
+      @differential.SummaryDomain::int64(),
+      @differential.SummaryDomain::int64(),
+    ),
+  )
+  let inboxes : Array[
+    Array[
+      @differential.CaptureMessage[
+        Int32,
+        @differential.Product[Int64, Int64],
+        Int64,
+      ],
+    ],
+  ] = Array::makei(3, fn(_) { [] })
+  let streams = scopes.replay_from(
+    fn(peer, _) { fn() { inboxes[peer].pop() } },
+    hash=fn(d) { d.to_uint64() },
+    time_hash=fn(t) { (t.outer + t.inner).reinterpret_as_uint64() },
+    messages_per_turn=1,
+  )
+  let seen = []
+  let probes = streams.map(fn(pair) {
+    pair.1.inspect(fn(d, t, r) { seen.push((d, t, r)) })
+  })
+  let zero = @differential.Antichain([@differential.Product(0L, 0L)])
+  let first = @differential.Antichain([
+    @differential.Product(1L, 0L),
+    Product(0L, 1L),
+  ])
+  let second = @differential.Antichain([
+    @differential.Product(2L, 0L),
+    Product(0L, 2L),
+  ])
+  inboxes[2].push(
+    Progress(CaptureProgress(zero, first, [(Product(0L, 0L), 1L)])),
+  )
+  inboxes[0].push(Updates([(0, Product(0L, 0L), 1L)]))
+  for pair in streams {
+    pair.0.activate()
+  }
+  let _ = group.run()
+  for probe in probes {
+    assert_eq(probe.frontier().to_array(), first.to_array())
+  }
+  inboxes[1].push(
+    Progress(
+      CaptureProgress(first, second, [
+        (Product(1L, 0L), 1L),
+        (Product(0L, 1L), 1L),
+        (Product(1L, 1L), 1L),
+      ]),
+    ),
+  )
+  inboxes[2].push(Updates([(1, Product(1L, 0L), 2L), (2, Product(0L, 1L), 3L)]))
+  for pair in streams {
+    pair.0.activate()
+  }
+  let _ = group.run()
+  for probe in probes {
+    assert_true(probe.frontier().less_equal(Product(1L, 1L)))
+  }
+  inboxes[0].push(Updates([(3, Product(1L, 1L), 4L)]))
+  streams[0].0.activate()
+  let _ = group.run()
+  for probe in probes {
+    assert_eq(probe.frontier().to_array(), second.to_array())
+  }
+  inboxes[1].push(
+    Progress(
+      CaptureProgress(second, Antichain([]), [
+        (Product(2L, 0L), 1L),
+        (Product(0L, 2L), 1L),
+      ]),
+    ),
+  )
+  inboxes[2].push(
+    Updates([
+      (4, Product(2L, 0L), 5L),
+      (5, Product(0L, 2L), 6L),
+      (0, Product(0L, 0L), 1L),
+    ]),
+  )
+  for pair in streams {
+    pair.0.activate()
+  }
+  let _ = group.run()
+  assert_eq(seen.length(), 6)
+  for pair in streams {
+    assert_true(pair.0.is_complete())
+  }
   for probe in probes {
     assert_true(probe.done())
   }

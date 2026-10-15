@@ -154,47 +154,29 @@ pub fn[D : Compare, T : Lattice, R : Semigroup, S] Scope::capture_to(
 ///|
 /// Poll an external message source in bounded turns. None means temporarily
 /// empty, not EOF: normal completion requires the terminal capture progress
-/// statement. The source builder receives an activator for future arrivals.
+/// statement. Unique data/time pairs are emitted eagerly, as in upstream
+/// capture::source; conflicting differences for one pair are rejected. The
+/// source builder receives an activator for future arrivals.
 pub fn[D : Compare, T : Lattice, R : Compare, S] Scope::replay_from(
   self : Scope[T, S],
   build_source : (Activator) -> () -> CaptureMessage[D, T, R]?,
   messages_per_turn~ : Int32 = 1024,
 ) -> (CaptureHandle, Collection[D, T, R]) {
-  guard messages_per_turn > 0 else {
-    abort("replay turn budget must be positive")
-  }
-  let (replay, collection) : (ReplayInput[D, T, R], Collection[D, T, R]) = self.replay()
-  let builder = self.operator()
-  let activator = builder.activator()
-  let complete = Ref(false)
-  let cancelled = Ref(false)
-  let handle = { activator, complete, cancelled, }
-  let poll = build_source(activator)
-  builder.build_reschedule(
-    fn(_) {
-      fn() {
-        if cancelled.val {
-          replay.cancel()
-          return false
-        }
-        for _ in 0..<messages_per_turn {
-          guard poll() is Some(message) else { return true }
-          replay.push(message)
-          if replay.replayer.frontier().is_empty() {
-            complete.val = true
-            return false
-          }
-        }
-        activator.activate()
-        true
-      }
+  let inbox = ReplayQueue()
+  let wake : Ref[CaptureHandle?] = Ref(None)
+  let result = self.partitioned_replay(
+    inbox,
+    build_source,
+    fn(_, packet) {
+      inbox.push(packet)
+      wake.val.unwrap().activate()
     },
-    on_shutdown=fn() {
-      replay.cancel()
-      if !complete.val {
-        cancelled.val = true
-      }
-    },
+    fn(_) { 0UL },
+    fn(_) { 0UL },
+    0,
+    1,
+    messages_per_turn,
   )
-  (handle, collection)
+  wake.val = Some(result.0)
+  result
 }

@@ -32,6 +32,8 @@ pub fn evaluate_cursors(Int) -> String
 
 pub fn evaluate_dynamic(Int) -> String
 
+pub fn evaluate_eager_replay(Int) -> String
+
 pub fn evaluate_entered_join(Int) -> String
 
 pub fn evaluate_entered_reduce(Int) -> String

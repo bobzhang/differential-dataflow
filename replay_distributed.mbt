@@ -1,164 +1,151 @@
 ///|
-// Each peer reconstructs the same capture protocol frontier, then emits only
-// its data partition. Replicated protocol state is a correctness-first backend
-// adaptation; upstream partitions its deduplication/count state across workers.
-fn[D : Compare, T : Lattice, R : Compare, S] Scope::replicated_replay(
-  self : Scope[T, S],
-  inbox : Array[CaptureMessage[D, T, R]],
-  build_source : (Activator) -> () -> CaptureMessage[D, T, R]?,
-  send : (CaptureMessage[D, T, R]) -> Unit,
-  hash : (D) -> UInt64,
-  peer : Int32,
-  peers : Int32,
-  budget : Int32,
-) -> (CaptureHandle, Collection[D, T, R]) {
-  guard budget > 0 else { abort("replay turn budget must be positive") }
-  let wake : Ref[Activator?] = Ref(None)
-  let (reader, stream) = self.replay_from(
-    fn(_) {
-      fn() {
-        let message = inbox.pop()
-        if message is Some(_) {
-          wake.val.unwrap().activate()
-        }
-        message
-      }
-    },
-    messages_per_turn=budget,
-  )
-  let builder = self.operator()
-  let activator = builder.activator()
-  wake.val = Some(activator)
-  let complete = Ref(false)
-  let cancelled = Ref(false)
-  let handle = { activator, complete, cancelled, }
-  let poll = build_source(activator)
-  builder.build_reschedule(
-    fn(_) {
-      fn() {
-        if cancelled.val {
-          inbox.clear()
-          reader.cancel()
-          return false
-        }
-        if reader.is_complete() {
-          complete.val = true
-          inbox.clear()
-          return false
-        }
-        reader.activate()
-        for _ in 0..<budget {
-          guard poll() is Some(message) else { return true }
-          send(message)
-        }
-        activator.activate()
-        true
-      }
-    },
-    on_shutdown=fn() {
-      inbox.clear()
-      if !complete.val {
-        cancelled.val = true
-        reader.cancel()
-      }
-    },
-  )
-  (
-    handle,
-    stream.filter(fn(data) { (hash(data) % peers.to_uint64()).to_int() == peer }),
-  )
-}
-
-///|
-/// Replay one captured collection from sources distributed across peers. A
-/// message may appear on any number of peers. Supply identical deterministic
-/// partition hashes. None pauses a source; activate its handle when input arrives.
-/// Protocol state is replicated on every peer, output records are partitioned.
+/// Replay one captured collection from sources scattered across peers. Unique
+/// data/time pairs are emitted immediately on hash(data) % peers; conflicting
+/// differences are rejected. Timestamp counts are sharded by time_hash (default
+/// peer zero). Progress is global, so a paused source cannot imply completion.
 pub fn[D : Compare, T : Lattice, R : Compare, S] ScopeGroup::replay_from(
   self : ScopeGroup[T, S],
   build_source : (Int32, Activator) -> () -> CaptureMessage[D, T, R]?,
   hash~ : (D) -> UInt64,
+  time_hash~ : (T) -> UInt64 = fn(_) { 0UL },
   messages_per_turn~ : Int32 = 1024,
 ) -> Array[(CaptureHandle, Collection[D, T, R])] {
   let peers = self.scopes.length()
-  let queues : Array[Array[CaptureMessage[D, T, R]]] = Array::makei(peers, fn(
-    _,
-  ) {
-    []
+  let queues : Array[ReplayQueue[D, T, R]] = Array::makei(peers, fn(_) {
+    ReplayQueue()
   })
   let handles : Array[CaptureHandle] = []
   let outputs = []
   for peer, scope in self.scopes {
-    let (handle, stream) = scope.replicated_replay(
+    let result = scope.partitioned_replay(
       queues[peer],
-      fn(activator) { build_source(peer, activator) },
-      fn(message) {
-        for destination in 0..<peers {
-          let handle = handles[destination]
-          if !handle.is_cancelled() && !handle.is_complete() {
-            queues[destination].push(
-              match message {
-                Updates(rows) => Updates(rows.copy())
-                Progress(progress) => Progress(progress)
-              },
-            )
-            handle.activate()
-          }
+      fn(a) { build_source(peer, a) },
+      fn(destination, packet) {
+        let handle = handles[destination]
+        if !handle.is_cancelled() && !handle.is_complete() {
+          queues[destination].push(packet)
+          handle.activate()
         }
       },
       hash,
+      time_hash,
       peer,
       peers,
       messages_per_turn,
     )
-    handles.push(handle)
-    outputs.push((handle, stream))
+    handles.push(result.0)
+    outputs.push(result)
   }
   outputs
 }
 
 ///|
-/// Replay a captured collection whose messages are scattered or duplicated
-/// across processes. All peers build this route in the same order, with the same
-/// codec and partition hash. Messages and deduplication state are replicated;
-/// records are emitted once globally on hash(data) % peers. This uses the
-/// cluster's versioned wire protocol rather than Timely wire interoperability.
+/// Reconstruct a captured collection with partitioned deduplication and timestamp
+/// accounting. Only compact progress frontiers are broadcast. Build matching
+/// codecs and hashes on every peer. The default count partition hashes the time
+/// codec's JSON representation; time_hash can override this for interoperability.
 pub fn[D : Compare, T : Lattice, R : Compare, S] DistributedScope::replay_from(
   self : DistributedScope[T, S],
   build_source : (Activator) -> () -> CaptureMessage[D, T, R]?,
   codec~ : WireCodec[CaptureMessage[D, T, R]],
   hash~ : (D) -> UInt64,
+  time_hash? : (T) -> UInt64,
   messages_per_turn~ : Int32 = 1024,
 ) -> (CaptureHandle, Collection[D, T, R]) {
-  let queue = []
-  let handle_slot : Ref[CaptureHandle?] = Ref(None)
+  let queue = ReplayQueue()
+  let slot : Ref[CaptureHandle?] = Ref(None)
   let route = self.cluster.state.receivers.length()
+  let peers = self.cluster.peers
+  let time_codec = self.time_codec
   self.cluster.state.receivers.push(fn(payload) raise ClusterError {
-    guard codec.from_json(payload) is Some(message) else {
-      raise ClusterError("invalid distributed capture message")
+    let packet : ReplayPacket[D, T, R] = match payload {
+      [String("records"), message] => {
+        guard codec.from_json(message) is Some(Updates(rows)) else {
+          raise ClusterError("invalid capture records")
+        }
+        Records(rows)
+      }
+      [String("statement"), message] => {
+        guard codec.from_json(message) is Some(Progress(progress)) else {
+          raise ClusterError("invalid capture statement")
+        }
+        Statement(progress)
+      }
+      [String("counts"), Array(rows)] => {
+        let counts = []
+        for row in rows {
+          guard row is [time, count] && time_codec.from_json(time) is Some(time) else {
+            raise ClusterError("invalid capture count time")
+          }
+          let count : Int64 = wire_read(count)
+          guard count < 0 else {
+            raise ClusterError("invalid capture received count")
+          }
+          counts.push((time, count))
+        }
+        Counts(counts)
+      }
+      [String("frontier"), source, Array(times)] => {
+        let source : Int32 = wire_read(source)
+        guard source >= 0 && source < peers else {
+          raise ClusterError("invalid capture frontier source")
+        }
+        let frontier = Antichain([])
+        for time in times {
+          guard time_codec.from_json(time) is Some(time) else {
+            raise ClusterError("invalid capture frontier time")
+          }
+          let _ = frontier.insert(time)
+        }
+        Frontier(source, frontier)
+      }
+      _ => raise ClusterError("invalid distributed capture packet")
     }
-    let handle = handle_slot.val.unwrap()
-    if !handle.is_cancelled() && !handle.is_complete() {
-      queue.push(message)
+    let handle = slot.val.unwrap()
+    if !handle.is_complete() && !handle.is_cancelled() {
+      queue.push(packet)
       handle.activate()
     }
   })
   let outgoing = self.cluster.state.outgoing
-  let peers = self.cluster.peers
-  let result = self.scope.replicated_replay(
+  let time_hash = time_hash.unwrap_or_else(fn() {
+    fn(time) {
+      let hasher = FnvHasher()
+      hasher.write(
+        @utf8.encode(time_codec.to_json(time).stringify()).exact_view(),
+      )
+      hasher.finish()
+    }
+  })
+  let result = self.scope.partitioned_replay(
     queue,
     build_source,
-    fn(message) {
-      let payload = codec.to_json(message)
-      for peer in 0..<peers {
-        outgoing.push([Json(peer), Json(route), payload])
+    fn(destination, packet) {
+      let payload : Json = match packet {
+        Records(rows) => ["records", codec.to_json(Updates(rows))]
+        Statement(progress) => ["statement", codec.to_json(Progress(progress))]
+        Counts(counts) =>
+          [
+            "counts",
+            Json(
+              counts.map(fn(c) { ([time_codec.to_json(c.0), Json(c.1)] : Json) }),
+            ),
+          ]
+        Frontier(source, frontier) =>
+          [
+            "frontier",
+            Json(source),
+            Json(frontier.elements.map(fn(t) { time_codec.to_json(t) })),
+          ]
       }
+      outgoing.push([Json(destination), Json(route), payload])
     },
     hash,
+    time_hash,
     self.cluster.index,
     peers,
     messages_per_turn,
   )
-  handle_slot.val = Some(result.0)
+  slot.val = Some(result.0)
   result
 }

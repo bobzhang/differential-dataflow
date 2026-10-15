@@ -14,6 +14,11 @@ def run(mode, path, ok=True):
     assert (result.returncode == 0) == ok, (mode, result.returncode, result.stdout, result.stderr)
     return result.stdout.strip()
 
+def replay(path):
+    result = json.loads(run('read', path))
+    result[2].sort(key=lambda row: (int(row[1]), row[0], int(row[2])))
+    return result
+
 def checksum(data):
     h = 2166136261
     for byte in data:
@@ -29,14 +34,14 @@ def check():
         path = root / 'capture'
         assert run('write', path) == 'written'
         expected = [True, True, [['数据\0',str(i),'9007199254740993'] for i in range(24)]]
-        assert json.loads(run('read', path)) == expected
+        assert replay(path) == expected
         original = path.read_bytes()
         run('write', path, ok=False)
         assert path.read_bytes() == original, 'exclusive create overwrote the log'
         run('closed', path, ok=False)
         run('readonly', path, ok=False)
         assert run('follow', root / 'live') == 'followed'
-        assert json.loads(run('read', root / 'live')) == expected
+        assert replay(root / 'live') == expected
         ends, offset, messages = [], 0, []
         while offset < len(original):
             assert original[offset:offset+4] == b'DDC1'
@@ -52,9 +57,9 @@ def check():
         broken = root / 'broken'
         for cut in cuts:
             broken.write_bytes(original[:cut])
-            completed, done, rows = json.loads(run('read', broken))
-            sealed = sum(end <= cut for end in ends[1:48:2])
-            assert rows == expected[2][:sealed], (cut,sealed,rows)
+            completed, done, rows = replay(broken)
+            received = sum(end <= cut for end in ends[0:48:2])
+            assert rows == expected[2][:received], (cut,received,rows)
             assert completed == done == (cut == len(original)), cut
         for corrupt in [b'bad!'+original[4:], original[:8]+b'\0\0\0\0'+original[12:],
                         b'DDC1'+struct.pack('<II',0xffffffff,0), frame(b'\xff'), frame(b'not json'),

@@ -296,7 +296,7 @@ pub fn[D, T : Lattice, R, S] DistributedScope::exchange(Self[T, S], Collection[D
 pub fn[D, T : Lattice, R, S] DistributedScope::input(Self[T, S]) -> (InputSession[D, T, R], Collection[D, T, R])
 pub fn[D, T : Lattice, R : Abelian, S : Compare] DistributedScope::iterate(Self[T, S], Collection[D, T, R], (Self[Product[T, Int64], Product[S, Int64]], Collection[D, Product[T, Int64], R]) -> Collection[D, Product[T, Int64], R]) -> Collection[D, T, R]
 pub fn[A : Lattice, B : Lattice, S : Compare, U : Compare] DistributedScope::nested(Self[A, S], B, SummaryDomain[B, U], time_codec~ : WireCodec[B], summary_codec~ : WireCodec[U]) -> DistributedNestedScope[A, B, S, U]
-pub fn[D : Compare, T : Lattice, R : Compare, S] DistributedScope::replay_from(Self[T, S], (Activator) -> () -> CaptureMessage[D, T, R]?, codec~ : WireCodec[CaptureMessage[D, T, R]], hash~ : (D) -> UInt64, messages_per_turn? : Int) -> (CaptureHandle, Collection[D, T, R])
+pub fn[D : Compare, T : Lattice, R : Compare, S] DistributedScope::replay_from(Self[T, S], (Activator) -> () -> CaptureMessage[D, T, R]?, codec~ : WireCodec[CaptureMessage[D, T, R]], hash~ : (D) -> UInt64, time_hash? : (T) -> UInt64, messages_per_turn? : Int) -> (CaptureHandle, Collection[D, T, R])
 pub fn[T, S] DistributedScope::scope(Self[T, S]) -> Scope[T, S]
 
 pub struct Duration {
@@ -629,7 +629,7 @@ pub fn[D, T : Lattice, R, S] ScopeGroup::exchange(Self[T, S], Array[Collection[D
 pub fn[D, T : Lattice, R, S] ScopeGroup::input(Self[T, S]) -> Array[(InputSession[D, T, R], Collection[D, T, R])]
 pub fn[D, T : Lattice, R : Abelian, S : Compare] ScopeGroup::iterate(Self[T, S], Array[Collection[D, T, R]], (Self[Product[T, Int64], Product[S, Int64]], Array[Collection[D, Product[T, Int64], R]]) -> Array[Collection[D, Product[T, Int64], R]]) -> Array[Collection[D, T, R]]
 pub fn[A : Lattice, B : Lattice, S : Compare, U : Compare] ScopeGroup::nested(Self[A, S], B, SummaryDomain[B, U]) -> NestedScopeGroup[A, B, S, U]
-pub fn[D : Compare, T : Lattice, R : Compare, S] ScopeGroup::replay_from(Self[T, S], (Int, Activator) -> () -> CaptureMessage[D, T, R]?, hash~ : (D) -> UInt64, messages_per_turn? : Int) -> Array[(CaptureHandle, Collection[D, T, R])]
+pub fn[D : Compare, T : Lattice, R : Compare, S] ScopeGroup::replay_from(Self[T, S], (Int, Activator) -> () -> CaptureMessage[D, T, R]?, hash~ : (D) -> UInt64, time_hash? : (T) -> UInt64, messages_per_turn? : Int) -> Array[(CaptureHandle, Collection[D, T, R])]
 pub fn[T, S] ScopeGroup::scope(Self[T, S], Int) -> Scope[T, S]
 
 pub struct SingletonDiff[R] {
