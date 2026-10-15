@@ -1,5 +1,5 @@
 ///|
-fn exercise(early : Bool) -> Unit {
+fn exercise(early : Bool, columnar : Bool) -> Unit {
   let worker = @differential.Worker()
   let scope = worker.scope(0L, @differential.SummaryDomain::int64())
   let (edges, graph) : (
@@ -10,10 +10,10 @@ fn exercise(early : Bool) -> Unit {
     @differential.InputSession[Int32, Int64, Int64],
     @differential.Collection[Int32, Int64, Int64],
   ) = scope.input()
-  let forward = graph.arrange_by_key(fueled=true)
+  let forward = graph.arrange_by_key(fueled=true, columnar~)
   let reverse = graph
     .map(fn(edge) { (edge.1, edge.0) })
-    .arrange_by_key(fueled=true)
+    .arrange_by_key(fueled=true, columnar~)
   let fview = forward.view()
   let rview = reverse.view()
   let counts = Array::make(3, 0L)
@@ -97,9 +97,9 @@ fn exercise(early : Bool) -> Unit {
 
 ///|
 fn main {
-  for _ in 0..<8 {
-    exercise(false)
-    exercise(true)
+  for iteration in 0..<8 {
+    exercise(false, iteration % 2 == 0)
+    exercise(true, iteration % 2 == 0)
   }
   println("graph and trace lifetimes passed")
 }

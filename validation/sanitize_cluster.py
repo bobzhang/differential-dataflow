@@ -31,8 +31,8 @@ def main():
     os.environ.setdefault('ASAN_OPTIONS', 'detect_leaks=1:fast_unwind_on_malloc=0')
     cluster_compare.BIN = output
     transport_failures.BIN = output
-    # Exercise shared arranged graph loops and live imported views, both with
-    # normal closure and disposal while input capabilities are still alive.
+    # Exercise row and columnar shared graph indexes and live imported views,
+    # with normal closure and disposal while input capabilities are still alive.
     subprocess.run(['moon', 'build', '--target', 'native', '--release', 'validation/lifetimes'], cwd=ROOT, check=True)
     lifetime_output = output.with_name('lifetimes.exe')
     lifetime_source = ROOT / '_build/native/release/build/validation/lifetimes/lifetimes.c'
