@@ -110,3 +110,9 @@ including input buffering, feedback, scope boundaries, custom batch operators an
 keyed exchange. The version-4 cluster payload carries both; 208 two/three-process
 snapshots check delayed future-record messages against Rust in sync and host-polled
 execution. Batch boundaries remain scheduling-dependent, as upstream.
+
+Shared probes can attach to several streams and combine their antichains, including
+incomparable times, staggered closure and reuse after completion. 896 progress
+snapshots match Rust and an independent model. Collection utilities include
+mutable record mapping, stream concatenation (including an empty source list),
+and consolidated equality/emptiness assertions.

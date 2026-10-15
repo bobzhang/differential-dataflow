@@ -80,6 +80,8 @@ pub fn evaluate_pointstamp(Int) -> String
 
 pub fn evaluate_prefix(Int) -> String
 
+pub fn evaluate_probes(Int) -> String
+
 pub fn evaluate_reduce(Int) -> String
 
 pub fn evaluate_replay(Int) -> String

@@ -481,3 +481,7 @@ unfinished port. Results validate these components, not full upstream compatibil
 See [validation/results.json](validation/results.json).
 
 MIT licensed; both upstream notices are retained. Module: `bobzhang/differential`.
+
+Collection utilities include `map_in_place`, `concatenate`, `assert_eq` and
+`assert_empty`. Use `Probe()` with `collection.probe_with(handle)` to wait on
+several collections through one combined progress frontier.

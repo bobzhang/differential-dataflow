@@ -5,6 +5,7 @@ import {
   "moonbitlang/core/bigint",
   "moonbitlang/core/debug",
   "moonbitlang/core/json",
+  "moonbitlang/core/ref",
 }
 
 // Values
@@ -254,8 +255,11 @@ pub fn[K : Compare, V : Compare, T : Lattice, R : Semigroup] Collection::arrange
 pub fn[K : Compare, T : Lattice, R : Semigroup] Collection::arrange_by_self(Self[K, T, R], fueled? : Bool, columnar? : Bool, spill? : SpillPolicy[(K, Unit), T, R]) -> Arranged[K, Unit, T, R]
 pub fn[K : Compare + Hash, V : Compare, T : TotalOrder] Collection::arrange_from_upsert(Self[(K, V?), T, Present]) -> Arranged[K, V, T, Int64]
 pub fn[K : Compare, V : Compare, T : Lattice, R : Semigroup] Collection::arrange_with(Self[(K, V), T, R], (Antichain[T]) -> TraceBackend[(K, V), T, R]) -> ArrangementView[K, V, T, R]
+pub fn[D : Compare, T : Lattice, R : Semigroup] Collection::assert_empty(Self[D, T, R]) -> Probe[T]
+pub fn[D : Compare, T : Lattice, R : Abelian] Collection::assert_eq(Self[D, T, R], Self[D, T, R]) -> Probe[T]
 pub fn[D : Compare, T : Lattice, R : Semigroup] Collection::capture(Self[D, T, R], (CaptureMessage[D, T, R]) -> Unit) -> Probe[T]
 pub fn[D, T : Lattice, R] Collection::concat(Self[D, T, R], Self[D, T, R]) -> Self[D, T, R]
+pub fn[D, T : Lattice, R] Collection::concatenate(Self[D, T, R], Array[Self[D, T, R]]) -> Self[D, T, R]
 pub fn[D : Compare, T : Lattice, R : Semigroup] Collection::consolidate(Self[D, T, R]) -> Self[D, T, R]
 pub fn[D : Compare, T : Lattice, R : Semigroup] Collection::consolidate_stream(Self[D, T, R]) -> Self[D, T, R]
 pub fn[D : Compare + Hash, T : Lattice, R : Semigroup + Compare] Collection::count(Self[D, T, R]) -> Self[(D, R), T, Int64]
@@ -272,8 +276,10 @@ pub fn[K : Compare + Hash, V : Compare, W : Compare, T : Lattice] Collection::jo
 pub fn[D, E, T : Lattice, R, S, O] Collection::join_function(Self[D, T, R], (D) -> Array[(E, T, S)], multiply~ : (S, R) -> O) -> Self[E, T, O]
 pub fn[K : Compare + Hash, V : Compare, W : Compare, D, T : Lattice, R : Semigroup, S : Semigroup, O] Collection::join_map(Self[(K, V), T, R], Self[(K, W), T, S], (K, V, W) -> D, multiply~ : (R, S) -> O) -> Self[D, T, O]
 pub fn[D, E, T : Lattice, R] Collection::map(Self[D, T, R], (D) -> E) -> Self[E, T, R]
+pub fn[D, T : Lattice, R] Collection::map_in_place(Self[D, T, R], (@ref.Ref[D]) -> Unit) -> Self[D, T, R]
 pub fn[D, T : Lattice, R : Abelian] Collection::negate(Self[D, T, R]) -> Self[D, T, R]
 pub fn[D, T : Lattice, R] Collection::probe(Self[D, T, R]) -> Probe[T]
+pub fn[D, T : Lattice, R] Collection::probe_with(Self[D, T, R], Probe[T]) -> Self[D, T, R]
 pub fn[K : Compare + Hash, V : Compare, W : Compare, T : Lattice, R : Semigroup, S : Abelian] Collection::reduce(Self[(K, V), T, R], (K, Array[(V, R)]) -> Array[(W, S)]) -> Self[(K, W), T, S]
 pub fn[K : Compare + Hash, V : Compare, W : Compare, T : Lattice, R : Semigroup, S : Semigroup] Collection::reduce_core(Self[(K, V), T, R], (K, Array[(V, R)], Array[(W, S)]) -> Array[(W, S)]) -> Arranged[K, W, T, S]
 pub fn[D, T : Lattice, R, S] Collection::results_in(Self[D, T, R], S, SummaryDomain[T, S]) -> Self[D, T, R]
@@ -583,6 +589,7 @@ pub impl Semigroup for Present
 pub struct Probe[T] {
   // private fields
 }
+pub fn[T] Probe::Probe() -> Self[T]
 pub fn[T] Probe::done(Self[T]) -> Bool
 pub fn[T : Lattice] Probe::frontier(Self[T]) -> Antichain[T]
 pub fn[T : Lattice] Probe::less_equal(Self[T], T) -> Bool
@@ -680,6 +687,7 @@ pub fn[N : Compare + Hash, T : Lattice, S : Compare] Scope::bidijkstra(Self[T, S
 pub fn[N : Compare + Hash, T : Lattice, S : Compare] Scope::bidijkstra_arranged(Self[T, S], ArrangementView[N, N, T, Int64], ArrangementView[N, N, T, Int64], Collection[(N, N), T, Int64]) -> Collection[((N, N), UInt), T, Int64]
 pub fn[K : Compare + Hash, D : Compare + Hash, T : Lattice, S : Compare] Scope::broadcast_prefix(Self[T, S], Collection[((UInt64, Int, K), D), T, Int64], Collection[(UInt64, K), T, Int64], D, (K, D, D) -> D) -> Collection[((UInt64, K), D), T, Int64]
 pub fn[D : Compare, T : Lattice, R : Semigroup, S] Scope::capture_to(Self[T, S], Collection[D, T, R], CaptureWriter[D, T, R]) -> CaptureHandle
+pub fn[D, T : Lattice, R, S] Scope::concatenate(Self[T, S], Array[Collection[D, T, R]]) -> Collection[D, T, R]
 pub fn[T, S] Scope::dataflow_index(Self[T, S]) -> Int
 pub fn[D, T : Lattice, R, S] Scope::feedback(Self[T, S], S) -> (Feedback[D, T, R, S], Collection[D, T, R])
 pub fn[D : Compare + RustHash, T : Lattice, R : Abelian, S : Compare] Scope::identifiers(Self[T, S], Collection[D, T, R]) -> Collection[(D, UInt64), T, R]

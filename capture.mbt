@@ -106,5 +106,5 @@ pub fn[D : Compare, T : Lattice, R : Semigroup] Collection::capture(
     }
   })
   self.channel.subscribe(input)
-  { state, }
+  { states: [state], }
 }

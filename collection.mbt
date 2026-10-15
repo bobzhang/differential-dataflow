@@ -145,27 +145,41 @@ pub fn[D : Compare, T : Lattice, R : Semigroup] Collection::consolidate(
 
 ///|
 pub struct Probe[T] {
-  priv state : Ref[Antichain[T]]
+  priv states : Array[Ref[Antichain[T]]]
 }
 
 ///|
 pub fn[T : Lattice] Probe::frontier(self : Probe[T]) -> Antichain[T] {
-  Antichain(self.state.val.elements)
+  let active = self.states.filter(fn(state) { !state.val.is_empty() })
+  self.states.clear()
+  let frontier = Antichain([])
+  for state in active {
+    self.states.push(state)
+    for time in state.val.elements {
+      ignore(frontier.insert(time))
+    }
+  }
+  frontier
 }
 
 ///|
 pub fn[T : Lattice] Probe::less_than(self : Probe[T], time : T) -> Bool {
-  self.state.val.less_than(time)
+  self.frontier().less_than(time)
 }
 
 ///|
 pub fn[T : Lattice] Probe::less_equal(self : Probe[T], time : T) -> Bool {
-  self.state.val.less_equal(time)
+  self.frontier().less_equal(time)
 }
 
 ///|
 pub fn[T] Probe::done(self : Probe[T]) -> Bool {
-  self.state.val.is_empty()
+  if self.states.iter().all(fn(state) { state.val.is_empty() }) {
+    self.states.clear()
+    true
+  } else {
+    false
+  }
 }
 
 ///|
@@ -187,7 +201,7 @@ pub fn[D, T : Lattice, R] Collection::inspect(
     }
   })
   self.channel.subscribe(input)
-  { state, }
+  { states: [state], }
 }
 
 ///|
@@ -195,4 +209,11 @@ pub fn[D, T : Lattice, R] Collection::probe(
   self : Collection[D, T, R],
 ) -> Probe[T] {
   self.inspect(fn(_, _, _) {  })
+}
+
+///|
+/// A shared progress handle, initially complete until a collection is attached
+/// with probe_with. Clone by retaining this handle; all attachments are shared.
+pub fn[T] Probe::Probe() -> Probe[T] {
+  { states: [], }
 }

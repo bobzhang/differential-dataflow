@@ -22,6 +22,19 @@ from monoid_bfs_compare import compare as compare_monoid_bfs
 compare_monoid_bfs(build=False)
 from envelope_compare import compare as compare_envelopes
 compare_envelopes(build=False)
+probe_inputs = ''.join(f'{seed}\n' for seed in range(1,65))
+rust = run(['validation/rust/target/release/differential-reference-check', 'probes'], input=probe_inputs, capture_output=True).stdout.splitlines()
+moon = run(['node', 'validation/run.cjs', 'probes'], input=probe_inputs, capture_output=True).stdout.splitlines()
+assert len(rust) == len(moon) == 64
+for seed, (r, m) in enumerate(zip(rust, moon), 1):
+    state, ta, tb, expected = seed, 0, 0, []
+    for _ in range(12):
+        state = (state * 1664525 + 1013904223) & 0xffffffff
+        ta += (state >> 8) % 3 + 1
+        tb += (state >> 16) % 3 + 1
+        expected.append(str(min(ta, tb)))
+    expected.extend([str(tb), ''])
+    assert r == m == '/'.join(expected), f'shared probe differs seed={seed}\nRust {r}\nMoon {m}'
 cancel_inputs = ''.join(f'{seed}\n' for seed in range(1,65))
 rust = run(['validation/rust/target/release/differential-reference-check', 'cancellation'], input=cancel_inputs, capture_output=True).stdout.splitlines()
 moon = run(['node', 'validation/run.cjs', 'cancellation'], input=cancel_inputs, capture_output=True).stdout.splitlines()
@@ -570,6 +583,7 @@ summary = {
     'search_checks': ['shared forward and reversed indexes', 'bidirectional shortest paths', 'goal multiplicities', 'sequential neighbor updates', 'edge and goal retractions', 'independent BFS and ordered node evaluation'],
     'cancelled_nested_dataflows': 1024,
     'example_epochs': 384,
+    'shared_probe_progress_snapshots': 896,
     'external_trace_reduction_epochs': 768,
     'message_capability_operator_snapshots': 2496,
     'min_plus_graph_epochs': 1024,
