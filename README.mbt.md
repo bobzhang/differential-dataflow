@@ -22,6 +22,7 @@ The implemented foundations currently run on JavaScript, native, Wasm, and Wasm 
 - Capture/replay with duplicate suppression, out-of-order messages, and counted progress.
 - Incremental BFS distances, minimum-label propagation, and strongly connected component edges.
 - Exclusive prefix sums at sparse 64-bit positions, with independent keys and dynamic queries.
+- Stable identifier assignment with iterative collision repair and Rust-compatible FNV encodings.
 
 ## Example: totals that change when prices change
 
@@ -224,6 +225,7 @@ The pinned Rust comparisons cover:
 - 192 dynamic graph epochs comparing BFS, label propagation, SCC edge weights, and scheduled variants.
 - 2,048 cases for 128-bit wrapping arithmetic, checked overflow, and Duration carries.
 - 192 prefix-sum epochs with sparse positions, data/query retractions and multiplicities.
+- 384 identifier epochs with forced collisions, winner deletions and FNV encoding checks.
 
 Local retention tests exercise 20,000 total-order and 5,000 antichain reduction epochs,
 2,000 shared-index join epochs, 2,000 feedback epochs,

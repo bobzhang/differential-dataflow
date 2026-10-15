@@ -1,3 +1,4 @@
+mod identifiers;
 mod prefix;
 use differential_dataflow::lattice::Lattice;
 use std::io::{self, BufRead};
@@ -50,6 +51,7 @@ fn main() {
                 "numeric" => evaluate_numeric(seed),
                 "graphs" => evaluate_graphs(seed),
                 "prefix" => prefix::evaluate(seed),
+                "identifiers" => identifiers::evaluate(seed),
                 "join" => evaluate_join(seed),
                 "reduce" => evaluate_reduce(seed),
                 "stream_reduce" => evaluate_stream_reduce(seed),

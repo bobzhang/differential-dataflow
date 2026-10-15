@@ -98,5 +98,14 @@
     "query multiplicities",
     "independent summation"
   ],
+  "identifier_seeds": 32,
+  "identifier_epochs_per_seed": 12,
+  "identifier_checks": [
+    "FNV byte encodings",
+    "forced collisions",
+    "weighted records",
+    "winner deletions",
+    "independent uniqueness and hash verification"
+  ],
   "status": "passed"
 }

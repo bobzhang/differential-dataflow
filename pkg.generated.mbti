@@ -14,6 +14,8 @@ pub fn[D : Compare, R : Semigroup] consolidate(Array[(D, R)]) -> Array[(D, R)]
 
 pub fn[D : Compare, T : Compare, R : Semigroup] consolidate_updates(Array[(D, T, R)]) -> Array[(D, T, R)]
 
+pub fn[T : RustHash] rust_hash(T) -> UInt64
+
 pub fn[D, T : Lattice, R] shared_trace(T) -> (TraceWriter[D, T, R], TraceAgent[D, T, R])
 
 // Errors
@@ -207,6 +209,15 @@ pub struct Feedback[D, T, R, S] {
 }
 pub fn[D, T : Lattice, R, S] Feedback::connect(Self[D, T, R, S], Collection[D, T, R]) -> Unit
 
+pub struct FnvHasher {
+  // private fields
+}
+pub fn FnvHasher::FnvHasher() -> Self
+pub fn FnvHasher::finish(Self) -> UInt64
+pub fn FnvHasher::write(Self, BytesView) -> Unit
+pub fn FnvHasher::write_byte(Self, Byte) -> Unit
+pub fn FnvHasher::write_word(Self, UInt64, Int) -> Unit
+
 pub struct InputCapability[T, S] {
   // private fields
 }
@@ -238,6 +249,7 @@ pub fn Int128::equal(Self, Self) -> Bool
 pub fn Int128::from_words(Int64, UInt64) -> Self
 pub fn Int128::hash(Self) -> Int
 pub fn Int128::hash_combine(Self, Hasher) -> Unit
+pub fn Int128::hash_into(Self, FnvHasher) -> Unit
 pub fn Int128::is_zero(Self) -> Bool
 pub fn Int128::join(Self, Self) -> Self
 pub fn Int128::less_equal(Self, Self) -> Bool
@@ -260,6 +272,7 @@ pub impl Abelian for Int128
 pub impl Lattice for Int128
 pub impl Monoid for Int128
 pub impl Ring for Int128
+pub impl RustHash for Int128
 pub impl Semigroup for Int128
 pub impl TotalOrder for Int128
 
@@ -272,6 +285,7 @@ pub fn Int8::compare(Self, Self) -> Int
 pub fn Int8::equal(Self, Self) -> Bool
 pub fn Int8::hash(Self) -> Int
 pub fn Int8::hash_combine(Self, Hasher) -> Unit
+pub fn Int8::hash_into(Self, FnvHasher) -> Unit
 pub fn Int8::is_zero(Self) -> Bool
 pub fn Int8::join(Self, Self) -> Self
 pub fn Int8::less_equal(Self, Self) -> Bool
@@ -292,6 +306,7 @@ pub impl Abelian for Int8
 pub impl Lattice for Int8
 pub impl Monoid for Int8
 pub impl Ring for Int8
+pub impl RustHash for Int8
 pub impl Semigroup for Int8
 pub impl TotalOrder for Int8
 
@@ -460,6 +475,8 @@ pub fn[K : Compare + Hash, D : Compare, T : Lattice, S : Compare] Scope::aggrega
 pub fn[N : Compare + Hash, T : Lattice, S : Compare] Scope::bfs(Self[T, S], Collection[(N, N), T, Int64], Collection[N, T, Int64]) -> Collection[(N, UInt), T, Int64]
 pub fn[K : Compare + Hash, D : Compare + Hash, T : Lattice, S : Compare] Scope::broadcast_prefix(Self[T, S], Collection[((UInt64, Int, K), D), T, Int64], Collection[(UInt64, K), T, Int64], D, (K, D, D) -> D) -> Collection[((UInt64, K), D), T, Int64]
 pub fn[D, T : Lattice, R, S] Scope::feedback(Self[T, S], S) -> (Feedback[D, T, R, S], Collection[D, T, R])
+pub fn[D : Compare + RustHash, T : Lattice, R : Abelian, S : Compare] Scope::identifiers(Self[T, S], Collection[D, T, R]) -> Collection[(D, UInt64), T, R]
+pub fn[D : Compare, T : Lattice, R : Abelian, S : Compare] Scope::identifiers_with(Self[T, S], Collection[D, T, R], (Int, D) -> UInt64) -> Collection[(D, UInt64), T, R]
 pub fn[D, T : Lattice, R, S] Scope::input(Self[T, S]) -> (InputSession[D, T, R], Collection[D, T, R])
 pub fn[D, T : Lattice, R : Abelian, S : Compare] Scope::iterate(Self[T, S], Collection[D, T, R], (Self[Product[T, Int64], Product[S, Int64]], Collection[D, Product[T, Int64], R]) -> Collection[D, Product[T, Int64], R]) -> Collection[D, T, R]
 pub fn[A : Lattice, B : Lattice, S : Compare, U : Compare] Scope::nested(Self[A, S], B, SummaryDomain[B, U]) -> NestedScope[A, B, S, U]
@@ -580,6 +597,7 @@ pub fn UInt128::equal(Self, Self) -> Bool
 pub fn UInt128::from_words(UInt64, UInt64) -> Self
 pub fn UInt128::hash(Self) -> Int
 pub fn UInt128::hash_combine(Self, Hasher) -> Unit
+pub fn UInt128::hash_into(Self, FnvHasher) -> Unit
 pub fn UInt128::is_zero(Self) -> Bool
 pub fn UInt128::join(Self, Self) -> Self
 pub fn UInt128::less_equal(Self, Self) -> Bool
@@ -598,6 +616,7 @@ pub fn UInt128::try_from_bigint(@bigint.BigInt) -> Self?
 pub fn UInt128::zero() -> Self
 pub impl Lattice for UInt128
 pub impl Monoid for UInt128
+pub impl RustHash for UInt128
 pub impl Semigroup for UInt128
 pub impl TotalOrder for UInt128
 
@@ -732,6 +751,27 @@ pub(open) trait Ring : Abelian {
 pub impl Ring for Int
 pub impl Ring for Int16
 pub impl Ring for Int64
+
+pub(open) trait RustHash {
+  fn hash_into(Self, FnvHasher) -> Unit
+}
+pub impl RustHash for Unit
+pub impl RustHash for Bool
+pub impl RustHash for Byte
+pub impl RustHash for Char
+pub impl RustHash for Int
+pub impl RustHash for Int16
+pub impl RustHash for Int64
+pub impl RustHash for UInt
+pub impl RustHash for UInt16
+pub impl RustHash for UInt64
+pub impl RustHash for String
+pub impl[T : RustHash] RustHash for T?
+pub impl RustHash for Bytes
+pub impl[T : RustHash] RustHash for Array[T]
+pub impl[A : RustHash, B : RustHash] RustHash for (A, B)
+pub impl[A : RustHash, B : RustHash, C : RustHash] RustHash for (A, B, C)
+pub impl[A : RustHash, B : RustHash, C : RustHash, D : RustHash] RustHash for (A, B, C, D)
 
 pub(open) trait Semigroup {
   fn plus(Self, Self) -> Self

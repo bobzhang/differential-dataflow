@@ -301,6 +301,33 @@ for seed, r, m in zip(prefix_seeds, rust, moon):
                     rows.append((op, position, key, total, weight))
         expected.append(';'.join(','.join(map(str, row)) for row in sorted(rows)))
     assert r == m == '/'.join(expected), f'prefix differential failure seed={seed}'
+identifier_seeds = range(1, 33)
+inputs = ''.join(f'{seed}\n' for seed in identifier_seeds)
+rust = run(['validation/rust/target/release/differential-reference-check', 'identifiers'], input=inputs, capture_output=True).stdout.splitlines()
+moon = run(['node', 'validation/run.cjs', 'identifiers'], input=inputs, capture_output=True).stdout.splitlines()
+assert len(rust) == len(moon) == len(identifier_seeds)
+for seed, r, m in zip(identifier_seeds, rust, moon):
+    assert r == m, f'identifier or FNV encoding failure seed={seed}\nRust: {r}\nMoon: {m}'
+    snapshots, _ = m.split('#')
+    snapshots = snapshots.split('/')
+    assert len(snapshots) == 12
+    state, weights = seed, [0] * 12
+    for snapshot in snapshots:
+        for _ in range(3):
+            state = (state * 1664525 + 1013904223) & 0xffffffff
+            index = (state >> 8) % 12
+            weights[index] = state % 3 + 1 if weights[index] == 0 else 0
+        rows = [tuple(map(int, row.split(','))) for row in snapshot.split(';') if row]
+        for op in (0, 1):
+            actual = [(data, identifier, weight) for operator, data, identifier, weight in rows if operator == op]
+            assert len({row[1] for row in actual}) == len(actual), 'identifier collision remains'
+            assert sorted((data, weight) for data, _, weight in actual) == [(data, weight) for data, weight in enumerate(weights) if weight]
+            if op == 0:
+                for data, identifier, _ in actual:
+                    expected = 0xcbf29ce484222325
+                    for byte in bytes(4) + data.to_bytes(4, 'little', signed=True):
+                        expected = ((expected ^ byte) * 0x100000001b3) & ((1 << 64) - 1)
+                    assert identifier == expected, 'default identifier encoding differs'
 summary = {
     'references': pins,
     'frontier_seeds': len(seeds),
@@ -341,6 +368,9 @@ summary = {
     'prefix_seeds': len(prefix_seeds),
     'prefix_epochs_per_seed': 12,
     'prefix_checks': ['exclusive prefixes', 'sparse 64-bit positions', 'multiple keys', 'data and query retractions', 'query multiplicities', 'independent summation'],
+    'identifier_seeds': len(identifier_seeds),
+    'identifier_epochs_per_seed': 12,
+    'identifier_checks': ['FNV byte encodings', 'forced collisions', 'weighted records', 'winner deletions', 'independent uniqueness and hash verification'],
     'status': 'passed',
 }
 (ROOT/'validation/results.json').write_text(json.dumps(summary,indent=2)+'\n')
