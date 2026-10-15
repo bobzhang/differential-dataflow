@@ -172,6 +172,7 @@
   ],
   "cancelled_nested_dataflows": 1024,
   "example_epochs": 384,
+  "reader_compaction_request_rounds": 2048,
   "rust_columnar_binary_fixtures": 256,
   "columnar_chunk_snapshots": 11264,
   "diagnostic_accounting_snapshots": 1600,

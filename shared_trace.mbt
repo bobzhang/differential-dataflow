@@ -162,11 +162,11 @@ pub fn[D : Compare, T : Lattice, R : Semigroup] TraceAgent::set_logical_compacti
 ) -> Unit {
   self.check()
   let bounds = self.shared.readers.get(self.id).unwrap()
-  guard bounds.logical.precedes(frontier) else {
-    abort("reader logical compaction cannot move backward")
-  }
+  // Each request contributes a compaction guarantee. Upstream TraceAgent joins
+  // it with the reader's existing guarantee, including incomparable or older
+  // requests, rather than rejecting requests that are not monotone on their own.
   self.shared.readers[self.id] = {
-    logical: Antichain(frontier.elements),
+    logical: bounds.logical.join(frontier),
     physical: bounds.physical,
   }
   self.shared.compact()
@@ -179,12 +179,9 @@ pub fn[D : Compare, T : Lattice, R : Semigroup] TraceAgent::set_physical_compact
 ) -> Unit {
   self.check()
   let bounds = self.shared.readers.get(self.id).unwrap()
-  guard bounds.physical.precedes(frontier) else {
-    abort("reader physical compaction cannot move backward")
-  }
   self.shared.readers[self.id] = {
     logical: bounds.logical,
-    physical: Antichain(frontier.elements),
+    physical: bounds.physical.join(frontier),
   }
   self.shared.compact()
 }

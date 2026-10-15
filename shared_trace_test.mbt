@@ -61,3 +61,43 @@ test "arrangement shares sealed snapshots and one consolidated stream" {
   b.release()
   worker.dispose()
 }
+
+///|
+test "shared readers join incomparable and backward compaction requests" {
+  let (writer, reader) : (
+    @differential.TraceWriter[
+      Int32,
+      @differential.Product[UInt64, UInt64],
+      Int64,
+    ],
+    @differential.TraceAgent[
+      Int32,
+      @differential.Product[UInt64, UInt64],
+      Int64,
+    ],
+  ) = @differential.shared_trace(Product(0UL, 0UL))
+  let pin = reader.clone()
+  writer.insert(
+    Batch(
+      [(1, Product(0UL, 0UL), 2L)],
+      lower=Antichain([Product(0UL, 0UL)]),
+      upper=Antichain([Product(3UL, 3UL)]),
+    ),
+  )
+  reader.set_logical_compaction(Antichain([Product(1UL, 0UL)]))
+  reader.set_logical_compaction(Antichain([Product(0UL, 2UL)]))
+  reader.set_logical_compaction(Antichain([Product(0UL, 0UL)]))
+  assert_eq(reader.logical_compaction().to_array(), [Product(1UL, 2UL)])
+  reader.set_physical_compaction(Antichain([Product(2UL, 0UL)]))
+  reader.set_physical_compaction(Antichain([Product(0UL, 1UL)]))
+  assert_eq(reader.physical_compaction().to_array(), [Product(2UL, 1UL)])
+  assert_eq(pin.logical_compaction().to_array(), [Product(0UL, 0UL)])
+  assert_eq(pin.snapshot(Product(0UL, 0UL)), [(1, 2L)])
+  pin.release()
+  assert_eq(reader.snapshot(Product(1UL, 2UL)), [(1, 2L)])
+  reader.set_logical_compaction(Antichain([]))
+  reader.set_logical_compaction(Antichain([Product(0UL, 0UL)]))
+  assert_true(reader.logical_compaction().is_empty())
+  reader.release()
+  writer.close()
+}

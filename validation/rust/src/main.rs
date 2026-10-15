@@ -1,3 +1,4 @@
+mod reader_frontiers;
 mod columnar_bytes;
 mod chunks;
 mod diagnostics;
@@ -100,6 +101,7 @@ fn main() {
                 "diagnostics" => diagnostics::evaluate(seed),
                 "chunks" => chunks::evaluate(seed),
                 "columnar_bytes" => columnar_bytes::evaluate(seed),
+                "reader_frontiers" => reader_frontiers::evaluate(seed),
                 "feedback" => evaluate_feedback(seed, false),
                 "signed_feedback" => evaluate_feedback(seed, true),
                 "iteration" => evaluate_iteration(seed),

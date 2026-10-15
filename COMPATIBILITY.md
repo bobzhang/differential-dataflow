@@ -156,3 +156,7 @@ checksum/length checks, high-water budget and one-page cache; historical cursors
 survive subsequent compaction. The 2,048 spilled-spine oracle epochs now use this
 binary policy, and the complete native ASan/LSan suite passes with binary disk
 spilling, shared graph/import lifetimes and multi-process workloads.
+
+## Paused checkpoint
+
+Work on this port is temporarily paused at the user's request while the Yrs port proceeds. Shared-reader compaction requests now join with existing guarantees, matching Rust for incomparable and backward requests (2,048 Rust/model rounds). The runtime gaps above remain unresolved; this checkpoint is not full upstream compatibility.
