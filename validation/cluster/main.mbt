@@ -19,6 +19,10 @@ fn main raise {
     transport.exchange(value)
   })
   defer cluster.dispose()
+  if args.length() > 5 && args[5] == "iteration" {
+    println(iteration(cluster, seed))
+    return
+  }
   let scope = cluster.scope(
     0L,
     @differential.SummaryDomain::int64(),

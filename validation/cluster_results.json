@@ -19,7 +19,12 @@
     "keyed exchange",
     "shared arrangement joins",
     "global progress each epoch",
-    "closure"
+    "closure",
+    "nested product timestamps",
+    "cyclic fixed points",
+    "root retractions",
+    "independent BFS"
   ],
+  "iteration_epochs_per_seed": 8,
   "status": "passed"
 }

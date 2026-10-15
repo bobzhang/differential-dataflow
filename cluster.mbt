@@ -62,6 +62,8 @@ pub fn ClusterWorker::peers(self : ClusterWorker) -> Int32 {
 pub struct DistributedScope[T, S] {
   priv scope : Scope[T, S]
   priv cluster : ClusterWorker
+  priv time_codec : WireCodec[T]
+  priv summary_codec : WireCodec[S]
 }
 
 ///|
@@ -144,7 +146,7 @@ pub fn[T : Lattice, S : Compare] ClusterWorker::scope(
     },
   }
   self.state.scopes.push(core)
-  { scope, cluster: self, }
+  { scope, cluster: self, time_codec, summary_codec, }
 }
 
 ///|

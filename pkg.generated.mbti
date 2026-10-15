@@ -160,11 +160,20 @@ pub fn[T : Lattice] Description::lower(Self[T]) -> Antichain[T]
 pub fn[T : Lattice] Description::since(Self[T]) -> Antichain[T]
 pub fn[T : Lattice] Description::upper(Self[T]) -> Antichain[T]
 
+pub struct DistributedNestedScope[A, B, S, U] {
+  // private fields
+}
+pub fn[D, A : Lattice, B : Lattice, R, S, U] DistributedNestedScope::enter(Self[A, B, S, U], Collection[D, A, R]) -> Collection[D, Product[A, B], R]
+pub fn[D, A : Lattice, B : Lattice, R, S, U] DistributedNestedScope::leave(Self[A, B, S, U], Collection[D, Product[A, B], R]) -> Collection[D, A, R]
+pub fn[A, B, S, U] DistributedNestedScope::scope(Self[A, B, S, U]) -> DistributedScope[Product[A, B], Product[S, U]]
+
 pub struct DistributedScope[T, S] {
   // private fields
 }
 pub fn[D, T : Lattice, R, S] DistributedScope::exchange(Self[T, S], Collection[D, T, R], (D) -> UInt64, data_codec~ : WireCodec[D], time_codec~ : WireCodec[T], diff_codec~ : WireCodec[R]) -> Collection[D, T, R]
 pub fn[D, T : Lattice, R, S] DistributedScope::input(Self[T, S]) -> (InputSession[D, T, R], Collection[D, T, R])
+pub fn[D, T : Lattice, R : Abelian, S : Compare] DistributedScope::iterate(Self[T, S], Collection[D, T, R], (Self[Product[T, Int64], Product[S, Int64]], Collection[D, Product[T, Int64], R]) -> Collection[D, Product[T, Int64], R]) -> Collection[D, T, R]
+pub fn[A : Lattice, B : Lattice, S : Compare, U : Compare] DistributedScope::nested(Self[A, S], B, SummaryDomain[B, U], time_codec~ : WireCodec[B], summary_codec~ : WireCodec[U]) -> DistributedNestedScope[A, B, S, U]
 pub fn[T, S] DistributedScope::scope(Self[T, S]) -> Scope[T, S]
 
 pub struct Feedback[D, T, R, S] {
