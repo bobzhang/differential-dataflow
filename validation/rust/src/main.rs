@@ -1,3 +1,4 @@
+mod spines;
 mod batches;
 mod cursors;
 mod search;
@@ -51,6 +52,7 @@ fn main() {
         println!(
             "{}",
             match mode.as_str() {
+                "spines" => spines::evaluate(seed),
                 "batches" => batches::evaluate(seed),
                 "trace_views" => cursors::views(seed),
                 "cursors" => cursors::evaluate(seed),

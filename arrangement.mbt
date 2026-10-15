@@ -31,8 +31,9 @@ pub fn[K : Compare, V : Compare, T : Lattice, R : Semigroup] Arranged::release(
 ///|
 pub fn[K : Compare, V : Compare, T : Lattice, R : Semigroup] Collection::arrange_by_key(
   self : Collection[(K, V), T, R],
+  fueled~ : Bool = false,
 ) -> Arranged[K, V, T, R] {
-  let (writer, trace) = shared_trace_at(self.channel.frontier.val)
+  let (writer, trace) = shared_trace_at(self.channel.frontier.val, fueled~)
   let output : Channel[(K, V), T, R] = self.channel.output()
   let pending : Ref[Array[((K, V), T, R)]] = Ref([])
   let input : Mailbox[(K, V), T, R] = Mailbox()
@@ -77,6 +78,7 @@ pub fn[K : Compare, V : Compare, T : Lattice, R : Semigroup] Collection::arrange
 ///|
 pub fn[K : Compare, T : Lattice, R : Semigroup] Collection::arrange_by_self(
   self : Collection[K, T, R],
+  fueled~ : Bool = false,
 ) -> Arranged[K, Unit, T, R] {
-  self.map(fn(key) { (key, ()) }).arrange_by_key()
+  self.map(fn(key) { (key, ()) }).arrange_by_key(fueled~)
 }

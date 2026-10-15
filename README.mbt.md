@@ -168,8 +168,10 @@ arbitrary antichains. `BatchBuilder` consumes ordered chunks into immutable
 batches. `Batch.begin_merge` creates a `BatchMerger` whose `work(fuel)` advances
 by complete data groups; `is_complete()` and `done()` finish the result. Fuel
 counts input updates and may overshoot by one group, a conservative adaptation
-of Rust's output-based accounting. These primitives do not yet replace the
-default trace's eager compaction with a fueled spine.
+of Rust's output-based accounting. `Spine(minimum)` uses these primitives for bounded maintenance and configurable
+idle exertion. `shared_spine(minimum)` adds independently pinned readers;
+`collection.arrange_by_key(fueled=true)` selects that backend for arrangements.
+The default arrangement backend retains eager compaction for existing callers.
 
 `Cursor` merges retained batch views without copying stored update history.
 Times are visited per batch; callers consolidate them when needed.

@@ -16,6 +16,8 @@ pub fn[D : Compare, T : Compare, R : Semigroup] consolidate_updates(Array[(D, T,
 
 pub fn[T : RustHash] rust_hash(T) -> UInt64
 
+pub fn[D, T : Lattice, R] shared_spine(T) -> (TraceWriter[D, T, R], TraceAgent[D, T, R])
+
 pub fn[D, T : Lattice, R] shared_trace(T) -> (TraceWriter[D, T, R], TraceAgent[D, T, R])
 
 // Errors
@@ -183,8 +185,8 @@ pub struct Collection[D, T, R] {
   // private fields
 }
 pub fn[K : Compare + Hash, V : Compare, T : Lattice] Collection::antijoin(Self[(K, V), T, Int64], Self[K, T, Int64]) -> Self[(K, V), T, Int64]
-pub fn[K : Compare, V : Compare, T : Lattice, R : Semigroup] Collection::arrange_by_key(Self[(K, V), T, R]) -> Arranged[K, V, T, R]
-pub fn[K : Compare, T : Lattice, R : Semigroup] Collection::arrange_by_self(Self[K, T, R]) -> Arranged[K, Unit, T, R]
+pub fn[K : Compare, V : Compare, T : Lattice, R : Semigroup] Collection::arrange_by_key(Self[(K, V), T, R], fueled? : Bool) -> Arranged[K, V, T, R]
+pub fn[K : Compare, T : Lattice, R : Semigroup] Collection::arrange_by_self(Self[K, T, R], fueled? : Bool) -> Arranged[K, Unit, T, R]
 pub fn[K : Compare + Hash, V : Compare, T : TotalOrder] Collection::arrange_from_upsert(Self[(K, V?), T, Present]) -> Arranged[K, V, T, Int64]
 pub fn[D : Compare, T : Lattice, R : Semigroup] Collection::capture(Self[D, T, R], (CaptureMessage[D, T, R]) -> Unit) -> Probe[T]
 pub fn[D, T : Lattice, R] Collection::concat(Self[D, T, R], Self[D, T, R]) -> Self[D, T, R]
@@ -597,6 +599,28 @@ pub impl[R : Abelian] Abelian for SingletonDiff[R]
 pub impl[R : Monoid] Monoid for SingletonDiff[R]
 pub impl[R : Semigroup] Semigroup for SingletonDiff[R]
 
+pub struct Spine[D, T, R] {
+  // private fields
+}
+pub fn[D, T : Lattice, R] Spine::Spine(T) -> Self[D, T, R]
+pub fn[D, T : Lattice, R] Spine::advance_upper(Self[D, T, R], Antichain[T]) -> Antichain[T]
+pub fn[D, T : Lattice, R] Spine::batches_through(Self[D, T, R], Antichain[T]) -> Array[Batch[D, T, R]]?
+pub fn[D : Compare, T : Lattice, R : Semigroup] Spine::close(Self[D, T, R]) -> Unit
+pub fn[K : Compare, V : Compare, T : Lattice, R] Spine::cursor(Self[(K, V), T, R]) -> Cursor[K, V, T, R]
+pub fn[K : Compare, V : Compare, T : Lattice, R] Spine::cursor_through(Self[(K, V), T, R], Antichain[T]) -> Cursor[K, V, T, R]?
+pub fn[D : Compare, T : Lattice, R : Semigroup] Spine::exert(Self[D, T, R]) -> Unit
+pub fn[D : Compare, T : Lattice, R : Semigroup] Spine::exert_with_fuel(Self[D, T, R], Int) -> Int
+pub fn[D : Compare, T : Lattice, R : Semigroup] Spine::insert(Self[D, T, R], Batch[D, T, R]) -> Unit
+pub fn[D, T, R] Spine::levels(Self[D, T, R]) -> Array[(Int, Int, Int)]
+pub fn[D, T : Lattice, R] Spine::logical_compaction(Self[D, T, R]) -> Antichain[T]
+pub fn[D, T, R] Spine::map_batches(Self[D, T, R], (Batch[D, T, R]) -> Unit) -> Unit
+pub fn[D, T : Lattice, R] Spine::physical_compaction(Self[D, T, R]) -> Antichain[T]
+pub fn[D, T, R] Spine::set_exert_logic(Self[D, T, R], (Array[(Int, Int, Int)]) -> Int?) -> Unit
+pub fn[D, T : Lattice, R] Spine::set_logical_compaction(Self[D, T, R], Antichain[T]) -> Unit
+pub fn[D, T : Lattice, R] Spine::set_physical_compaction(Self[D, T, R], Antichain[T]) -> Unit
+pub fn[D : Compare, T : Lattice, R : Semigroup] Spine::snapshot(Self[D, T, R], T) -> Array[(D, R)]
+pub fn[D, T : Lattice, R] Spine::upper(Self[D, T, R]) -> Antichain[T]
+
 pub struct SummaryDomain[T, S] {
   // private fields
 }
@@ -644,6 +668,7 @@ pub fn[D, T : Lattice, R] TraceAgent::batches_through(Self[D, T, R], Antichain[T
 pub fn[D, T : Lattice, R] TraceAgent::clone(Self[D, T, R]) -> Self[D, T, R]
 pub fn[K : Compare, V : Compare, T : Lattice, R] TraceAgent::cursor(Self[(K, V), T, R]) -> Cursor[K, V, T, R]
 pub fn[K : Compare, V : Compare, T : Lattice, R] TraceAgent::cursor_through(Self[(K, V), T, R], Antichain[T]) -> Cursor[K, V, T, R]?
+pub fn[D : Compare, T : Lattice, R : Semigroup] TraceAgent::exert(Self[D, T, R]) -> Unit
 pub fn[D : Compare, T : Lattice, R : Semigroup, S] TraceAgent::import_into(Self[D, T, R], Scope[T, S]) -> Collection[D, T, R]
 pub fn[D, T : Lattice, R] TraceAgent::logical_compaction(Self[D, T, R]) -> Antichain[T]
 pub fn[K : Compare, V : Compare, T : Lattice, R : Semigroup, Q, O] TraceAgent::lookup(Self[(K, V), T, R], Collection[(K, T), T, Q], multiply~ : (R, Q) -> O) -> Collection[(K, V), T, O]
@@ -683,7 +708,9 @@ pub struct TraceWriter[D, T, R] {
   // private fields
 }
 pub fn[D : Compare, T : Lattice, R : Semigroup] TraceWriter::close(Self[D, T, R]) -> Unit
+pub fn[D : Compare, T : Lattice, R : Semigroup] TraceWriter::exert(Self[D, T, R]) -> Unit
 pub fn[D : Compare, T : Lattice, R : Semigroup] TraceWriter::insert(Self[D, T, R], Batch[D, T, R]) -> Unit
+pub fn[D, T, R] TraceWriter::set_exert_logic(Self[D, T, R], (Array[(Int, Int, Int)]) -> Int?) -> Unit
 pub fn[D, T : Lattice, R] TraceWriter::upper(Self[D, T, R]) -> Antichain[T]
 
 pub struct UInt128 {

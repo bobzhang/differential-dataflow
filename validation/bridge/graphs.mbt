@@ -11,7 +11,7 @@ pub fn evaluate_graphs(seed : Int32) -> String {
     @differential.InputSession[Int32, Int64, Int64],
     @differential.Collection[Int32, Int64, Int64],
   ) = scope.input()
-  let edges_index = graph.arrange_by_key()
+  let edges_index = graph.arrange_by_key(fueled=true)
   let view = edges_index.view()
   let streams = [
     scope

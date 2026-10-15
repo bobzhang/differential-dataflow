@@ -7,6 +7,7 @@ priv struct ReaderBounds[T] {
 ///|
 priv struct SharedTrace[D, T, R] {
   trace : Trace[D, T, R]
+  mut spine : Spine[D, T, R]?
   readers : Map[Int32, ReaderBounds[T]]
   listeners : Map[Int32, (Batch[D, T, R]) -> Unit]
   mut next_listener : Int32
@@ -38,17 +39,19 @@ pub fn[D, T : Lattice, R] shared_trace(
 ///|
 fn[D, T : Lattice, R] shared_trace_at(
   frontier : Antichain[T],
+  fueled~ : Bool = false,
 ) -> (TraceWriter[D, T, R], TraceAgent[D, T, R]) {
   guard !frontier.is_empty() else {
     abort("trace requires a nonempty initial frontier")
   }
-  let shared = {
+  let shared : SharedTrace[D, T, R] = {
     trace: {
       batches: [],
       upper: Antichain(frontier.elements),
       logical: Antichain(frontier.elements),
       physical: Antichain(frontier.elements),
     },
+    spine: None,
     readers: Map([
       (
         0,
@@ -61,6 +64,17 @@ fn[D, T : Lattice, R] shared_trace_at(
     next_id: 1,
     listeners: Map([]),
     next_listener: 0,
+  }
+  if fueled {
+    let minimum = frontier.elements
+      .iter()
+      .fold(init=frontier.elements[0], fn(a, b) { a.meet(b) })
+    shared.spine = Some({
+      trace: shared.trace,
+      minimum,
+      merging: None,
+      exert_logic: fn(_) { Some(1024) },
+    })
   }
   ({ shared, }, { shared, id: 0, live: true, })
 }
@@ -99,9 +113,21 @@ fn[D : Compare, T : Lattice, R : Semigroup] SharedTrace::compact(
       let _ = physical.insert(time)
     }
   }
-  self.trace.set_logical_compaction(logical)
-  self.trace.set_physical_compaction(physical)
+  match self.spine {
+    None => {
+      self.trace.set_logical_compaction(logical)
+      self.trace.set_physical_compaction(physical)
+    }
+    Some(spine) => {
+      spine.set_logical_compaction(logical)
+      spine.set_physical_compaction(physical)
+      spine.exert()
+    }
+  }
   if logical.is_empty() && physical.is_empty() {
+    if self.spine is Some(spine) {
+      spine.merging = None
+    }
     self.trace.batches.clear()
   }
 }
@@ -202,7 +228,10 @@ pub fn[D : Compare, T : Lattice, R : Semigroup] TraceWriter::insert(
   self : TraceWriter[D, T, R],
   batch : Batch[D, T, R],
 ) -> Unit {
-  self.shared.trace.insert(batch)
+  match self.shared.spine {
+    None => self.shared.trace.insert(batch)
+    Some(spine) => spine.insert(batch)
+  }
   self.shared.compact()
   for _, notify in self.shared.listeners {
     notify(batch)
@@ -259,4 +288,44 @@ pub fn[K : Compare, V : Compare, T : Lattice, R] TraceAgent::cursor_through(
   self.check()
   guard self.physical_compaction().precedes(upper) else { return None }
   self.shared.trace.cursor_through(upper)
+}
+
+///|
+/// Shared trace with a fueled spine backend and independently pinned readers.
+pub fn[D, T : Lattice, R] shared_spine(
+  minimum : T,
+) -> (TraceWriter[D, T, R], TraceAgent[D, T, R]) {
+  shared_trace_at(Antichain([minimum]), fueled=true)
+}
+
+///|
+/// Request background merging. Eager traces have already performed this work.
+pub fn[D : Compare, T : Lattice, R : Semigroup] TraceWriter::exert(
+  self : TraceWriter[D, T, R],
+) -> Unit {
+  if self.shared.spine is Some(spine) {
+    spine.exert()
+  }
+}
+
+///|
+pub fn[D : Compare, T : Lattice, R : Semigroup] TraceAgent::exert(
+  self : TraceAgent[D, T, R],
+) -> Unit {
+  self.check()
+  if self.shared.spine is Some(spine) {
+    spine.exert()
+  }
+}
+
+///|
+/// Configure fueled maintenance. This is only supported by shared_spine traces.
+pub fn[D, T, R] TraceWriter::set_exert_logic(
+  self : TraceWriter[D, T, R],
+  logic : (Array[(Int32, Int32, Int32)]) -> Int32?,
+) -> Unit {
+  guard self.shared.spine is Some(spine) else {
+    abort("exertion logic requires a fueled spine")
+  }
+  spine.set_exert_logic(logic)
 }

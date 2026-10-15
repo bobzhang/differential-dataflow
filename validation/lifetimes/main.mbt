@@ -10,8 +10,10 @@ fn exercise(early : Bool) -> Unit {
     @differential.InputSession[Int32, Int64, Int64],
     @differential.Collection[Int32, Int64, Int64],
   ) = scope.input()
-  let forward = graph.arrange_by_key()
-  let reverse = graph.map(fn(edge) { (edge.1, edge.0) }).arrange_by_key()
+  let forward = graph.arrange_by_key(fueled=true)
+  let reverse = graph
+    .map(fn(edge) { (edge.1, edge.0) })
+    .arrange_by_key(fueled=true)
   let fview = forward.view()
   let rview = reverse.view()
   let counts = Array::make(3, 0L)

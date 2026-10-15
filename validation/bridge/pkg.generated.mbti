@@ -22,6 +22,8 @@ pub fn evaluate_entered_reduce(Int) -> String
 
 pub fn evaluate_feedback(Int) -> String
 
+pub fn evaluate_fueled_join(Int) -> String
+
 pub fn evaluate_graphs(Int) -> String
 
 pub fn evaluate_group_join(Int) -> String
@@ -47,6 +49,8 @@ pub fn evaluate_scope_reduce(Int) -> String
 pub fn evaluate_search(Int) -> String
 
 pub fn evaluate_signed_feedback(Int) -> String
+
+pub fn evaluate_spines(Int) -> String
 
 pub fn evaluate_stream_reduce(Int) -> String
 

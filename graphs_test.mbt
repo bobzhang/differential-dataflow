@@ -10,7 +10,7 @@ test "graph algorithms retract distances labels and SCC edges after a cycle brea
     @differential.InputSession[Int32, Int64, Int64],
     @differential.Collection[Int32, Int64, Int64],
   ) = scope.input()
-  let index = graph.arrange_by_key()
+  let index = graph.arrange_by_key(fueled=true)
   let view = index.view()
   let distance : Map[(Int32, UInt32), Int64] = Map([])
   let scc : Map[(Int32, Int32), Int64] = Map([])

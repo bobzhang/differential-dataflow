@@ -29,6 +29,25 @@ moon = run(['node', 'validation/run.cjs', 'batches'], input=cursor_inputs, captu
 assert len(rust) == len(moon) == len(cursor_seeds)
 for seed, r, m in zip(cursor_seeds, rust, moon):
     assert r == m, f'batching and fueled merging differ seed={seed}\nRust: {r}\nMoon: {m}'
+spine_seeds = range(1, 65)
+spine_inputs = ''.join(f'{seed}\n' for seed in spine_seeds)
+rust = run(['validation/rust/target/release/differential-reference-check', 'spines'], input=spine_inputs, capture_output=True).stdout.splitlines()
+moon = run(['node', 'validation/run.cjs', 'spines'], input=spine_inputs, capture_output=True).stdout.splitlines()
+assert len(rust) == len(moon) == len(spine_seeds)
+for seed, r, m in zip(spine_seeds, rust, moon):
+    state = seed
+    totals = {}
+    history = []
+    expected = []
+    for epoch in range(32):
+        for _ in range(12):
+            state = (state * 1664525 + 1013904223) & 0xffffffff
+            index = (state >> 8) % 64
+            key = (index // 8, index % 8)
+            totals[key] = totals.get(key, 0) + state % 5 - 2
+        history.append(';'.join(f'{k},{v},{r}' for (k,v),r in sorted(totals.items()) if r))
+        expected.append('|'.join(history[max(0,epoch-3):epoch+1]))
+    assert r == m == '/'.join(expected), f'fueled spine differs seed={seed}'
 seeds = range(1,257)
 inputs = ''.join(f'{s}\n' for s in seeds)
 rust = run(['validation/rust/target/release/differential-reference-check'],input=inputs,capture_output=True).stdout.splitlines()
@@ -65,6 +84,8 @@ entered_join = run(['node', 'validation/run.cjs', 'entered_join'], input=inputs,
 assert entered_join == moon, 'twice-entered shared indexes differ'
 assigned_join = run(['node', 'validation/run.cjs', 'assigned_join'], input=inputs, capture_output=True).stdout.splitlines()
 assert assigned_join == moon, 'data-dependent entered shared indexes differ'
+fueled_join = run(['node', 'validation/run.cjs', 'fueled_join'], input=inputs, capture_output=True).stdout.splitlines()
+assert fueled_join == moon, 'shared fueled indexes differ'
 assert len(rust) == len(moon) == len(join_seeds)
 join_cases = dict(zip(join_seeds, moon))
 for seed,r,m in zip(join_seeds,rust,moon):
@@ -398,6 +419,8 @@ for seed, r, m in zip(search_seeds, rust, moon):
     assert r == m == 'GRAPH_SEARCH|' + '/'.join(expected), f'graph search differential failure seed={seed}\nRust: {r}\nMoon: {m}\nOracle: {"/".join(expected)}'
 summary = {
     'references': pins,
+    'spine_epochs': len(spine_seeds) * 32,
+    'spine_checks': ['incremental merge exertion', 'shared fueled nested joins and graph loops', 'reader compaction', 'retained historical snapshots', 'independent prefix-sum model'],
     'batch_epochs': len(cursor_seeds) * 8,
     'batch_checks': ['partial-order sealing', 'post-consolidation retained frontiers', 'ordered builders', 'fueled compacting merges'],
     'trace_view_seeds': len(cursor_seeds),

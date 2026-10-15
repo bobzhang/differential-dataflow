@@ -429,3 +429,50 @@ test "incomparable frontiers bound retained reduction history for five thousand 
     assert_true(state.emitted.length() <= 8)
   }
 }
+
+///|
+test "shared fueled spine honors slow readers and releases unfinished merge sources" {
+  let (writer, reader) : (
+    TraceWriter[(Int32, Int32), Int64, Int64],
+    TraceAgent[(Int32, Int32), Int64, Int64],
+  ) = shared_spine(0L)
+  let slow = reader.clone()
+  for epoch in 0L..<64L {
+    writer.insert(
+      Batch(
+        [((0, 0), epoch, 1L)],
+        lower=Antichain([epoch]),
+        upper=Antichain([epoch + 1]),
+      ),
+    )
+    reader.set_logical_compaction(Antichain([epoch]))
+    reader.set_physical_compaction(Antichain([epoch + 1]))
+  }
+  assert_eq(slow.snapshot(0L), [((0, 0), 1L)])
+  assert_eq(slow.snapshot(63L), [((0, 0), 64L)])
+  assert_eq(writer.shared.trace.batches.length(), 64)
+  slow.release()
+  for epoch in 64L..<2048L {
+    writer.insert(
+      Batch(
+        [((0, 0), epoch, 1L)],
+        lower=Antichain([epoch]),
+        upper=Antichain([epoch + 1]),
+      ),
+    )
+    reader.set_logical_compaction(Antichain([epoch]))
+    reader.set_physical_compaction(Antichain([epoch + 1]))
+    assert_eq(reader.snapshot(epoch), [((0, 0), epoch + 1)])
+    assert_true(writer.shared.trace.batches.length() <= 2)
+    assert_true(
+      writer.shared.trace.batches
+      .iter()
+      .fold(init=0, fn(sum, batch) { sum + batch.length() }) <=
+      3,
+    )
+  }
+  writer.set_exert_logic(fn(_) { None })
+  reader.release()
+  assert_true(writer.shared.trace.batches.is_empty())
+  assert_true(writer.shared.spine.unwrap().merging is None)
+}
