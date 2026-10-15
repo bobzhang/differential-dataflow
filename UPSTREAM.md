@@ -16,3 +16,12 @@ The upstream MIT license and copyright notices are retained.
 Reference: https://github.com/TimelyDataflow/timely-dataflow, tag `timely-v0.31.0`,
 commit `eba4ae5298442cc2475e5ef82277bb135e4a7ea4`.
 Checkout: `.repos/timely-dataflow`. Its MIT notice is in `LICENSE-TIMELY`.
+
+Restore Timely before running the differential harness:
+
+```sh
+git clone https://github.com/TimelyDataflow/timely-dataflow .repos/timely-dataflow
+git -C .repos/timely-dataflow checkout eba4ae5298442cc2475e5ef82277bb135e4a7ea4
+```
+
+`validation/pins.json` and the committed Cargo lockfile are checked by the harness.
