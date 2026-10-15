@@ -128,6 +128,7 @@ pub fn[D : Compare, T : Lattice, R : Semigroup] BatchMerger::work(Self[D, T, R],
 pub struct BatchView[D, T, R] {
   // private fields
 }
+pub fn[D, T, R] BatchView::BatchView(Int, Description[T], read~ : (Int) -> (D, T, R)) -> Self[D, T, R]
 pub fn[K : Compare, V : Compare, T, R] BatchView::cursor(Self[(K, V), T, R]) -> Cursor[K, V, T, R]
 pub fn[D, T, R] BatchView::description(Self[D, T, R]) -> Description[T]
 pub fn[D, T, R] BatchView::for_each(Self[D, T, R], (D, T, R) -> Unit) -> Unit
@@ -252,6 +253,7 @@ pub fn[K : Compare + Hash, V : Compare, T : Lattice] Collection::antijoin(Self[(
 pub fn[K : Compare, V : Compare, T : Lattice, R : Semigroup] Collection::arrange_by_key(Self[(K, V), T, R], fueled? : Bool, columnar? : Bool, spill? : SpillPolicy[(K, V), T, R]) -> Arranged[K, V, T, R]
 pub fn[K : Compare, T : Lattice, R : Semigroup] Collection::arrange_by_self(Self[K, T, R], fueled? : Bool, columnar? : Bool, spill? : SpillPolicy[(K, Unit), T, R]) -> Arranged[K, Unit, T, R]
 pub fn[K : Compare + Hash, V : Compare, T : TotalOrder] Collection::arrange_from_upsert(Self[(K, V?), T, Present]) -> Arranged[K, V, T, Int64]
+pub fn[K : Compare, V : Compare, T : Lattice, R : Semigroup] Collection::arrange_with(Self[(K, V), T, R], (Antichain[T]) -> TraceBackend[(K, V), T, R]) -> ArrangementView[K, V, T, R]
 pub fn[D : Compare, T : Lattice, R : Semigroup] Collection::capture(Self[D, T, R], (CaptureMessage[D, T, R]) -> Unit) -> Probe[T]
 pub fn[D, T : Lattice, R] Collection::concat(Self[D, T, R], Self[D, T, R]) -> Self[D, T, R]
 pub fn[D : Compare, T : Lattice, R : Semigroup] Collection::consolidate(Self[D, T, R]) -> Self[D, T, R]
@@ -841,9 +843,15 @@ pub fn[D : Compare, T : Lattice, R : Semigroup] TraceAgent::set_physical_compact
 pub fn[D : Compare, T : Lattice, R : Semigroup] TraceAgent::snapshot(Self[D, T, R], T) -> Array[(D, R)]
 pub fn[D, T : Lattice, R] TraceAgent::upper(Self[D, T, R]) -> Antichain[T]
 
+pub struct TraceBackend[D, T, R] {
+  // private fields
+}
+pub fn[D : Compare, T : Lattice, R : Semigroup] TraceBackend::TraceBackend(TraceReader[D, T, R], insert~ : (BatchView[D, T, R]) -> Unit, close~ : () -> Unit, build? : (Array[(D, T, R)], Description[T]) -> BatchView[D, T, R]) -> Self[D, T, R]
+
 pub struct TraceReader[D, T, R] {
   // private fields
 }
+pub fn[D, T, R] TraceReader::TraceReader(clone_reader~ : () -> Self[D, T, R], release_reader~ : () -> Unit, upper~ : () -> Antichain[T], logical_compaction~ : () -> Antichain[T], physical_compaction~ : () -> Antichain[T], set_logical_compaction~ : (Antichain[T]) -> Unit, set_physical_compaction~ : (Antichain[T]) -> Unit, batches_through~ : (Antichain[T]) -> Array[BatchView[D, T, R]]?, subscribe~ : ((BatchView[D, T, R]) -> Unit) -> () -> Unit) -> Self[D, T, R]
 pub fn[D, T : Lattice, R] TraceReader::advance_upper(Self[D, T, R], Antichain[T]) -> Antichain[T]
 pub fn[D, T, R] TraceReader::batches_through(Self[D, T, R], Antichain[T]) -> Array[BatchView[D, T, R]]?
 pub fn[D, T, R] TraceReader::clone(Self[D, T, R]) -> Self[D, T, R]
@@ -851,6 +859,7 @@ pub fn[K : Compare, V : Compare, T : Lattice, R] TraceReader::cursor(Self[(K, V)
 pub fn[K : Compare, V : Compare, T, R] TraceReader::cursor_through(Self[(K, V), T, R], Antichain[T]) -> Cursor[K, V, T, R]?
 pub fn[D, T : Lattice, U : Lattice, R] TraceReader::enter(Self[D, T, R], U) -> Self[D, Product[T, U], R]
 pub fn[D, T : Lattice, R] TraceReader::frontier(Self[D, T, R], Antichain[T], Antichain[T]) -> Self[D, T, R]
+pub fn[K : Compare, V : Compare, T : Lattice, R : Semigroup, S] TraceReader::import_arranged(Self[(K, V), T, R], Scope[T, S]) -> ArrangementView[K, V, T, R]
 pub fn[D : Compare, T : Lattice, R : Semigroup, S] TraceReader::import_into(Self[D, T, R], Scope[T, S]) -> Collection[D, T, R]
 pub fn[D, T, R] TraceReader::logical_compaction(Self[D, T, R]) -> Antichain[T]
 pub fn[D, T : Lattice, R] TraceReader::map_batches(Self[D, T, R], (BatchView[D, T, R]) -> Unit) -> Unit
@@ -861,6 +870,7 @@ pub fn[D, T, R] TraceReader::release(Self[D, T, R]) -> Unit
 pub fn[D, T, R] TraceReader::set_logical_compaction(Self[D, T, R], Antichain[T]) -> Unit
 pub fn[D, T, R] TraceReader::set_physical_compaction(Self[D, T, R], Antichain[T]) -> Unit
 pub fn[D : Compare, T : Lattice, R : Semigroup] TraceReader::snapshot(Self[D, T, R], T) -> Array[(D, R)]
+pub fn[D, T, R] TraceReader::subscribe(Self[D, T, R], (BatchView[D, T, R]) -> Unit) -> () -> Unit
 pub fn[D, T, R] TraceReader::upper(Self[D, T, R]) -> Antichain[T]
 
 pub struct TraceWriter[D, T, R] {

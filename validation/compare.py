@@ -353,6 +353,8 @@ for seed,r,m in zip(stream_reduce_seeds,rust,moon):
     assert r == m, f'streamed incomparable reduction failure seed={seed}'
 arranged_reduce = run(['node','validation/run.cjs','arranged_reduce'],input=inputs,capture_output=True).stdout.splitlines()
 assert arranged_reduce == moon, 'shared arranged reduction differs'
+external_reduce = run(['node','validation/run.cjs','external_reduce'],input=inputs,capture_output=True).stdout.splitlines()
+assert external_reduce == rust, 'external trace nested reduction differs'
 entered_reduce = run(['node', 'validation/run.cjs', 'entered_reduce'], input=inputs, capture_output=True).stdout.splitlines()
 assert entered_reduce == moon, 'entered incomparable reduction differs'
 numeric_seeds = range(1,33)
@@ -568,6 +570,7 @@ summary = {
     'search_checks': ['shared forward and reversed indexes', 'bidirectional shortest paths', 'goal multiplicities', 'sequential neighbor updates', 'edge and goal retractions', 'independent BFS and ordered node evaluation'],
     'cancelled_nested_dataflows': 1024,
     'example_epochs': 384,
+    'external_trace_reduction_epochs': 768,
     'message_capability_operator_snapshots': 2496,
     'min_plus_graph_epochs': 1024,
     'core_reduce_partial_order_epochs': 2304,

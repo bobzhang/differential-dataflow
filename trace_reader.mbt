@@ -85,7 +85,9 @@ pub fn[D, T, R] TraceReader::batches_through(
 }
 
 ///|
-fn[D, T, R] TraceReader::subscribe(
+/// Subscribe to future sealed batches. Retained batches are not replayed.
+/// Cancel the subscription explicitly before releasing its reader.
+pub fn[D, T, R] TraceReader::subscribe(
   self : TraceReader[D, T, R],
   notify : (BatchView[D, T, R]) -> Unit,
 ) -> () -> Unit {

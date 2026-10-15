@@ -352,6 +352,21 @@ completion. Complete corrupt frames raise `JournalError` and poison the reader.
 Call `close` explicitly to report close errors. Automatic writer recovery is not
 provided. The versioned JSON/frame encoding is independent of Rust serde.
 
+## Custom trace storage
+
+`Collection.arrange_with(factory)` accepts a `TraceBackend` with a reader, batch
+insertion and closure callbacks, and an optional batch builder. `BatchView`
+adapts an immutable indexed layout without eagerly copying its rows. `TraceReader`
+adapts clean batch cuts, compaction capabilities, cloning, and live subscriptions.
+The resulting `ArrangementView` supports shared joins, reductions, nested scopes,
+and imported queries through the same operators as built-in storage.
+
+A backend must retain immutable batches while readers use them, clone independent
+compaction pins, and seal its upper frontier when closed. Operator cancellation
+closes the writer, allowing surviving imports to finish. The black-box tests in
+`trace_adapters_test.mbt` implement an independent four-column backend and exercise
+these ownership and progress requirements.
+
 ## Message times and record times
 
 A data message carries a capability time; each `(data, time, difference)` record

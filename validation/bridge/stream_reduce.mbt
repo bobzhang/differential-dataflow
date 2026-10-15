@@ -17,6 +17,7 @@ fn stream_reduce_case(
   entered~ : Bool = false,
   columnar~ : Bool = false,
   core~ : Bool = false,
+  external~ : Bool = false,
 ) -> String {
   let worker = @differential.Worker()
   let scope = worker.scope(
@@ -59,7 +60,15 @@ fn stream_reduce_case(
     }
     changes
   }
-  let reduced = if core {
+  let reduced = if external {
+    let index = source.arrange_with(external_backend)
+    let nested = scope.nested(0L, @differential.SummaryDomain::int64())
+    let entered = index.enter(nested)
+    let result = nested.leave(entered.reduce(logic))
+    entered.release()
+    index.release()
+    result
+  } else if core {
     let reduced = if arranged {
       let index = source.arrange_by_key()
       let result = if entered {
@@ -175,4 +184,10 @@ pub fn evaluate_arranged_core_reduce(seed : Int32) -> String {
 #export_name("evaluate_entered_core_reduce")
 pub fn evaluate_entered_core_reduce(seed : Int32) -> String {
   stream_reduce_case(seed, true, entered=true, core=true)
+}
+
+///|
+#export_name("evaluate_external_reduce")
+pub fn evaluate_external_reduce(seed : Int32) -> String {
+  stream_reduce_case(seed, true, external=true)
 }
