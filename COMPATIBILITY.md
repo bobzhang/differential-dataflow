@@ -49,7 +49,7 @@ The min-plus shortest-path example (`monoid-bfs.rs`) is also ported: 1,024 incre
   required facilities. Native transport/runtime-specific tests need explicit
   target configuration; a passing single-worker suite is insufficient.
 - Resolve the pending rows before describing this as a complete compatible port
-  or creating the requested completed-port GitHub repository.
+  or labeling a public repository or package as a completed port.
 
 ## Known implementation limits
 
@@ -160,3 +160,7 @@ spilling, shared graph/import lifetimes and multi-process workloads.
 ## Paused checkpoint
 
 Work on this port is temporarily paused at the user's request while the Yrs port proceeds. Shared-reader compaction requests now join with existing guarantees, matching Rust for incomparable and backward requests (2,048 Rust/model rounds). The runtime gaps above remain unresolved; this checkpoint is not full upstream compatibility.
+
+The public GitHub repository and Mooncakes 0.1.0 package expose this paused
+checkpoint for experimentation. Publication does not change the completion
+target or resolve the runtime gaps above.

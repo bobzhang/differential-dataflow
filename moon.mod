@@ -8,4 +8,4 @@ readme = "README.mbt.md"
 
 license = "MIT"
 
-description = "Differential collection algebra and timestamp lattices in MoonBit"
+description = "Experimental Differential Dataflow port for MoonBit; upstream runtime compatibility is incomplete"

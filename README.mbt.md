@@ -26,6 +26,17 @@ The implemented foundations currently run on JavaScript, native, Wasm, and Wasm 
 - Exclusive prefix sums at sparse 64-bit positions, with independent keys and dynamic queries.
 - Stable identifier assignment with iterative collision repair and Rust-compatible FNV encodings.
 
+## Installation
+
+Version 0.1.0 is an **experimental checkpoint**. The compatibility gaps below
+remain open; publishing this package does not mark the full port complete.
+
+```sh
+moon add bobzhang/differential@0.1.0
+```
+
+[GitHub](https://github.com/bobzhang/differential-dataflow) · [Mooncakes](https://mooncakes.io/docs/bobzhang/differential)
+
 ## Example: totals that change when prices change
 
 ```mbt check
