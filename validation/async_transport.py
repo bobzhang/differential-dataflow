@@ -17,7 +17,7 @@ def finish(process, success):
     if success:
         assert process.returncode == 0 and out.strip() == 'wire-ok', (out,err)
     else:
-        assert process.returncode != 0 and 'TransportError' in out+err, (out,err)
+        assert process.returncode == 1 and 'TransportError' in out+err, (process.returncode,out,err)
 
 
 def cleanup(process):

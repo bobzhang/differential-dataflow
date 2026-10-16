@@ -1,5 +1,20 @@
 ///|
-fn main raise {
+extern "c" fn exit_with_status(code : Int32) = "exit"
+
+///|
+fn main {
+  run_cluster() catch {
+    error => {
+      // Normal exit flushes redirected stdout on Linux as well as macOS.
+      // An uncaught error aborts, which can lose the diagnostic in the pipe.
+      println(error.to_string())
+      exit_with_status(1)
+    }
+  }
+}
+
+///|
+fn run_cluster() -> Unit raise {
   let args = @env.args()
   let peer : Int32 = @json.from_json(@json.parse(args[1]))
   let port : Int32 = @json.from_json(@json.parse(args[2]))

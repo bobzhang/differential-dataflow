@@ -76,7 +76,7 @@ def failure(kind):
                     receive(client)
             stdout, stderr = process.communicate(timeout=3)
             assert 'AddressSanitizer' not in stdout + stderr and 'LeakSanitizer' not in stdout + stderr, (kind, stdout, stderr)
-            assert process.returncode != 0, (kind, stdout, stderr)
+            assert process.returncode == 1, (kind, process.returncode, stdout, stderr)
             assert 'TransportError' in stdout + stderr or 'ClusterError' in stdout + stderr, (kind, stderr)
     finally:
         if process.poll() is None:
