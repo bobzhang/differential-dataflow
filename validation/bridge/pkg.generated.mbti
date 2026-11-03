@@ -2,119 +2,119 @@
 package "bobzhang/differential/validation/bridge"
 
 // Values
-pub fn evaluate(Int) -> String
+pub fn evaluate(Int32) -> String
 
-pub fn evaluate_activators(Int) -> String
+pub fn evaluate_activators(Int32) -> String
 
-pub fn evaluate_arranged_core_reduce(Int) -> String
+pub fn evaluate_arranged_core_reduce(Int32) -> String
 
-pub fn evaluate_arranged_join(Int) -> String
+pub fn evaluate_arranged_join(Int32) -> String
 
-pub fn evaluate_arranged_reduce(Int) -> String
+pub fn evaluate_arranged_reduce(Int32) -> String
 
-pub fn evaluate_arrangement(Int) -> String
+pub fn evaluate_arrangement(Int32) -> String
 
-pub fn evaluate_assigned_join(Int) -> String
+pub fn evaluate_assigned_join(Int32) -> String
 
-pub fn evaluate_batches(Int) -> String
+pub fn evaluate_batches(Int32) -> String
 
-pub fn evaluate_cancellation(Int) -> String
+pub fn evaluate_cancellation(Int32) -> String
 
-pub fn evaluate_capture_async(Int) -> String
+pub fn evaluate_capture_async(Int32) -> String
 
-pub fn evaluate_chunks(Int) -> String
+pub fn evaluate_chunks(Int32) -> String
 
-pub fn evaluate_columnar_batches(Int) -> String
+pub fn evaluate_columnar_batches(Int32) -> String
 
-pub fn evaluate_columnar_bytes(Int) -> String
+pub fn evaluate_columnar_bytes(Int32) -> String
 
-pub fn evaluate_columnar_cursors(Int) -> String
+pub fn evaluate_columnar_cursors(Int32) -> String
 
-pub fn evaluate_columnar_join(Int) -> String
+pub fn evaluate_columnar_join(Int32) -> String
 
-pub fn evaluate_columnar_reduce(Int) -> String
+pub fn evaluate_columnar_reduce(Int32) -> String
 
-pub fn evaluate_columnar_spines(Int) -> String
+pub fn evaluate_columnar_spines(Int32) -> String
 
-pub fn evaluate_core_presence(Int) -> String
+pub fn evaluate_core_presence(Int32) -> String
 
-pub fn evaluate_core_reduce(Int) -> String
+pub fn evaluate_core_reduce(Int32) -> String
 
-pub fn evaluate_cursors(Int) -> String
+pub fn evaluate_cursors(Int32) -> String
 
-pub fn evaluate_diagnostics(Int) -> String
+pub fn evaluate_diagnostics(Int32) -> String
 
-pub fn evaluate_dynamic(Int) -> String
+pub fn evaluate_dynamic(Int32) -> String
 
-pub fn evaluate_dynamic_iteration(Int) -> String
+pub fn evaluate_dynamic_iteration(Int32) -> String
 
-pub fn evaluate_eager_replay(Int) -> String
+pub fn evaluate_eager_replay(Int32) -> String
 
-pub fn evaluate_entered_core_reduce(Int) -> String
+pub fn evaluate_entered_core_reduce(Int32) -> String
 
-pub fn evaluate_entered_join(Int) -> String
+pub fn evaluate_entered_join(Int32) -> String
 
-pub fn evaluate_entered_reduce(Int) -> String
+pub fn evaluate_entered_reduce(Int32) -> String
 
-pub fn evaluate_envelopes(Int) -> String
+pub fn evaluate_envelopes(Int32) -> String
 
-pub fn evaluate_examples(Int) -> String
+pub fn evaluate_examples(Int32) -> String
 
-pub fn evaluate_external_reduce(Int) -> String
+pub fn evaluate_external_reduce(Int32) -> String
 
-pub fn evaluate_feedback(Int) -> String
+pub fn evaluate_feedback(Int32) -> String
 
-pub fn evaluate_fueled_join(Int) -> String
+pub fn evaluate_fueled_join(Int32) -> String
 
-pub fn evaluate_graphs(Int) -> String
+pub fn evaluate_graphs(Int32) -> String
 
-pub fn evaluate_group_join(Int) -> String
+pub fn evaluate_group_join(Int32) -> String
 
-pub fn evaluate_identifiers(Int) -> String
+pub fn evaluate_identifiers(Int32) -> String
 
-pub fn evaluate_iteration(Int) -> String
+pub fn evaluate_iteration(Int32) -> String
 
-pub fn evaluate_join(Int) -> String
+pub fn evaluate_join(Int32) -> String
 
-pub fn evaluate_lifecycle(Int) -> String
+pub fn evaluate_lifecycle(Int32) -> String
 
-pub fn evaluate_monoid_bfs(Int) -> String
+pub fn evaluate_monoid_bfs(Int32) -> String
 
-pub fn evaluate_numeric(Int) -> String
+pub fn evaluate_numeric(Int32) -> String
 
-pub fn evaluate_pointstamp(Int) -> String
+pub fn evaluate_pointstamp(Int32) -> String
 
-pub fn evaluate_prefix(Int) -> String
+pub fn evaluate_prefix(Int32) -> String
 
-pub fn evaluate_probes(Int) -> String
+pub fn evaluate_probes(Int32) -> String
 
-pub fn evaluate_reader_frontiers(Int) -> String
+pub fn evaluate_reader_frontiers(Int32) -> String
 
-pub fn evaluate_reduce(Int) -> String
+pub fn evaluate_reduce(Int32) -> String
 
-pub fn evaluate_replay(Int) -> String
+pub fn evaluate_replay(Int32) -> String
 
-pub fn evaluate_scope_join(Int) -> String
+pub fn evaluate_scope_join(Int32) -> String
 
-pub fn evaluate_scope_reduce(Int) -> String
+pub fn evaluate_scope_reduce(Int32) -> String
 
-pub fn evaluate_search(Int) -> String
+pub fn evaluate_search(Int32) -> String
 
-pub fn evaluate_signed_feedback(Int) -> String
+pub fn evaluate_signed_feedback(Int32) -> String
 
-pub fn evaluate_spilled_cursors(Int) -> String
+pub fn evaluate_spilled_cursors(Int32) -> String
 
-pub fn evaluate_spilled_join(Int) -> String
+pub fn evaluate_spilled_join(Int32) -> String
 
-pub fn evaluate_spilled_spines(Int) -> String
+pub fn evaluate_spilled_spines(Int32) -> String
 
-pub fn evaluate_spines(Int) -> String
+pub fn evaluate_spines(Int32) -> String
 
-pub fn evaluate_stream_reduce(Int) -> String
+pub fn evaluate_stream_reduce(Int32) -> String
 
-pub fn evaluate_trace_views(Int) -> String
+pub fn evaluate_trace_views(Int32) -> String
 
-pub fn evaluate_upsert(Int) -> String
+pub fn evaluate_upsert(Int32) -> String
 
 // Errors
 

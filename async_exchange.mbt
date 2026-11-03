@@ -31,11 +31,12 @@ priv struct ClusterRound {
 ///|
 /// Pending yields to the host; Progress completed a collective round with work;
 /// Quiescent completed a round with no globally scheduled or in-flight work.
+#derive(Eq, Debug)
 pub(all) enum ClusterPoll {
   Pending
   Progress
   Quiescent
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend ClusterPoll with Eq::{equal, not_equal}

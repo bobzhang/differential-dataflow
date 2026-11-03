@@ -42,9 +42,10 @@ pub fn[A, B] WireCodec::product(
 }
 
 ///|
+#derive(Debug)
 pub suberror ClusterError {
   ClusterError(String)
-} derive(Debug)
+}
 
 ///|
 fn[T : @json.FromJson] wire_read(value : Json) -> T raise ClusterError {
