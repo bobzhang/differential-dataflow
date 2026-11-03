@@ -2,9 +2,10 @@
 type JournalHandle
 
 ///|
+#derive(Debug)
 pub suberror JournalError {
   JournalError(String)
-} derive(Debug)
+}
 
 ///|
 pub extend JournalError with Debug::{to_repr}

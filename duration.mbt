@@ -1,9 +1,10 @@
 ///|
 /// Rust Duration-compatible timestamp: unsigned seconds and subsecond nanoseconds.
+#derive(Eq, Compare, Debug, Hash)
 pub struct Duration {
   priv seconds : UInt64
   priv nanos : UInt32
-} derive(Eq, Compare, Debug, Hash)
+}
 
 ///|
 /// Normalize nanoseconds; overflow beyond the largest duration is rejected.

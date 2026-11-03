@@ -8,7 +8,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]
-        moonbit: ['0.10.15+943464bfa', latest]
+        moonbit: [latest, pre-release]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v5
@@ -16,10 +16,8 @@ jobs:
         with:
           node-version: 24
       - name: Install MoonBit
-        env:
-          MOONBIT_INSTALL_VERSION: ${{ matrix.moonbit }}
         run: |
-          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash -s -- "${{ matrix.moonbit }}"
           echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
       - run: moon check --target all --warn-list +unnecessary_annotation --deny-warn
       - run: moon fmt --check
@@ -30,6 +28,10 @@ jobs:
           moon info
           git diff --exit-code
   differential:
+    strategy:
+      fail-fast: false
+      matrix:
+        moonbit: [latest, pre-release]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -47,10 +49,8 @@ jobs:
         with:
           node-version: 24
       - name: Install MoonBit
-        env:
-          MOONBIT_INSTALL_VERSION: 0.10.15+943464bfa
         run: |
-          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash -s -- "${{ matrix.moonbit }}"
           echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
       - run: python3 validation/compare.py
       - run: python3 validation/cluster_compare.py

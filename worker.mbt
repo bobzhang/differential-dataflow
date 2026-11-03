@@ -172,10 +172,11 @@ pub fn Worker::step(self : Worker) -> Bool {
 }
 
 ///|
+#derive(Eq, Debug)
 pub(all) enum RunResult {
   Quiescent(Int32)
   StepLimit(Int32)
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend RunResult with Eq::{equal, not_equal}

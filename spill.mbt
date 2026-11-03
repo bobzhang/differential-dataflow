@@ -31,13 +31,14 @@ pub fn BytesStore::store(self : BytesStore, bytes : Bytes) -> BytesSource {
 }
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct SpillStats {
   spilled_chunks : Int64
   spilled_records : Int64
   fetched_chunks : Int64
   bytes_written : Int64
   resident_records : Int64
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend SpillStats with Eq::{equal, not_equal}
