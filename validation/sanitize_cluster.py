@@ -32,7 +32,10 @@ def main():
     command += list(map(str, sources + libraries))
     command += ['-lc++' if platform.system() == 'Darwin' else '-lstdc++', '-lm', '-o', str(output)]
     subprocess.run(command, cwd=ROOT, check=True)
-    os.environ.setdefault('ASAN_OPTIONS', 'detect_leaks=1:fast_unwind_on_malloc=0')
+    # All instrumented sources above retain frame pointers. Use ASan's fast
+    # allocation-stack unwinder: the slow unwinder made this allocation-heavy
+    # suite take over 80 minutes on Linux, without adding memory checks.
+    os.environ.setdefault('ASAN_OPTIONS', 'detect_leaks=1:fast_unwind_on_malloc=1')
     cluster_compare.BIN = output
     transport_failures.BIN = output
     # Exercise row and columnar shared graph indexes and live imported views,
