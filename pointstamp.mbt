@@ -73,9 +73,10 @@ pub impl[A : Timestamp, B : Timestamp] Timestamp for Product[A, B] with fn minim
 ///|
 /// A runtime-length product timestamp. Missing coordinates are Timestamp.minimum;
 /// construction removes trailing minimum coordinates and copies the input array.
+#derive(Eq, Debug)
 pub struct PointStamp[T] {
   priv vector : Array[T]
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn[T : Timestamp] PointStamp::PointStamp(
@@ -158,10 +159,11 @@ pub impl[T : Timestamp] Timestamp for PointStamp[T] with fn minimum() {
 ///|
 /// Truncate to retain coordinates (None retains all), then apply per-coordinate
 /// actions, extending missing coordinates from the timestamp minimum as needed.
+#derive(Eq, Debug)
 pub struct PointStampSummary[S] {
   priv retain : Int32?
   priv actions : Array[S]
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn[S] PointStampSummary::PointStampSummary(

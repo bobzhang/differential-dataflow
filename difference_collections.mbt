@@ -88,9 +88,10 @@ pub impl[A : Abelian, B : Abelian, C : Abelian, D : Abelian] Abelian for (
 ///|
 /// Immutable vector difference. Addition keeps the longer vector, treating missing
 /// suffix entries as identities. Trailing zeros need not have a canonical length.
+#derive(Eq, Compare, Debug)
 pub struct VectorDiff[R] {
   priv values : Array[R]
-} derive(Eq, Compare, Debug)
+}
 
 ///|
 pub fn[R] VectorDiff::VectorDiff(values : Array[R]) -> VectorDiff[R] {

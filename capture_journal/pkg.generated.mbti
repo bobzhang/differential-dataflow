@@ -9,9 +9,10 @@ import {
 // Values
 
 // Errors
+#derive(@debug.Debug)
 pub suberror JournalError {
   JournalError(String)
-} derive(@debug.Debug)
+}
 pub fn JournalError::to_repr(Self) -> @debug.Repr
 
 // Types and methods
@@ -20,9 +21,9 @@ pub struct CaptureJournal {
 }
 pub fn[D, T, R] CaptureJournal::append(Self, @differential.CaptureMessage[D, T, R], @differential.WireCodec[@differential.CaptureMessage[D, T, R]]) -> Unit raise JournalError
 pub fn CaptureJournal::close(Self) -> Unit raise JournalError
-pub fn CaptureJournal::create(String, max_frame_bytes? : Int) -> Self raise JournalError
+pub fn CaptureJournal::create(String, max_frame_bytes? : Int32) -> Self raise JournalError
 pub fn[D, T, R] CaptureJournal::next(Self, @differential.WireCodec[@differential.CaptureMessage[D, T, R]]) -> @differential.CaptureMessage[D, T, R]? raise JournalError
-pub fn CaptureJournal::open(String, max_frame_bytes? : Int) -> Self raise JournalError
+pub fn CaptureJournal::open(String, max_frame_bytes? : Int32) -> Self raise JournalError
 
 type JournalHandle
 

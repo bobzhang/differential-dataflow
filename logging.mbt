@@ -109,52 +109,59 @@ pub fn[E] LogRegistry::flush(self : LogRegistry[E]) -> Unit {
 }
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct BatchEvent {
   operator : Int32
   length : Int32
-} derive(Eq, Debug)
+}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct MergeEvent {
   operator : Int32
   scale : Int32
   length1 : Int32
   length2 : Int32
   complete : Int32?
-} derive(Eq, Debug)
+}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct DropEvent {
   operator : Int32
   length : Int32
-} derive(Eq, Debug)
+}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct MergeShortfall {
   operator : Int32
   scale : Int32
   shortfall : Int32
-} derive(Eq, Debug)
+}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct TraceShare {
   operator : Int32
   diff : Int32
-} derive(Eq, Debug)
+}
 
 ///|
 /// Record deltas are exact. Byte/capacity/allocation deltas are optional because
 /// managed backends do not expose allocator accounting. None means unavailable,
 /// never zero bytes. Custom storage can emit measurements in these fields.
+#derive(Eq, Debug)
 pub(all) struct BatcherEvent {
   operator : Int32
   records_diff : Int32
   size_diff : Int64?
   capacity_diff : Int64?
   allocations_diff : Int64?
-} derive(Eq, Debug)
+}
 
 ///|
+#derive(Eq, Debug)
 pub(all) enum DifferentialEvent {
   BatchCreated(BatchEvent)
   MergeProgress(MergeEvent)
@@ -162,7 +169,7 @@ pub(all) enum DifferentialEvent {
   MergeShortfall(MergeShortfall)
   TraceShare(TraceShare)
   BatcherSize(BatcherEvent)
-} derive(Eq, Debug)
+}
 
 ///|
 /// Bind trace diagnostics to a worker-local operator identity.
