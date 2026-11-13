@@ -61,9 +61,10 @@ pub impl Ring for Int128 with fn multiply(self, other) {
 /// Explicit wrapping signed difference adapter. MoonBit integer difference
 /// arithmetic already wraps on every backend; this preserves that behavior while
 /// giving translated Rust Wrapping<T> programs a distinct public type.
+#derive(Eq, Compare, Debug, Hash)
 pub struct Wrapping[R] {
   priv inner : R
-} derive(Eq, Compare, Debug, Hash)
+}
 
 ///|
 pub fn[R] Wrapping::Wrapping(value : R) -> Wrapping[R] {

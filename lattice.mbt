@@ -32,10 +32,11 @@ pub impl Lattice for Int64 with fn meet(self, other) {
 
 ///|
 /// Product partial order; its Compare implementation is lexicographic.
+#derive(Eq, Compare, Debug)
 pub(all) struct Product[A, B] {
   outer : A
   inner : B
-} derive(Eq, Compare, Debug)
+}
 
 ///|
 pub fn[A, B] Product::Product(outer : A, inner : B) -> Product[A, B] {

@@ -2,9 +2,10 @@
 /// The min-plus semigroup used by upstream monoid-bfs.rs: accumulation keeps the
 /// shorter distance and joining paths adds their lengths. There is no zero or
 /// subtraction. This example accepts edge additions and decreasing weights.
+#derive(Eq, Compare, Debug)
 pub(all) struct MinSum {
   value : UInt32
-} derive(Eq, Compare, Debug)
+}
 
 ///|
 pub fn MinSum::MinSum(value : UInt32) -> MinSum {

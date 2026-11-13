@@ -7,22 +7,23 @@ import {
 }
 
 // Values
-pub fn[T : @differential.Lattice] degree_histogram(@differential.Collection[(Int, Int), T, Int64]) -> @differential.Collection[(Int64, Int64), T, Int64]
+pub fn[T : @differential.Lattice] degree_histogram(@differential.Collection[(Int32, Int32), T, Int64]) -> @differential.Collection[(Int64, Int64), T, Int64]
 
-pub fn monoid_bfs(@differential.Scope[Int64, Int64], @differential.Collection[(Int, Int), Int64, MinSum], @differential.Collection[Int, Int64, MinSum]) -> @differential.Collection[Int, Int64, MinSum]
+pub fn monoid_bfs(@differential.Scope[Int64, Int64], @differential.Collection[(Int32, Int32), Int64, MinSum], @differential.Collection[Int32, Int64, MinSum]) -> @differential.Collection[Int32, Int64, MinSum]
 
-pub fn pagerank(@differential.Scope[Int64, Int64], @differential.Collection[(Int, Int), Int64, Int64], iterations? : Int64) -> @differential.Collection[Int, Int64, Int64]
+pub fn pagerank(@differential.Scope[Int64, Int64], @differential.Collection[(Int32, Int32), Int64, Int64], iterations? : Int64) -> @differential.Collection[Int32, Int64, Int64]
 
-pub fn[T : @differential.Lattice] recommendations(@differential.Collection[(Int, Int), T, Int64], max_interactions? : Int64) -> @differential.Collection[((Int, Int), (Int64, Int64)), T, Int64]
+pub fn[T : @differential.Lattice] recommendations(@differential.Collection[(Int32, Int32), T, Int64], max_interactions? : Int64) -> @differential.Collection[((Int32, Int32), (Int64, Int64)), T, Int64]
 
 // Errors
 
 // Types and methods
+#derive(Compare, Eq, @debug.Debug)
 pub(all) struct MinSum {
-  value : UInt
-} derive(Compare, Eq, @debug.Debug)
-pub fn MinSum::MinSum(UInt) -> Self
-pub fn MinSum::compare(Self, Self) -> Int
+  value : UInt32
+}
+pub fn MinSum::MinSum(UInt32) -> Self
+pub fn MinSum::compare(Self, Self) -> Int32
 pub fn MinSum::equal(Self, Self) -> Bool
 pub fn MinSum::is_zero(Self) -> Bool
 pub fn MinSum::multiply(Self, Self) -> Self

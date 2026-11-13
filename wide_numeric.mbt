@@ -14,9 +14,10 @@ let word_mask : @bigint.BigInt = (@bigint.BigInt::from_int(1) << 64) -
 ///|
 /// Fixed-width signed 128-bit integer. Difference arithmetic wraps modulo
 /// 2^128; timestamp summary arithmetic detects overflow. Storage uses core BigInt.
+#derive(Eq, Compare, Debug, Hash)
 pub struct Int128 {
   priv value : @bigint.BigInt
-} derive(Eq, Compare, Debug, Hash)
+}
 
 ///|
 pub fn Int128::Int128(value : Int64) -> Int128 {
@@ -148,9 +149,10 @@ pub fn SummaryDomain::int128() -> SummaryDomain[Int128, Int128] {
 ///|
 /// Fixed-width unsigned 128-bit integer. Difference arithmetic wraps modulo
 /// 2^128; timestamp summary arithmetic detects overflow. Storage uses core BigInt.
+#derive(Eq, Compare, Debug, Hash)
 pub struct UInt128 {
   priv value : @bigint.BigInt
-} derive(Eq, Compare, Debug, Hash)
+}
 
 ///|
 pub fn UInt128::UInt128(value : UInt64) -> UInt128 {

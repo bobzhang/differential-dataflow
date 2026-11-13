@@ -1,9 +1,10 @@
 ///|
 /// Signed 8-bit integer. Construction and difference arithmetic wrap modulo 256;
 /// timestamp advancement uses checked addition instead.
+#derive(Eq, Compare, Debug, Hash)
 pub struct Int8 {
   priv value : Int32
-} derive(Eq, Compare, Debug, Hash)
+}
 
 ///|
 pub fn Int8::Int8(value : Int32) -> Int8 {

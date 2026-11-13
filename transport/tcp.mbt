@@ -32,9 +32,10 @@ extern "c" fn socket_send(socket : Socket, bytes : Bytes) -> Int32 = "dd_tcp_sen
 extern "c" fn socket_receive(socket : Socket) -> Bytes = "dd_tcp_receive"
 
 ///|
+#derive(Debug)
 pub suberror TransportError {
   TransportError(String)
-} derive(Debug)
+}
 
 ///|
 pub extend TransportError with Debug::{to_repr}

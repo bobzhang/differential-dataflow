@@ -1,8 +1,9 @@
 ///|
 /// MoonBit counterpart of Rust's one-element difference tuple `(R,)`.
+#derive(Eq, Compare, Debug, Hash)
 pub struct SingletonDiff[R] {
   priv inner : R
-} derive(Eq, Compare, Debug, Hash)
+}
 
 ///|
 pub fn[R] SingletonDiff::SingletonDiff(value : R) -> SingletonDiff[R] {

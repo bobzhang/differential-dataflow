@@ -32,9 +32,10 @@ pub fn[D, T : Lattice, R] shared_spine(T, logger? : TraceLogger) -> (TraceWriter
 pub fn[D, T : Lattice, R] shared_trace(T, logger? : TraceLogger) -> (TraceWriter[D, T, R], TraceAgent[D, T, R])
 
 // Errors
+#derive(@debug.Debug)
 pub suberror ClusterError {
   ClusterError(String)
-} derive(@debug.Debug)
+}
 pub fn ClusterError::to_repr(Self) -> @debug.Repr
 
 // Types and methods
@@ -66,8 +67,8 @@ pub fn[K, V, T, R] Arranged::as_collection(Self[K, V, T, R]) -> Collection[(K, V
 pub fn[K : Compare, V : Compare, A : Lattice, B : Lattice, R : Semigroup, S, U] Arranged::enter(Self[K, V, A, R], NestedScope[A, B, S, U]) -> ArrangementView[K, V, Product[A, B], R]
 pub fn[K : Compare, V : Compare, A : Lattice, B : Lattice, R : Semigroup, S, U] Arranged::enter_at(Self[K, V, A, R], NestedScope[A, B, S, U], ((K, V), A) -> B, (Product[A, B]) -> A) -> ArrangementView[K, V, Product[A, B], R]
 pub fn[K : Compare, V : Compare, A : Lattice, B : Lattice, R : Semigroup, S, U] Arranged::enter_refined(Self[K, V, A, R], RefinedScope[A, B, S, U]) -> ArrangementView[K, V, B, R]
-pub fn[K : Compare, V : Compare, W : Compare, T : Lattice] Arranged::join(Self[K, V, T, Int64], Self[K, W, T, Int64], fuel? : Int) -> Collection[(K, (V, W)), T, Int64]
-pub fn[K : Compare, V : Compare, W : Compare, D, T : Lattice, R : Semigroup, S : Semigroup, O] Arranged::join_map(Self[K, V, T, R], Self[K, W, T, S], (K, V, W) -> D, multiply~ : (R, S) -> O, fuel? : Int) -> Collection[D, T, O]
+pub fn[K : Compare, V : Compare, W : Compare, T : Lattice] Arranged::join(Self[K, V, T, Int64], Self[K, W, T, Int64], fuel? : Int32) -> Collection[(K, (V, W)), T, Int64]
+pub fn[K : Compare, V : Compare, W : Compare, D, T : Lattice, R : Semigroup, S : Semigroup, O] Arranged::join_map(Self[K, V, T, R], Self[K, W, T, S], (K, V, W) -> D, multiply~ : (R, S) -> O, fuel? : Int32) -> Collection[D, T, O]
 pub fn[K : Compare + Hash, V : Compare, W : Compare, T : Lattice, R : Semigroup, S : Abelian] Arranged::reduce(Self[K, V, T, R], (K, Array[(V, R)]) -> Array[(W, S)]) -> Collection[(K, W), T, S]
 pub fn[K : Compare + Hash, V : Compare, W : Compare, T : Lattice, R : Semigroup, S : Abelian] Arranged::reduce_arranged(Self[K, V, T, R], (K, Array[(V, R)]) -> Array[(W, S)]) -> Self[K, W, T, S]
 pub fn[K : Compare + Hash, V : Compare, W : Compare, T : Lattice, R : Semigroup, S : Semigroup] Arranged::reduce_core(Self[K, V, T, R], (K, Array[(V, R)], Array[(W, S)]) -> Array[(W, S)]) -> Self[K, W, T, S]
@@ -82,8 +83,8 @@ pub fn[K, V, T, R] ArrangementView::as_collection(Self[K, V, T, R]) -> Collectio
 pub fn[K, V, A : Lattice, B : Lattice, R, S, U] ArrangementView::enter(Self[K, V, A, R], NestedScope[A, B, S, U]) -> Self[K, V, Product[A, B], R]
 pub fn[K, V, A : Lattice, B : Lattice, R, S, U] ArrangementView::enter_at(Self[K, V, A, R], NestedScope[A, B, S, U], ((K, V), A) -> B, (Product[A, B]) -> A) -> Self[K, V, Product[A, B], R]
 pub fn[K, V, A : Lattice, B : Lattice, R, S, U] ArrangementView::enter_refined(Self[K, V, A, R], RefinedScope[A, B, S, U]) -> Self[K, V, B, R]
-pub fn[K : Compare, V, W, T : Lattice] ArrangementView::join(Self[K, V, T, Int64], Self[K, W, T, Int64], fuel? : Int) -> Collection[(K, (V, W)), T, Int64]
-pub fn[K : Compare, V, W, D, T : Lattice, R, S, O] ArrangementView::join_map(Self[K, V, T, R], Self[K, W, T, S], (K, V, W) -> D, multiply~ : (R, S) -> O, fuel? : Int) -> Collection[D, T, O]
+pub fn[K : Compare, V, W, T : Lattice] ArrangementView::join(Self[K, V, T, Int64], Self[K, W, T, Int64], fuel? : Int32) -> Collection[(K, (V, W)), T, Int64]
+pub fn[K : Compare, V, W, D, T : Lattice, R, S, O] ArrangementView::join_map(Self[K, V, T, R], Self[K, W, T, S], (K, V, W) -> D, multiply~ : (R, S) -> O, fuel? : Int32) -> Collection[D, T, O]
 pub fn[K : Compare + Hash, V : Compare, W : Compare, T : Lattice, R : Semigroup, S : Abelian] ArrangementView::reduce(Self[K, V, T, R], (K, Array[(V, R)]) -> Array[(W, S)]) -> Collection[(K, W), T, S]
 pub fn[K : Compare + Hash, V : Compare, W : Compare, T : Lattice, R : Semigroup, S : Abelian] ArrangementView::reduce_arranged(Self[K, V, T, R], (K, Array[(V, R)]) -> Array[(W, S)]) -> Arranged[K, W, T, S]
 pub fn[K : Compare + Hash, V : Compare, W : Compare, T : Lattice, R : Semigroup, S : Semigroup] ArrangementView::reduce_core(Self[K, V, T, R], (K, Array[(V, R)], Array[(W, S)]) -> Array[(W, S)]) -> Arranged[K, W, T, S]
@@ -106,7 +107,7 @@ pub fn[D, T, R] Batch::description(Self[D, T, R]) -> Description[T]
 pub fn[D, T : Lattice, R] Batch::empty(lower~ : Antichain[T], upper~ : Antichain[T]) -> Self[D, T, R]
 pub fn[K : Compare, V, T, R] Batch::for_key(Self[(K, V), T, R], K, (V, T, R) -> Unit) -> Unit
 pub fn[D, T, R] Batch::is_empty(Self[D, T, R]) -> Bool
-pub fn[D, T, R] Batch::length(Self[D, T, R]) -> Int
+pub fn[D, T, R] Batch::length(Self[D, T, R]) -> Int32
 pub fn[D : Compare, T : Lattice, R : Semigroup] Batch::merge(Self[D, T, R], Self[D, T, R], Antichain[T]) -> Self[D, T, R]
 pub fn[D, T, R] Batch::spill(Self[D, T, R], SpillPolicy[D, T, R]) -> Self[D, T, R]
 pub fn[D, T, R] Batch::to_array(Self[D, T, R]) -> Array[(D, T, R)]
@@ -115,15 +116,16 @@ pub fn[D, T, R] Batch::view(Self[D, T, R]) -> BatchView[D, T, R]
 pub struct BatchBuilder[D, T, R] {
   // private fields
 }
-pub fn[D, T, R] BatchBuilder::BatchBuilder(capacity? : Int) -> Self[D, T, R]
+pub fn[D, T, R] BatchBuilder::BatchBuilder(capacity? : Int32) -> Self[D, T, R]
 pub fn[D, T, R] BatchBuilder::done(Self[D, T, R], Description[T]) -> Batch[D, T, R]
 pub fn[D : Compare, T : Compare, R : Semigroup] BatchBuilder::push(Self[D, T, R], Array[(D, T, R)]) -> Unit
 pub fn[D : Compare, T : Compare, R : Semigroup] BatchBuilder::seal(Array[Array[(D, T, R)]], Description[T]) -> Batch[D, T, R]
 
+#derive(Eq, @debug.Debug)
 pub(all) struct BatchEvent {
-  operator : Int
-  length : Int
-} derive(Eq, @debug.Debug)
+  operator : Int32
+  length : Int32
+}
 pub fn BatchEvent::equal(Self, Self) -> Bool
 pub fn BatchEvent::not_equal(Self, Self) -> Bool
 pub fn BatchEvent::to_repr(Self) -> @debug.Repr
@@ -134,20 +136,20 @@ pub struct BatchMerger[D, T, R] {
 pub fn[D, T : Lattice, R] BatchMerger::BatchMerger(Batch[D, T, R], Batch[D, T, R], Antichain[T]) -> Self[D, T, R]
 pub fn[D, T, R] BatchMerger::done(Self[D, T, R]) -> Batch[D, T, R]
 pub fn[D, T, R] BatchMerger::is_complete(Self[D, T, R]) -> Bool
-pub fn[D : Compare, T : Lattice, R : Semigroup] BatchMerger::work(Self[D, T, R], Int) -> Int
+pub fn[D : Compare, T : Lattice, R : Semigroup] BatchMerger::work(Self[D, T, R], Int32) -> Int32
 
 pub struct BatchView[D, T, R] {
   // private fields
 }
-pub fn[D, T, R] BatchView::BatchView(Int, Description[T], read~ : (Int) -> (D, T, R)) -> Self[D, T, R]
+pub fn[D, T, R] BatchView::BatchView(Int32, Description[T], read~ : (Int32) -> (D, T, R)) -> Self[D, T, R]
 pub fn[K : Compare, V : Compare, T, R] BatchView::cursor(Self[(K, V), T, R]) -> Cursor[K, V, T, R]
 pub fn[D, T, R] BatchView::description(Self[D, T, R]) -> Description[T]
 pub fn[D, T, R] BatchView::for_each(Self[D, T, R], (D, T, R) -> Unit) -> Unit
 pub fn[K : Compare, V, T, R] BatchView::for_key(Self[(K, V), T, R], K, (V, T, R) -> Unit) -> Unit
 pub fn[D, T : Lattice, R] BatchView::frontier(Self[D, T, R], Antichain[T], Antichain[T]) -> Self[D, T, R]
-pub fn[D, T, R] BatchView::get(Self[D, T, R], Int) -> (D, T, R)?
+pub fn[D, T, R] BatchView::get(Self[D, T, R], Int32) -> (D, T, R)?
 pub fn[D, T, R] BatchView::is_empty(Self[D, T, R]) -> Bool
-pub fn[D, T, R] BatchView::length(Self[D, T, R]) -> Int
+pub fn[D, T, R] BatchView::length(Self[D, T, R]) -> Int32
 pub fn[D, T, U : Lattice, R] BatchView::map_times(Self[D, T, R], (T) -> U) -> Self[D, U, R]
 pub fn[D, T, U : Lattice, R] BatchView::map_times_at(Self[D, T, R], (T) -> U, (D, T) -> U) -> Self[D, U, R]
 pub fn[D, T, R] BatchView::to_array(Self[D, T, R]) -> Array[(D, T, R)]
@@ -161,13 +163,14 @@ pub fn[D, T : Lattice, R] Batcher::frontier(Self[D, T, R]) -> Antichain[T]
 pub fn[D : Compare, T : Lattice, R : Semigroup] Batcher::push(Self[D, T, R], Array[(D, T, R)]) -> Unit
 pub fn[D : Compare, T : Lattice, R : Semigroup] Batcher::seal(Self[D, T, R], Antichain[T]) -> (Array[Array[(D, T, R)]], Description[T])
 
+#derive(Eq, @debug.Debug)
 pub(all) struct BatcherEvent {
-  operator : Int
-  records_diff : Int
+  operator : Int32
+  records_diff : Int32
   size_diff : Int64?
   capacity_diff : Int64?
   allocations_diff : Int64?
-} derive(Eq, @debug.Debug)
+}
 pub fn BatcherEvent::equal(Self, Self) -> Bool
 pub fn BatcherEvent::not_equal(Self, Self) -> Bool
 pub fn BatcherEvent::to_repr(Self) -> @debug.Repr
@@ -195,7 +198,7 @@ pub fn[T : Lattice, S] Capability::release(Self[T, S]) -> Unit
 pub fn[T, S] Capability::time(Self[T, S]) -> T
 pub fn[T : Lattice, S] Capability::try_delayed(Self[T, S], T) -> Self[T, S]?
 pub fn[T : Lattice, S] Capability::try_downgrade(Self[T, S], T) -> Bool
-pub fn[T, S] Capability::valid_for(Self[T, S], ProgressTracker[T, S], Int) -> Bool
+pub fn[T, S] Capability::valid_for(Self[T, S], ProgressTracker[T, S], Int32) -> Bool
 
 pub struct CapabilitySet[T, S] {
   // private fields
@@ -246,11 +249,12 @@ pub fn[T : Compare] ChangeBatch::to_array(Self[T]) -> Array[(T, Int64)]
 pub fn[T : Compare] ChangeBatch::update(Self[T], T, Int64) -> Unit
 pub fn[T : Compare] ChangeBatch::update_all(Self[T], Array[(T, Int64)]) -> Unit
 
+#derive(Eq, @debug.Debug)
 pub(all) enum ClusterPoll {
   Pending
   Progress
   Quiescent
-} derive(Eq, @debug.Debug)
+}
 pub fn ClusterPoll::equal(Self, Self) -> Bool
 pub fn ClusterPoll::not_equal(Self, Self) -> Bool
 pub fn ClusterPoll::to_repr(Self) -> @debug.Repr
@@ -258,15 +262,15 @@ pub fn ClusterPoll::to_repr(Self) -> @debug.Repr
 pub struct ClusterWorker {
   // private fields
 }
-pub fn ClusterWorker::ClusterWorker(Int, Int, exchange? : (String) -> Array[String] raise, async_exchange? : AsyncExchange) -> Self
+pub fn ClusterWorker::ClusterWorker(Int32, Int32, exchange? : (String) -> Array[String] raise, async_exchange? : AsyncExchange) -> Self
 pub fn ClusterWorker::dispose(Self) -> Unit
-pub fn ClusterWorker::drop_dataflow(Self, Int) -> Unit
-pub fn ClusterWorker::index(Self) -> Int
-pub fn ClusterWorker::installed_dataflows(Self) -> Array[Int]
-pub fn ClusterWorker::next_dataflow_index(Self) -> Int
-pub fn ClusterWorker::peers(Self) -> Int
+pub fn ClusterWorker::drop_dataflow(Self, Int32) -> Unit
+pub fn ClusterWorker::index(Self) -> Int32
+pub fn ClusterWorker::installed_dataflows(Self) -> Array[Int32]
+pub fn ClusterWorker::next_dataflow_index(Self) -> Int32
+pub fn ClusterWorker::peers(Self) -> Int32
 pub fn ClusterWorker::poll(Self) -> ClusterPoll raise
-pub fn ClusterWorker::run(Self, max_rounds? : Int) -> RunResult raise
+pub fn ClusterWorker::run(Self, max_rounds? : Int32) -> RunResult raise
 pub fn[T : Lattice, S : Compare] ClusterWorker::scope(Self, T, SummaryDomain[T, S], time_codec~ : WireCodec[T], summary_codec~ : WireCodec[S]) -> DistributedScope[T, S]
 
 pub struct Collection[D, T, R] {
@@ -287,7 +291,7 @@ pub fn[D : Compare, T : Lattice, R : Semigroup] Collection::consolidate_stream(S
 pub fn[D : Compare + Hash, T : Lattice, R : Semigroup + Compare] Collection::count(Self[D, T, R]) -> Self[(D, R), T, Int64]
 pub fn[D, T : Lattice, R] Collection::delay(Self[D, T, R], (T) -> T) -> Self[D, T, R]
 pub fn[D : Compare + Hash, T : Lattice, R : Semigroup] Collection::distinct(Self[D, T, R]) -> Self[D, T, Int64]
-pub fn[D, A, B, R] Collection::enter_dynamic(Self[D, Product[A, PointStamp[B]], R], Int) -> Self[D, Product[A, PointStamp[B]], R]
+pub fn[D, A, B, R] Collection::enter_dynamic(Self[D, Product[A, PointStamp[B]], R], Int32) -> Self[D, Product[A, PointStamp[B]], R]
 pub fn[D, E, T : Lattice, R, S] Collection::explode(Self[D, T, R], (D) -> Array[(E, (R) -> S)]) -> Self[E, T, S]
 pub fn[D, T : Lattice, R] Collection::filter(Self[D, T, R], (D) -> Bool) -> Self[D, T, R]
 pub fn[D, E, T : Lattice, R] Collection::flat_map(Self[D, T, R], (D) -> Array[E]) -> Self[E, T, R]
@@ -316,14 +320,14 @@ pub(all) enum CollectionEvent[D, T, R] {
 pub struct ColumnCodec[A] {
   // private fields
 }
-pub fn[A] ColumnCodec::ColumnCodec(slices~ : Int, encode~ : (Array[A]) -> Array[Bytes], decode~ : (Array[BytesView], Int) -> Array[A]?) -> Self[A]
+pub fn[A] ColumnCodec::ColumnCodec(slices~ : Int32, encode~ : (Array[A]) -> Array[Bytes], decode~ : (Array[BytesView], Int32) -> Array[A]?) -> Self[A]
 pub fn ColumnCodec::bool() -> Self[Bool]
 pub fn ColumnCodec::byte() -> Self[Byte]
 pub fn ColumnCodec::bytes() -> Self[Bytes]
 pub fn ColumnCodec::double() -> Self[Double]
 pub fn ColumnCodec::duration() -> Self[Duration]
 pub fn ColumnCodec::int16() -> Self[Int16]
-pub fn ColumnCodec::int32() -> Self[Int]
+pub fn ColumnCodec::int32() -> Self[Int32]
 pub fn ColumnCodec::int64() -> Self[Int64]
 pub fn ColumnCodec::int8() -> Self[Int8]
 pub fn[A, B] ColumnCodec::map(Self[A], (B) -> A, (A) -> B?) -> Self[B]
@@ -331,7 +335,7 @@ pub fn[A, B] ColumnCodec::pair(Self[A], Self[B]) -> Self[(A, B)]
 pub fn[A, B] ColumnCodec::product(Self[A], Self[B]) -> Self[Product[A, B]]
 pub fn ColumnCodec::string() -> Self[String]
 pub fn ColumnCodec::uint16() -> Self[UInt16]
-pub fn ColumnCodec::uint32() -> Self[UInt]
+pub fn ColumnCodec::uint32() -> Self[UInt32]
 pub fn ColumnCodec::uint64() -> Self[UInt64]
 pub fn ColumnCodec::unit() -> Self[Unit]
 pub fn[A] ColumnCodec::vector(Self[A]) -> Self[Array[A]]
@@ -339,13 +343,13 @@ pub fn[A] ColumnCodec::vector(Self[A]) -> Self[Array[A]]
 pub struct ColumnLists[A] {
   // private fields
 }
-pub fn[A] ColumnLists::ColumnLists(Array[A], Array[Int]) -> Self[A]
-pub fn[A] ColumnLists::bounds(Self[A], Int) -> (Int, Int)
-pub fn[A] ColumnLists::get(Self[A], Int) -> A
-pub fn[A] ColumnLists::length(Self[A]) -> Int
-pub fn[A] ColumnLists::offsets(Self[A]) -> Array[Int]
+pub fn[A] ColumnLists::ColumnLists(Array[A], Array[Int32]) -> Self[A]
+pub fn[A] ColumnLists::bounds(Self[A], Int32) -> (Int32, Int32)
+pub fn[A] ColumnLists::get(Self[A], Int32) -> A
+pub fn[A] ColumnLists::length(Self[A]) -> Int32
+pub fn[A] ColumnLists::offsets(Self[A]) -> Array[Int32]
 pub fn[A] ColumnLists::retain_items(Self[A], Array[Bool]) -> (Self[A], Array[Bool])
-pub fn[A] ColumnLists::value_count(Self[A]) -> Int
+pub fn[A] ColumnLists::value_count(Self[A]) -> Int32
 pub fn[A] ColumnLists::values(Self[A]) -> Array[A]
 
 pub struct ColumnarBatch[K, V, T, R] {
@@ -353,16 +357,16 @@ pub struct ColumnarBatch[K, V, T, R] {
 }
 pub fn[K : Compare, V : Compare, T : Lattice, R : Semigroup] ColumnarBatch::ColumnarBatch(Array[((K, V), T, R)], lower~ : Antichain[T], upper~ : Antichain[T]) -> Self[K, V, T, R]
 pub fn[K : Eq, V : Eq, T, R] ColumnarBatch::batch(Self[K, V, T, R]) -> Batch[(K, V), T, R]
-pub fn[K, V, T, R] ColumnarBatch::storage_counts(Self[K, V, T, R]) -> (Int, Int, Int)
+pub fn[K, V, T, R] ColumnarBatch::storage_counts(Self[K, V, T, R]) -> (Int32, Int32, Int32)
 pub fn[K, V, T, R] ColumnarBatch::updates(Self[K, V, T, R]) -> UpdatesTyped[K, V, T, R]
 
 pub struct ColumnarCodec[K, V, T, R] {
   // private fields
 }
 pub fn[K, V, T, R] ColumnarCodec::ColumnarCodec(ColumnCodec[K], ColumnCodec[V], ColumnCodec[T], ColumnCodec[R]) -> Self[K, V, T, R]
-pub fn[K, V, T, R] ColumnarCodec::decode(Self[K, V, T, R], BytesView, max_values? : Int) -> UpdatesTyped[K, V, T, R]?
+pub fn[K, V, T, R] ColumnarCodec::decode(Self[K, V, T, R], BytesView, max_values? : Int32) -> UpdatesTyped[K, V, T, R]?
 pub fn[K, V, T, R] ColumnarCodec::encode(Self[K, V, T, R], UpdatesTyped[K, V, T, R]) -> Bytes
-pub fn[K : Compare, V : Compare, T : Compare, R : Semigroup] ColumnarCodec::spill_policy(Self[K, V, T, R], Int64, store~ : BytesStore, chunk_size? : Int) -> SpillPolicy[(K, V), T, R]
+pub fn[K : Compare, V : Compare, T : Compare, R : Semigroup] ColumnarCodec::spill_policy(Self[K, V, T, R], Int64, store~ : BytesStore, chunk_size? : Int32) -> SpillPolicy[(K, V), T, R]
 
 pub struct Cursor[K, V, T, R] {
   // private fields
@@ -389,6 +393,7 @@ pub fn[T : Lattice] Description::lower(Self[T]) -> Antichain[T]
 pub fn[T : Lattice] Description::since(Self[T]) -> Antichain[T]
 pub fn[T : Lattice] Description::upper(Self[T]) -> Antichain[T]
 
+#derive(Eq, @debug.Debug)
 pub(all) enum DifferentialEvent {
   BatchCreated(BatchEvent)
   MergeProgress(MergeEvent)
@@ -396,7 +401,7 @@ pub(all) enum DifferentialEvent {
   MergeShortfall(MergeShortfall)
   TraceShare(TraceShare)
   BatcherSize(BatcherEvent)
-} derive(Eq, @debug.Debug)
+}
 pub fn DifferentialEvent::equal(Self, Self) -> Bool
 pub fn DifferentialEvent::not_equal(Self, Self) -> Bool
 pub fn DifferentialEvent::to_repr(Self) -> @debug.Repr
@@ -411,36 +416,38 @@ pub fn[A, B, S, U] DistributedNestedScope::scope(Self[A, B, S, U]) -> Distribute
 pub struct DistributedScope[T, S] {
   // private fields
 }
-pub fn[T, S] DistributedScope::dataflow_index(Self[T, S]) -> Int
+pub fn[T, S] DistributedScope::dataflow_index(Self[T, S]) -> Int32
 pub fn[D, T : Lattice, R, S] DistributedScope::exchange(Self[T, S], Collection[D, T, R], (D) -> UInt64, data_codec~ : WireCodec[D], time_codec~ : WireCodec[T], diff_codec~ : WireCodec[R]) -> Collection[D, T, R]
 pub fn[D, T : Lattice, R, S] DistributedScope::input(Self[T, S]) -> (InputSession[D, T, R], Collection[D, T, R])
 pub fn[D, T : Lattice, R : Abelian, S : Compare] DistributedScope::iterate(Self[T, S], Collection[D, T, R], (Self[Product[T, Int64], Product[S, Int64]], Collection[D, Product[T, Int64], R]) -> Collection[D, Product[T, Int64], R]) -> Collection[D, T, R]
 pub fn[A : Lattice, B : Lattice, S : Compare, U : Compare] DistributedScope::nested(Self[A, S], B, SummaryDomain[B, U], time_codec~ : WireCodec[B], summary_codec~ : WireCodec[U]) -> DistributedNestedScope[A, B, S, U]
-pub fn[D : Compare, T : Lattice, R : Compare, S] DistributedScope::replay_from(Self[T, S], (Activator) -> () -> CaptureMessage[D, T, R]?, codec~ : WireCodec[CaptureMessage[D, T, R]], hash~ : (D) -> UInt64, time_hash? : (T) -> UInt64, messages_per_turn? : Int) -> (CaptureHandle, Collection[D, T, R])
+pub fn[D : Compare, T : Lattice, R : Compare, S] DistributedScope::replay_from(Self[T, S], (Activator) -> () -> CaptureMessage[D, T, R]?, codec~ : WireCodec[CaptureMessage[D, T, R]], hash~ : (D) -> UInt64, time_hash? : (T) -> UInt64, messages_per_turn? : Int32) -> (CaptureHandle, Collection[D, T, R])
 pub fn[T, S] DistributedScope::scope(Self[T, S]) -> Scope[T, S]
 
+#derive(Eq, @debug.Debug)
 pub(all) struct DropEvent {
-  operator : Int
-  length : Int
-} derive(Eq, @debug.Debug)
+  operator : Int32
+  length : Int32
+}
 pub fn DropEvent::equal(Self, Self) -> Bool
 pub fn DropEvent::not_equal(Self, Self) -> Bool
 pub fn DropEvent::to_repr(Self) -> @debug.Repr
 
+#derive(Compare, Eq, Hash, @debug.Debug)
 pub struct Duration {
   // private fields
-} derive(Compare, Eq, Hash, @debug.Debug)
-pub fn Duration::Duration(UInt64, nanoseconds? : UInt) -> Self
+}
+pub fn Duration::Duration(UInt64, nanoseconds? : UInt32) -> Self
 pub fn Duration::checked_add(Self, Self) -> Self?
-pub fn Duration::compare(Self, Self) -> Int
+pub fn Duration::compare(Self, Self) -> Int32
 pub fn Duration::equal(Self, Self) -> Bool
-pub fn Duration::hash(Self) -> Int
+pub fn Duration::hash(Self) -> Int32
 pub fn Duration::hash_combine(Self, Hasher) -> Unit
 pub fn Duration::join(Self, Self) -> Self
 pub fn Duration::less_equal(Self, Self) -> Bool
 pub fn Duration::meet(Self, Self) -> Self
 pub fn Duration::minimum() -> Self
-pub fn Duration::nanoseconds(Self) -> UInt
+pub fn Duration::nanoseconds(Self) -> UInt32
 pub fn Duration::not_equal(Self, Self) -> Bool
 pub fn Duration::op_ge(Self, Self) -> Bool
 pub fn Duration::op_gt(Self, Self) -> Bool
@@ -464,7 +471,7 @@ pub fn FnvHasher::FnvHasher() -> Self
 pub fn FnvHasher::finish(Self) -> UInt64
 pub fn FnvHasher::write(Self, BytesView) -> Unit
 pub fn FnvHasher::write_byte(Self, Byte) -> Unit
-pub fn FnvHasher::write_word(Self, UInt64, Int) -> Unit
+pub fn FnvHasher::write_word(Self, UInt64, Int32) -> Unit
 
 pub struct InputCapability[T, S] {
   // private fields
@@ -476,7 +483,7 @@ pub fn[D, T : Lattice, R, S] InputCapability::try_delayed(Self[T, S], Output[D, 
 pub struct InputSession[D, T, R] {
   // private fields
 }
-pub fn[D, T : Lattice, R] InputSession::InputSession(T, deliver~ : (Array[(D, T, R)], Antichain[T]) -> Unit, buffer_limit? : Int) -> Self[D, T, R]
+pub fn[D, T : Lattice, R] InputSession::InputSession(T, deliver~ : (Array[(D, T, R)], Antichain[T]) -> Unit, buffer_limit? : Int32) -> Self[D, T, R]
 pub fn[D, T : Lattice, R] InputSession::advance_to(Self[D, T, R], T) -> Unit
 pub fn[D, T : Lattice, R] InputSession::close(Self[D, T, R]) -> Unit
 pub fn[D, T : Lattice, R] InputSession::flush(Self[D, T, R]) -> Unit
@@ -487,15 +494,16 @@ pub fn[D, T, R] InputSession::time(Self[D, T, R]) -> T
 pub fn[D, T : Lattice, R] InputSession::update(Self[D, T, R], D, R) -> Unit
 pub fn[D, T : Lattice, R] InputSession::update_at(Self[D, T, R], D, T, R) -> Unit
 
+#derive(Compare, Eq, Hash, @debug.Debug)
 pub struct Int128 {
   // private fields
-} derive(Compare, Eq, Hash, @debug.Debug)
+}
 pub fn Int128::Int128(Int64) -> Self
 pub fn Int128::checked_add(Self, Self) -> Self?
-pub fn Int128::compare(Self, Self) -> Int
+pub fn Int128::compare(Self, Self) -> Int32
 pub fn Int128::equal(Self, Self) -> Bool
 pub fn Int128::from_words(Int64, UInt64) -> Self
-pub fn Int128::hash(Self) -> Int
+pub fn Int128::hash(Self) -> Int32
 pub fn Int128::hash_combine(Self, Hasher) -> Unit
 pub fn Int128::hash_into(Self, FnvHasher) -> Unit
 pub fn Int128::is_zero(Self) -> Bool
@@ -526,14 +534,15 @@ pub impl Semigroup for Int128
 pub impl Timestamp for Int128
 pub impl TotalOrder for Int128
 
+#derive(Compare, Eq, Hash, @debug.Debug)
 pub struct Int8 {
   // private fields
-} derive(Compare, Eq, Hash, @debug.Debug)
-pub fn Int8::Int8(Int) -> Self
+}
+pub fn Int8::Int8(Int32) -> Self
 pub fn Int8::checked_add(Self, Self) -> Self?
-pub fn Int8::compare(Self, Self) -> Int
+pub fn Int8::compare(Self, Self) -> Int32
 pub fn Int8::equal(Self, Self) -> Bool
-pub fn Int8::hash(Self) -> Int
+pub fn Int8::hash(Self) -> Int32
 pub fn Int8::hash_combine(Self, Hasher) -> Unit
 pub fn Int8::hash_into(Self, FnvHasher) -> Unit
 pub fn Int8::is_zero(Self) -> Bool
@@ -550,7 +559,7 @@ pub fn Int8::op_gt(Self, Self) -> Bool
 pub fn Int8::op_le(Self, Self) -> Bool
 pub fn Int8::op_lt(Self, Self) -> Bool
 pub fn Int8::plus(Self, Self) -> Self
-pub fn Int8::to_int(Self) -> Int
+pub fn Int8::to_int(Self) -> Int32
 pub fn Int8::to_repr(Self) -> @debug.Repr
 pub fn Int8::zero() -> Self
 pub impl Abelian for Int8
@@ -574,28 +583,30 @@ pub fn[E] LogRegistry::remove(Self[E], String) -> Logger[E]?
 pub struct Logger[E] {
   // private fields
 }
-pub fn[E] Logger::Logger(clock~ : () -> Duration, publish~ : (Duration, Array[(Duration, E)]) -> Unit, capacity? : Int) -> Self[E]
+pub fn[E] Logger::Logger(clock~ : () -> Duration, publish~ : (Duration, Array[(Duration, E)]) -> Unit, capacity? : Int32) -> Self[E]
 pub fn[E] Logger::flush(Self[E]) -> Unit
 pub fn[E] Logger::log(Self[E], E) -> Unit
 pub fn[E] Logger::log_many(Self[E], Array[E]) -> Unit
-pub fn[E] Logger::pending(Self[E]) -> Int
+pub fn[E] Logger::pending(Self[E]) -> Int32
 
+#derive(Eq, @debug.Debug)
 pub(all) struct MergeEvent {
-  operator : Int
-  scale : Int
-  length1 : Int
-  length2 : Int
-  complete : Int?
-} derive(Eq, @debug.Debug)
+  operator : Int32
+  scale : Int32
+  length1 : Int32
+  length2 : Int32
+  complete : Int32?
+}
 pub fn MergeEvent::equal(Self, Self) -> Bool
 pub fn MergeEvent::not_equal(Self, Self) -> Bool
 pub fn MergeEvent::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct MergeShortfall {
-  operator : Int
-  scale : Int
-  shortfall : Int
-} derive(Eq, @debug.Debug)
+  operator : Int32
+  scale : Int32
+  shortfall : Int32
+}
 pub fn MergeShortfall::equal(Self, Self) -> Bool
 pub fn MergeShortfall::not_equal(Self, Self) -> Bool
 pub fn MergeShortfall::to_repr(Self) -> @debug.Repr
@@ -662,11 +673,12 @@ pub fn[D, T, R, S] Output::accepts(Self[D, T, R, S], Capability[T, S]) -> Bool
 pub fn[D, T : Lattice, R, S] Output::send(Self[D, T, R, S], Capability[T, S], Array[(D, R)]) -> Unit
 pub fn[D, T : Lattice, R, S] Output::send_at(Self[D, T, R, S], Capability[T, S], Array[(D, T, R)]) -> Unit
 
+#derive(Eq, @debug.Debug)
 pub struct PointStamp[T] {
   // private fields
-} derive(Eq, @debug.Debug)
+}
 pub fn[T : Timestamp] PointStamp::PointStamp(Array[T]) -> Self[T]
-pub fn[T : Compare] PointStamp::compare(Self[T], Self[T]) -> Int
+pub fn[T : Compare] PointStamp::compare(Self[T], Self[T]) -> Int32
 pub fn[T : Eq] PointStamp::equal(Self[T], Self[T]) -> Bool
 pub fn[T : Timestamp] PointStamp::join(Self[T], Self[T]) -> Self[T]
 pub fn[T : Timestamp] PointStamp::less_equal(Self[T], Self[T]) -> Bool
@@ -683,25 +695,27 @@ pub impl[T : Timestamp] Lattice for PointStamp[T]
 pub impl[T : Timestamp] Timestamp for PointStamp[T]
 pub impl[T : Compare] Compare for PointStamp[T]
 
+#derive(Eq, @debug.Debug)
 pub struct PointStampSummary[S] {
   // private fields
-} derive(Eq, @debug.Debug)
-pub fn[S] PointStampSummary::PointStampSummary(Array[S], retain? : Int) -> Self[S]
+}
+pub fn[S] PointStampSummary::PointStampSummary(Array[S], retain? : Int32) -> Self[S]
 pub fn[S] PointStampSummary::actions(Self[S]) -> Array[S]
-pub fn[S : Compare] PointStampSummary::compare(Self[S], Self[S]) -> Int
+pub fn[S : Compare] PointStampSummary::compare(Self[S], Self[S]) -> Int32
 pub fn[S : Eq] PointStampSummary::equal(Self[S], Self[S]) -> Bool
 pub fn[S : Eq] PointStampSummary::not_equal(Self[S], Self[S]) -> Bool
 pub fn[S : Compare] PointStampSummary::op_ge(Self[S], Self[S]) -> Bool
 pub fn[S : Compare] PointStampSummary::op_gt(Self[S], Self[S]) -> Bool
 pub fn[S : Compare] PointStampSummary::op_le(Self[S], Self[S]) -> Bool
 pub fn[S : Compare] PointStampSummary::op_lt(Self[S], Self[S]) -> Bool
-pub fn[S] PointStampSummary::retain(Self[S]) -> Int?
+pub fn[S] PointStampSummary::retain(Self[S]) -> Int32?
 pub fn[S : @debug.Debug] PointStampSummary::to_repr(Self[S]) -> @debug.Repr
 pub impl[S : Compare] Compare for PointStampSummary[S]
 
+#derive(Eq, @debug.Debug)
 pub(all) enum Present {
   Present
-} derive(Eq, @debug.Debug)
+}
 pub fn Present::equal(Self, Self) -> Bool
 pub fn Present::is_zero(Self) -> Bool
 pub fn[T] Present::multiply(Self, T) -> T
@@ -719,12 +733,13 @@ pub fn[T : Lattice] Probe::frontier(Self[T]) -> Antichain[T]
 pub fn[T : Lattice] Probe::less_equal(Self[T], T) -> Bool
 pub fn[T : Lattice] Probe::less_than(Self[T], T) -> Bool
 
+#derive(Compare, Eq, @debug.Debug)
 pub(all) struct Product[A, B] {
   outer : A
   inner : B
-} derive(Compare, Eq, @debug.Debug)
+}
 pub fn[A, B] Product::Product(A, B) -> Self[A, B]
-pub fn[A : Compare, B : Compare] Product::compare(Self[A, B], Self[A, B]) -> Int
+pub fn[A : Compare, B : Compare] Product::compare(Self[A, B], Self[A, B]) -> Int32
 pub fn[A : Eq, B : Eq] Product::equal(Self[A, B], Self[A, B]) -> Bool
 pub fn[A : Lattice, B : Lattice] Product::join(Self[A, B], Self[A, B]) -> Self[A, B]
 pub fn[A : Lattice, B : Lattice] Product::less_equal(Self[A, B], Self[A, B]) -> Bool
@@ -743,24 +758,24 @@ pub struct ProgressGraph[T, S] {
   // private fields
 }
 pub fn[T, S] ProgressGraph::ProgressGraph(SummaryDomain[T, S]) -> Self[T, S]
-pub fn[T, S] ProgressGraph::add_port(Self[T, S]) -> Int
-pub fn[T, S : Compare] ProgressGraph::compile(Self[T, S], max_steps? : Int) -> Reachability[T, S]?
-pub fn[T, S] ProgressGraph::connect(Self[T, S], Int, Int, S) -> Unit
+pub fn[T, S] ProgressGraph::add_port(Self[T, S]) -> Int32
+pub fn[T, S : Compare] ProgressGraph::compile(Self[T, S], max_steps? : Int32) -> Reachability[T, S]?
+pub fn[T, S] ProgressGraph::connect(Self[T, S], Int32, Int32, S) -> Unit
 
 pub struct ProgressTracker[T, S] {
   // private fields
 }
 pub fn[T : Lattice, S] ProgressTracker::ProgressTracker(Reachability[T, S]) -> Self[T, S]
-pub fn[T : Lattice, S] ProgressTracker::capability(Self[T, S], Int, T) -> Capability[T, S]
-pub fn[T : Lattice, S] ProgressTracker::frontier(Self[T, S], Int) -> Antichain[T]
-pub fn[T : Lattice, S] ProgressTracker::propagate(Self[T, S]) -> Array[(Int, T, Int64)]
-pub fn[T : Lattice, S] ProgressTracker::update(Self[T, S], Int, T, Int64) -> Unit
+pub fn[T : Lattice, S] ProgressTracker::capability(Self[T, S], Int32, T) -> Capability[T, S]
+pub fn[T : Lattice, S] ProgressTracker::frontier(Self[T, S], Int32) -> Antichain[T]
+pub fn[T : Lattice, S] ProgressTracker::propagate(Self[T, S]) -> Array[(Int32, T, Int64)]
+pub fn[T : Lattice, S] ProgressTracker::update(Self[T, S], Int32, T, Int64) -> Unit
 
 pub struct Reachability[T, S] {
   // private fields
 }
-pub fn[T, S] Reachability::port_count(Self[T, S]) -> Int
-pub fn[T, S] Reachability::summaries(Self[T, S], Int, Int) -> Array[S]
+pub fn[T, S] Reachability::port_count(Self[T, S]) -> Int32
+pub fn[T, S] Reachability::summaries(Self[T, S], Int32, Int32) -> Array[S]
 
 pub struct RefinedScope[A, B, S, U] {
   // private fields
@@ -793,10 +808,11 @@ pub fn[D, T : Lattice, R] Replayer::Replayer(T) -> Self[D, T, R]
 pub fn[D, T : Lattice, R] Replayer::frontier(Self[D, T, R]) -> Antichain[T]
 pub fn[D : Compare, T : Lattice, R : Compare] Replayer::push(Self[D, T, R], CaptureMessage[D, T, R]) -> (Array[(D, T, R)], Antichain[T])?
 
+#derive(Eq, @debug.Debug)
 pub(all) enum RunResult {
-  Quiescent(Int)
-  StepLimit(Int)
-} derive(Eq, @debug.Debug)
+  Quiescent(Int32)
+  StepLimit(Int32)
+}
 pub fn RunResult::equal(Self, Self) -> Bool
 pub fn RunResult::not_equal(Self, Self) -> Bool
 pub fn RunResult::to_repr(Self) -> @debug.Repr
@@ -804,21 +820,21 @@ pub fn RunResult::to_repr(Self) -> @debug.Repr
 pub struct Scope[T, S] {
   // private fields
 }
-pub fn[K : Compare + Hash, D : Compare, T : Lattice, S : Compare] Scope::aggregate_ranges(Self[T, S], Collection[((UInt64, K), D), T, Int64], (K, D, D) -> D) -> Collection[((UInt64, Int, K), D), T, Int64]
-pub fn[N : Compare + Hash, T : Lattice, S : Compare] Scope::bfs(Self[T, S], Collection[(N, N), T, Int64], Collection[N, T, Int64]) -> Collection[(N, UInt), T, Int64]
-pub fn[N : Compare + Hash, T : Lattice, S : Compare] Scope::bfs_arranged(Self[T, S], ArrangementView[N, N, T, Int64], Collection[N, T, Int64]) -> Collection[(N, UInt), T, Int64]
-pub fn[N : Compare + Hash, T : Lattice, S : Compare] Scope::bidijkstra(Self[T, S], Collection[(N, N), T, Int64], Collection[(N, N), T, Int64]) -> Collection[((N, N), UInt), T, Int64]
-pub fn[N : Compare + Hash, T : Lattice, S : Compare] Scope::bidijkstra_arranged(Self[T, S], ArrangementView[N, N, T, Int64], ArrangementView[N, N, T, Int64], Collection[(N, N), T, Int64]) -> Collection[((N, N), UInt), T, Int64]
-pub fn[K : Compare + Hash, D : Compare + Hash, T : Lattice, S : Compare] Scope::broadcast_prefix(Self[T, S], Collection[((UInt64, Int, K), D), T, Int64], Collection[(UInt64, K), T, Int64], D, (K, D, D) -> D) -> Collection[((UInt64, K), D), T, Int64]
+pub fn[K : Compare + Hash, D : Compare, T : Lattice, S : Compare] Scope::aggregate_ranges(Self[T, S], Collection[((UInt64, K), D), T, Int64], (K, D, D) -> D) -> Collection[((UInt64, Int32, K), D), T, Int64]
+pub fn[N : Compare + Hash, T : Lattice, S : Compare] Scope::bfs(Self[T, S], Collection[(N, N), T, Int64], Collection[N, T, Int64]) -> Collection[(N, UInt32), T, Int64]
+pub fn[N : Compare + Hash, T : Lattice, S : Compare] Scope::bfs_arranged(Self[T, S], ArrangementView[N, N, T, Int64], Collection[N, T, Int64]) -> Collection[(N, UInt32), T, Int64]
+pub fn[N : Compare + Hash, T : Lattice, S : Compare] Scope::bidijkstra(Self[T, S], Collection[(N, N), T, Int64], Collection[(N, N), T, Int64]) -> Collection[((N, N), UInt32), T, Int64]
+pub fn[N : Compare + Hash, T : Lattice, S : Compare] Scope::bidijkstra_arranged(Self[T, S], ArrangementView[N, N, T, Int64], ArrangementView[N, N, T, Int64], Collection[(N, N), T, Int64]) -> Collection[((N, N), UInt32), T, Int64]
+pub fn[K : Compare + Hash, D : Compare + Hash, T : Lattice, S : Compare] Scope::broadcast_prefix(Self[T, S], Collection[((UInt64, Int32, K), D), T, Int64], Collection[(UInt64, K), T, Int64], D, (K, D, D) -> D) -> Collection[((UInt64, K), D), T, Int64]
 pub fn[D : Compare, T : Lattice, R : Semigroup, S] Scope::capture_to(Self[T, S], Collection[D, T, R], CaptureWriter[D, T, R]) -> CaptureHandle
 pub fn[D, T : Lattice, R, S] Scope::concatenate(Self[T, S], Array[Collection[D, T, R]]) -> Collection[D, T, R]
-pub fn[T, S] Scope::dataflow_index(Self[T, S]) -> Int
+pub fn[T, S] Scope::dataflow_index(Self[T, S]) -> Int32
 pub fn[D, T : Lattice, R, S] Scope::feedback(Self[T, S], S) -> (Feedback[D, T, R, S], Collection[D, T, R])
 pub fn[D : Compare + RustHash, T : Lattice, R : Abelian, S : Compare] Scope::identifiers(Self[T, S], Collection[D, T, R]) -> Collection[(D, UInt64), T, R]
-pub fn[D : Compare, T : Lattice, R : Abelian, S : Compare] Scope::identifiers_with(Self[T, S], Collection[D, T, R], (Int, D) -> UInt64) -> Collection[(D, UInt64), T, R]
+pub fn[D : Compare, T : Lattice, R : Abelian, S : Compare] Scope::identifiers_with(Self[T, S], Collection[D, T, R], (Int32, D) -> UInt64) -> Collection[(D, UInt64), T, R]
 pub fn[D, T : Lattice, R, S] Scope::input(Self[T, S]) -> (InputSession[D, T, R], Collection[D, T, R])
 pub fn[D, T : Lattice, R : Abelian, S : Compare] Scope::iterate(Self[T, S], Collection[D, T, R], (Self[Product[T, Int64], Product[S, Int64]], Collection[D, Product[T, Int64], R]) -> Collection[D, Product[T, Int64], R]) -> Collection[D, T, R]
-pub fn[D, A : Lattice, B : Timestamp, R, S, U] Scope::leave_dynamic(Self[Product[A, PointStamp[B]], Product[S, PointStampSummary[U]]], Collection[D, Product[A, PointStamp[B]], R], Int) -> Collection[D, Product[A, PointStamp[B]], R]
+pub fn[D, A : Lattice, B : Timestamp, R, S, U] Scope::leave_dynamic(Self[Product[A, PointStamp[B]], Product[S, PointStampSummary[U]]], Collection[D, Product[A, PointStamp[B]], R], Int32) -> Collection[D, Product[A, PointStamp[B]], R]
 pub fn[A : Lattice, B : Lattice, S : Compare, U : Compare] Scope::nested(Self[A, S], B, SummaryDomain[B, U]) -> NestedScope[A, B, S, U]
 pub fn[T, S] Scope::operator(Self[T, S]) -> OperatorBuilder[T, S]
 pub fn[K : Compare + Hash, D : Compare + Hash, T : Lattice, S : Compare] Scope::prefix_sum(Self[T, S], Collection[((UInt64, K), D), T, Int64], D, (K, D, D) -> D) -> Collection[((UInt64, K), D), T, Int64]
@@ -829,7 +845,7 @@ pub fn[N : Compare + Hash, L : Compare, T : Lattice, S : Compare, R : Ring] Scop
 pub fn[A, B : Lattice, S, U : Compare] Scope::refine(Self[A, S], SummaryDomain[B, U], Refinement[A, B, S, U]) -> RefinedScope[A, B, S, U]
 pub fn[T : Lattice, S : Compare] Scope::region(Self[T, S]) -> RefinedScope[T, T, S, S]
 pub fn[D, T : Lattice, R, S] Scope::replay(Self[T, S]) -> (ReplayInput[D, T, R], Collection[D, T, R])
-pub fn[D : Compare, T : Lattice, R : Compare, S] Scope::replay_from(Self[T, S], (Activator) -> () -> CaptureMessage[D, T, R]?, messages_per_turn? : Int) -> (CaptureHandle, Collection[D, T, R])
+pub fn[D : Compare, T : Lattice, R : Compare, S] Scope::replay_from(Self[T, S], (Activator) -> () -> CaptureMessage[D, T, R]?, messages_per_turn? : Int32) -> (CaptureHandle, Collection[D, T, R])
 pub fn[N : Compare + Hash, V : Compare, T : Lattice, S : Compare] Scope::sequence(Self[T, S], Collection[(N, V), T, Int64], Collection[(N, N), T, Int64], (N, Array[(V, Int64)]) -> V) -> Collection[(N, V?), T, Int64]
 pub fn[D, T : Lattice, R, S] Scope::source(Self[T, S]) -> (Output[D, T, R, S], Capability[T, S], Collection[D, T, R])
 pub fn[N : Compare + Hash, T : Lattice, S : Compare, R : Ring] Scope::strongly_connected(Self[T, S], Collection[(N, N), T, R]) -> Collection[(N, N), T, R]
@@ -841,21 +857,22 @@ pub fn[D, T : Lattice, R : Abelian, S] Scope::variable_from(Self[T, S], Collecti
 pub struct ScopeGroup[T, S] {
   // private fields
 }
-pub fn[T, S] ScopeGroup::dataflow_index(Self[T, S]) -> Int
+pub fn[T, S] ScopeGroup::dataflow_index(Self[T, S]) -> Int32
 pub fn[D, T : Lattice, R, S] ScopeGroup::exchange(Self[T, S], Array[Collection[D, T, R]], (D) -> UInt64) -> Array[Collection[D, T, R]]
 pub fn[D, T : Lattice, R, S] ScopeGroup::input(Self[T, S]) -> Array[(InputSession[D, T, R], Collection[D, T, R])]
 pub fn[D, T : Lattice, R : Abelian, S : Compare] ScopeGroup::iterate(Self[T, S], Array[Collection[D, T, R]], (Self[Product[T, Int64], Product[S, Int64]], Array[Collection[D, Product[T, Int64], R]]) -> Array[Collection[D, Product[T, Int64], R]]) -> Array[Collection[D, T, R]]
 pub fn[A : Lattice, B : Lattice, S : Compare, U : Compare] ScopeGroup::nested(Self[A, S], B, SummaryDomain[B, U]) -> NestedScopeGroup[A, B, S, U]
-pub fn[D : Compare, T : Lattice, R : Compare, S] ScopeGroup::replay_from(Self[T, S], (Int, Activator) -> () -> CaptureMessage[D, T, R]?, hash~ : (D) -> UInt64, time_hash? : (T) -> UInt64, messages_per_turn? : Int) -> Array[(CaptureHandle, Collection[D, T, R])]
-pub fn[T, S] ScopeGroup::scope(Self[T, S], Int) -> Scope[T, S]
+pub fn[D : Compare, T : Lattice, R : Compare, S] ScopeGroup::replay_from(Self[T, S], (Int32, Activator) -> () -> CaptureMessage[D, T, R]?, hash~ : (D) -> UInt64, time_hash? : (T) -> UInt64, messages_per_turn? : Int32) -> Array[(CaptureHandle, Collection[D, T, R])]
+pub fn[T, S] ScopeGroup::scope(Self[T, S], Int32) -> Scope[T, S]
 
+#derive(Compare, Eq, Hash, @debug.Debug)
 pub struct SingletonDiff[R] {
   // private fields
-} derive(Compare, Eq, Hash, @debug.Debug)
+}
 pub fn[R] SingletonDiff::SingletonDiff(R) -> Self[R]
-pub fn[R : Compare] SingletonDiff::compare(Self[R], Self[R]) -> Int
+pub fn[R : Compare] SingletonDiff::compare(Self[R], Self[R]) -> Int32
 pub fn[R : Eq] SingletonDiff::equal(Self[R], Self[R]) -> Bool
-pub fn[R : Hash] SingletonDiff::hash(Self[R]) -> Int
+pub fn[R : Hash] SingletonDiff::hash(Self[R]) -> Int32
 pub fn[R : Hash] SingletonDiff::hash_combine(Self[R], Hasher) -> Unit
 pub fn[R : Semigroup] SingletonDiff::is_zero(Self[R]) -> Bool
 pub fn[R : Abelian] SingletonDiff::negate(Self[R]) -> Self[R]
@@ -876,17 +893,18 @@ pub impl[R : Semigroup] Semigroup for SingletonDiff[R]
 pub struct SpillPolicy[D, T, R] {
   // private fields
 }
-pub fn[D, T, R] SpillPolicy::SpillPolicy(Int64, store~ : BytesStore, codec~ : WireCodec[Array[(D, T, R)]], chunk_size? : Int) -> Self[D, T, R]
-pub fn[D, T, R] SpillPolicy::binary(Int64, store~ : BytesStore, encode~ : (Array[(D, T, R)]) -> Bytes, decode~ : (BytesView) -> Array[(D, T, R)]?, chunk_size? : Int) -> Self[D, T, R]
+pub fn[D, T, R] SpillPolicy::SpillPolicy(Int64, store~ : BytesStore, codec~ : WireCodec[Array[(D, T, R)]], chunk_size? : Int32) -> Self[D, T, R]
+pub fn[D, T, R] SpillPolicy::binary(Int64, store~ : BytesStore, encode~ : (Array[(D, T, R)]) -> Bytes, decode~ : (BytesView) -> Array[(D, T, R)]?, chunk_size? : Int32) -> Self[D, T, R]
 pub fn[D, T, R] SpillPolicy::stats(Self[D, T, R]) -> SpillStats
 
+#derive(Eq, @debug.Debug)
 pub(all) struct SpillStats {
   spilled_chunks : Int64
   spilled_records : Int64
   fetched_chunks : Int64
   bytes_written : Int64
   resident_records : Int64
-} derive(Eq, @debug.Debug)
+}
 pub fn SpillStats::equal(Self, Self) -> Bool
 pub fn SpillStats::not_equal(Self, Self) -> Bool
 pub fn SpillStats::to_repr(Self) -> @debug.Repr
@@ -902,13 +920,13 @@ pub fn[K : Compare, V : Compare, T : Lattice, R] Spine::cursor(Self[(K, V), T, R
 pub fn[K : Compare, V : Compare, T : Lattice, R] Spine::cursor_through(Self[(K, V), T, R], Antichain[T]) -> Cursor[K, V, T, R]?
 pub fn[D, T : Lattice, R] Spine::dispose(Self[D, T, R]) -> Unit
 pub fn[D : Compare, T : Lattice, R : Semigroup] Spine::exert(Self[D, T, R]) -> Unit
-pub fn[D : Compare, T : Lattice, R : Semigroup] Spine::exert_with_fuel(Self[D, T, R], Int) -> Int
+pub fn[D : Compare, T : Lattice, R : Semigroup] Spine::exert_with_fuel(Self[D, T, R], Int32) -> Int32
 pub fn[D : Compare, T : Lattice, R : Semigroup] Spine::insert(Self[D, T, R], Batch[D, T, R]) -> Unit
-pub fn[D, T, R] Spine::levels(Self[D, T, R]) -> Array[(Int, Int, Int)]
+pub fn[D, T, R] Spine::levels(Self[D, T, R]) -> Array[(Int32, Int32, Int32)]
 pub fn[D, T : Lattice, R] Spine::logical_compaction(Self[D, T, R]) -> Antichain[T]
 pub fn[D, T, R] Spine::map_batches(Self[D, T, R], (Batch[D, T, R]) -> Unit) -> Unit
 pub fn[D, T : Lattice, R] Spine::physical_compaction(Self[D, T, R]) -> Antichain[T]
-pub fn[D, T, R] Spine::set_exert_logic(Self[D, T, R], (Array[(Int, Int, Int)]) -> Int?) -> Unit
+pub fn[D, T, R] Spine::set_exert_logic(Self[D, T, R], (Array[(Int32, Int32, Int32)]) -> Int32?) -> Unit
 pub fn[D, T : Lattice, R] Spine::set_logical_compaction(Self[D, T, R], Antichain[T]) -> Unit
 pub fn[D, T : Lattice, R] Spine::set_physical_compaction(Self[D, T, R], Antichain[T]) -> Unit
 pub fn[D : Compare, T : Lattice, R : Semigroup] Spine::snapshot(Self[D, T, R], T) -> Array[(D, R)]
@@ -920,12 +938,12 @@ pub struct SummaryDomain[T, S] {
 pub fn[T, S] SummaryDomain::SummaryDomain(S, apply~ : (S, T) -> T?, compose~ : (S, S) -> S?, less_equal~ : (S, S) -> Bool) -> Self[T, S]
 pub fn SummaryDomain::byte() -> Self[Byte, Byte]
 pub fn SummaryDomain::duration() -> Self[Duration, Duration]
-pub fn[T, S] SummaryDomain::feedback_summary(Self[T, S], Int, S) -> PointStampSummary[S]
+pub fn[T, S] SummaryDomain::feedback_summary(Self[T, S], Int32, S) -> PointStampSummary[S]
 pub fn[T, S] SummaryDomain::followed_by(Self[T, S], S, S) -> S?
 pub fn[T, S] SummaryDomain::identity(Self[T, S]) -> S
 pub fn SummaryDomain::int128() -> Self[Int128, Int128]
 pub fn SummaryDomain::int16() -> Self[Int16, Int16]
-pub fn SummaryDomain::int32() -> Self[Int, Int]
+pub fn SummaryDomain::int32() -> Self[Int32, Int32]
 pub fn SummaryDomain::int64() -> Self[Int64, Int64]
 pub fn SummaryDomain::int8() -> Self[Int8, Int8]
 pub fn[T : Timestamp, S] SummaryDomain::pointstamp(Self[T, S]) -> Self[PointStamp[T], PointStampSummary[S]]
@@ -933,7 +951,7 @@ pub fn[A, B, S, U] SummaryDomain::product(Self[A, S], Self[B, U]) -> Self[Produc
 pub fn[T, S] SummaryDomain::results_in(Self[T, S], S, T) -> T?
 pub fn SummaryDomain::uint128() -> Self[UInt128, UInt128]
 pub fn SummaryDomain::uint16() -> Self[UInt16, UInt16]
-pub fn SummaryDomain::uint32() -> Self[UInt, UInt]
+pub fn SummaryDomain::uint32() -> Self[UInt32, UInt32]
 pub fn SummaryDomain::uint64() -> Self[UInt64, UInt64]
 pub fn SummaryDomain::unit() -> Self[Unit, Unit]
 
@@ -986,7 +1004,7 @@ pub fn[D : Compare, T : Lattice, R : Semigroup] TraceBackend::TraceBackend(Trace
 pub struct TraceLogger {
   // private fields
 }
-pub fn TraceLogger::TraceLogger(Logger[DifferentialEvent], operator~ : Int) -> Self
+pub fn TraceLogger::TraceLogger(Logger[DifferentialEvent], operator~ : Int32) -> Self
 
 pub struct TraceReader[D, T, R] {
   // private fields
@@ -1013,10 +1031,11 @@ pub fn[D : Compare, T : Lattice, R : Semigroup] TraceReader::snapshot(Self[D, T,
 pub fn[D, T, R] TraceReader::subscribe(Self[D, T, R], (BatchView[D, T, R]) -> Unit) -> () -> Unit
 pub fn[D, T, R] TraceReader::upper(Self[D, T, R]) -> Antichain[T]
 
+#derive(Eq, @debug.Debug)
 pub(all) struct TraceShare {
-  operator : Int
-  diff : Int
-} derive(Eq, @debug.Debug)
+  operator : Int32
+  diff : Int32
+}
 pub fn TraceShare::equal(Self, Self) -> Bool
 pub fn TraceShare::not_equal(Self, Self) -> Bool
 pub fn TraceShare::to_repr(Self) -> @debug.Repr
@@ -1027,18 +1046,19 @@ pub struct TraceWriter[D, T, R] {
 pub fn[D : Compare, T : Lattice, R : Semigroup] TraceWriter::close(Self[D, T, R]) -> Unit
 pub fn[D : Compare, T : Lattice, R : Semigroup] TraceWriter::exert(Self[D, T, R]) -> Unit
 pub fn[D : Compare, T : Lattice, R : Semigroup] TraceWriter::insert(Self[D, T, R], Batch[D, T, R]) -> Unit
-pub fn[D, T, R] TraceWriter::set_exert_logic(Self[D, T, R], (Array[(Int, Int, Int)]) -> Int?) -> Unit
+pub fn[D, T, R] TraceWriter::set_exert_logic(Self[D, T, R], (Array[(Int32, Int32, Int32)]) -> Int32?) -> Unit
 pub fn[D, T : Lattice, R] TraceWriter::upper(Self[D, T, R]) -> Antichain[T]
 
+#derive(Compare, Eq, Hash, @debug.Debug)
 pub struct UInt128 {
   // private fields
-} derive(Compare, Eq, Hash, @debug.Debug)
+}
 pub fn UInt128::UInt128(UInt64) -> Self
 pub fn UInt128::checked_add(Self, Self) -> Self?
-pub fn UInt128::compare(Self, Self) -> Int
+pub fn UInt128::compare(Self, Self) -> Int32
 pub fn UInt128::equal(Self, Self) -> Bool
 pub fn UInt128::from_words(UInt64, UInt64) -> Self
-pub fn UInt128::hash(Self) -> Int
+pub fn UInt128::hash(Self) -> Int32
 pub fn UInt128::hash_combine(Self, Hasher) -> Unit
 pub fn UInt128::hash_into(Self, FnvHasher) -> Unit
 pub fn UInt128::is_zero(Self) -> Bool
@@ -1087,23 +1107,24 @@ pub fn[K : Compare, V : Compare, T : Compare, R : Semigroup] UpdatesTyped::form_
 pub fn[K, V, T, R] UpdatesTyped::from_columns(ColumnLists[K], ColumnLists[V], ColumnLists[T], ColumnLists[R]) -> Self[K, V, T, R]
 pub fn[K, V, T, R] UpdatesTyped::is_empty(Self[K, V, T, R]) -> Bool
 pub fn[K, V, T, R] UpdatesTyped::iter(Self[K, V, T, R]) -> Iter[(K, V, T, R)]
-pub fn[K, V, T, R] UpdatesTyped::length(Self[K, V, T, R]) -> Int
+pub fn[K, V, T, R] UpdatesTyped::length(Self[K, V, T, R]) -> Int32
 pub fn[K : Compare, V : Compare, T : Compare, R : Semigroup] UpdatesTyped::merge_pair(Self[K, V, T, R], Self[K, V, T, R]) -> (Self[K, V, T, R], Self[K, V, T, R]?, Self[K, V, T, R]?)
-pub fn[K, V, T, R] UpdatesTyped::split_at(Self[K, V, T, R], Int) -> (Self[K, V, T, R], Self[K, V, T, R])
-pub fn[K, V, T, R] UpdatesTyped::suffix_chunk(Self[K, V, T, R], (Int, Int, Int)) -> Self[K, V, T, R]
-pub fn[K, V, T, R] UpdatesTyped::times_bounds(Self[K, V, T, R], Int, Int) -> (Int, Int)
-pub fn[K, V, T, R] UpdatesTyped::vals_bounds(Self[K, V, T, R], Int, Int) -> (Int, Int)
+pub fn[K, V, T, R] UpdatesTyped::split_at(Self[K, V, T, R], Int32) -> (Self[K, V, T, R], Self[K, V, T, R])
+pub fn[K, V, T, R] UpdatesTyped::suffix_chunk(Self[K, V, T, R], (Int32, Int32, Int32)) -> Self[K, V, T, R]
+pub fn[K, V, T, R] UpdatesTyped::times_bounds(Self[K, V, T, R], Int32, Int32) -> (Int32, Int32)
+pub fn[K, V, T, R] UpdatesTyped::vals_bounds(Self[K, V, T, R], Int32, Int32) -> (Int32, Int32)
 
 pub struct Variable[D, T, R, S] {
   // private fields
 }
 pub fn[D, T : Lattice, R, S] Variable::set(Self[D, T, R, S], Collection[D, T, R]) -> Unit
 
+#derive(Compare, Eq, @debug.Debug)
 pub struct VectorDiff[R] {
   // private fields
-} derive(Compare, Eq, @debug.Debug)
+}
 pub fn[R] VectorDiff::VectorDiff(Array[R]) -> Self[R]
-pub fn[R : Compare] VectorDiff::compare(Self[R], Self[R]) -> Int
+pub fn[R : Compare] VectorDiff::compare(Self[R], Self[R]) -> Int32
 pub fn[R : Eq] VectorDiff::equal(Self[R], Self[R]) -> Bool
 pub fn[R : Semigroup] VectorDiff::is_zero(Self[R]) -> Bool
 pub fn[R : Abelian] VectorDiff::negate(Self[R]) -> Self[R]
@@ -1124,13 +1145,13 @@ pub impl[R : Semigroup] Semigroup for VectorDiff[R]
 pub struct WireCodec[T] {
   // private fields
 }
-pub fn[T] WireCodec::WireCodec(encode~ : (T) -> Json, decode~ : (Json) -> T?) -> Self[T]
-pub fn[T] WireCodec::from_json(Self[T], Json) -> T?
-pub fn[T : ToJson + @json.FromJson] WireCodec::json() -> Self[T]
+pub fn[T] WireCodec::WireCodec(encode~ : (T) -> @json.Json, decode~ : (@json.Json) -> T?) -> Self[T]
+pub fn[T] WireCodec::from_json(Self[T], @json.Json) -> T?
+pub fn[T : @json.ToJson + @json.FromJson] WireCodec::json() -> Self[T]
 pub fn[T : Timestamp] WireCodec::pointstamp(Self[T]) -> Self[PointStamp[T]]
 pub fn[S] WireCodec::pointstamp_summary(Self[S]) -> Self[PointStampSummary[S]]
 pub fn[A, B] WireCodec::product(Self[A], Self[B]) -> Self[Product[A, B]]
-pub fn[T] WireCodec::to_json(Self[T], T) -> Json
+pub fn[T] WireCodec::to_json(Self[T], T) -> @json.Json
 
 pub struct Worker {
   // private fields
@@ -1138,36 +1159,37 @@ pub struct Worker {
 pub fn Worker::Worker(clock? : () -> Duration) -> Self
 pub fn Worker::differential_logs(Self) -> LogRegistry[DifferentialEvent]
 pub fn Worker::dispose(Self) -> Unit
-pub fn Worker::drop_dataflow(Self, Int) -> Unit
+pub fn Worker::drop_dataflow(Self, Int32) -> Unit
 pub fn Worker::has_dataflows(Self) -> Bool
 pub fn[D, T : Lattice, R] Worker::input(Self, T) -> (InputSession[D, T, R], Collection[D, T, R])
-pub fn Worker::installed_dataflows(Self) -> Array[Int]
+pub fn Worker::installed_dataflows(Self) -> Array[Int32]
 pub fn Worker::next_activation(Self) -> Duration?
-pub fn Worker::next_dataflow_index(Self) -> Int
-pub fn Worker::run(Self, max_steps? : Int) -> RunResult
+pub fn Worker::next_dataflow_index(Self) -> Int32
+pub fn Worker::run(Self, max_steps? : Int32) -> RunResult
 pub fn[T : Lattice, S : Compare] Worker::scope(Self, T, SummaryDomain[T, S]) -> Scope[T, S]
 pub fn Worker::step(Self) -> Bool
 
 pub struct WorkerGroup {
   // private fields
 }
-pub fn WorkerGroup::WorkerGroup(Int, clock? : () -> Duration) -> Self
+pub fn WorkerGroup::WorkerGroup(Int32, clock? : () -> Duration) -> Self
 pub fn WorkerGroup::dispose(Self) -> Unit
-pub fn WorkerGroup::drop_dataflow(Self, Int) -> Unit
+pub fn WorkerGroup::drop_dataflow(Self, Int32) -> Unit
 pub fn WorkerGroup::next_activation(Self) -> Duration?
-pub fn WorkerGroup::peers(Self) -> Int
-pub fn WorkerGroup::run(Self, max_steps? : Int) -> RunResult
+pub fn WorkerGroup::peers(Self) -> Int32
+pub fn WorkerGroup::run(Self, max_steps? : Int32) -> RunResult
 pub fn[T : Lattice, S : Compare] WorkerGroup::scopes(Self, T, SummaryDomain[T, S]) -> ScopeGroup[T, S]
 pub fn WorkerGroup::step(Self) -> Bool
-pub fn WorkerGroup::worker(Self, Int) -> Worker
+pub fn WorkerGroup::worker(Self, Int32) -> Worker
 
+#derive(Compare, Eq, Hash, @debug.Debug)
 pub struct Wrapping[R] {
   // private fields
-} derive(Compare, Eq, Hash, @debug.Debug)
+}
 pub fn[R] Wrapping::Wrapping(R) -> Self[R]
-pub fn[R : Compare] Wrapping::compare(Self[R], Self[R]) -> Int
+pub fn[R : Compare] Wrapping::compare(Self[R], Self[R]) -> Int32
 pub fn[R : Eq] Wrapping::equal(Self[R], Self[R]) -> Bool
-pub fn[R : Hash] Wrapping::hash(Self[R]) -> Int
+pub fn[R : Hash] Wrapping::hash(Self[R]) -> Int32
 pub fn[R : Hash] Wrapping::hash_combine(Self[R], Hasher) -> Unit
 pub fn[R : Semigroup] Wrapping::is_zero(Self[R]) -> Bool
 pub fn[R : Ring] Wrapping::multiply(Self[R], Self[R]) -> Self[R]
@@ -1194,7 +1216,7 @@ pub(open) trait Abelian : Monoid {
   fn negate(Self) -> Self
 }
 pub impl Abelian for Unit
-pub impl Abelian for Int
+pub impl Abelian for Int32
 pub impl Abelian for Int16
 pub impl Abelian for Int64
 pub impl[A : Abelian, B : Abelian] Abelian for (A, B)
@@ -1208,10 +1230,10 @@ pub(open) trait Lattice : Compare {
 }
 pub impl Lattice for Unit
 pub impl Lattice for Byte
-pub impl Lattice for Int
+pub impl Lattice for Int32
 pub impl Lattice for Int16
 pub impl Lattice for Int64
-pub impl Lattice for UInt
+pub impl Lattice for UInt32
 pub impl Lattice for UInt16
 pub impl Lattice for UInt64
 
@@ -1220,10 +1242,10 @@ pub(open) trait Monoid : Semigroup {
 }
 pub impl Monoid for Unit
 pub impl Monoid for Byte
-pub impl Monoid for Int
+pub impl Monoid for Int32
 pub impl Monoid for Int16
 pub impl Monoid for Int64
-pub impl Monoid for UInt
+pub impl Monoid for UInt32
 pub impl Monoid for UInt16
 pub impl Monoid for UInt64
 pub impl[A : Monoid, B : Monoid] Monoid for (A, B)
@@ -1234,7 +1256,7 @@ pub(open) trait Ring : Abelian {
   fn one() -> Self
   fn multiply(Self, Self) -> Self
 }
-pub impl Ring for Int
+pub impl Ring for Int32
 pub impl Ring for Int16
 pub impl Ring for Int64
 
@@ -1245,10 +1267,10 @@ pub impl RustHash for Unit
 pub impl RustHash for Bool
 pub impl RustHash for Byte
 pub impl RustHash for Char
-pub impl RustHash for Int
+pub impl RustHash for Int32
 pub impl RustHash for Int16
 pub impl RustHash for Int64
-pub impl RustHash for UInt
+pub impl RustHash for UInt32
 pub impl RustHash for UInt16
 pub impl RustHash for UInt64
 pub impl RustHash for String
@@ -1265,10 +1287,10 @@ pub(open) trait Semigroup {
 }
 pub impl Semigroup for Unit
 pub impl Semigroup for Byte
-pub impl Semigroup for Int
+pub impl Semigroup for Int32
 pub impl Semigroup for Int16
 pub impl Semigroup for Int64
-pub impl Semigroup for UInt
+pub impl Semigroup for UInt32
 pub impl Semigroup for UInt16
 pub impl Semigroup for UInt64
 pub impl[A : Semigroup, B : Semigroup] Semigroup for (A, B)
@@ -1280,10 +1302,10 @@ pub(open) trait Timestamp : Lattice {
 }
 pub impl Timestamp for Unit
 pub impl Timestamp for Byte
-pub impl Timestamp for Int
+pub impl Timestamp for Int32
 pub impl Timestamp for Int16
 pub impl Timestamp for Int64
-pub impl Timestamp for UInt
+pub impl Timestamp for UInt32
 pub impl Timestamp for UInt16
 pub impl Timestamp for UInt64
 
@@ -1291,9 +1313,9 @@ pub(open) trait TotalOrder : Lattice {
 }
 pub impl TotalOrder for Unit
 pub impl TotalOrder for Byte
-pub impl TotalOrder for Int
+pub impl TotalOrder for Int32
 pub impl TotalOrder for Int16
 pub impl TotalOrder for Int64
-pub impl TotalOrder for UInt
+pub impl TotalOrder for UInt32
 pub impl TotalOrder for UInt16
 pub impl TotalOrder for UInt64

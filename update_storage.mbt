@@ -6,12 +6,12 @@ priv enum UpdateStorage[D, T, R] {
   Paged(
     Int32,
     () -> UpdateReader[D, T, R],
-    (Array[(D, T, R)]) -> UpdateStorage[D, T, R]
+    (Array[(D, T, R)]) -> UpdateStorage[D, T, R],
   )
   Indexed(
     Int32,
     () -> UpdateReader[D, T, R],
-    (Array[(D, T, R)]) -> UpdateStorage[D, T, R]
+    (Array[(D, T, R)]) -> UpdateStorage[D, T, R],
   )
 }
 

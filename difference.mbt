@@ -57,9 +57,10 @@ pub impl Abelian for Int32 with fn negate(self) {
 
 ///|
 /// Presence-only semigroup: there is no zero or retraction.
+#derive(Eq, Debug)
 pub(all) enum Present {
   Present
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl Semigroup for Present with fn plus(self, _other) {
