@@ -67,7 +67,7 @@ fn pointstamp_iteration(
           input.remove(d)
         }
       } else {
-        roots.add(d)
+        roots.insert(d)
         if d % cluster.peers() == cluster.index() {
           input.insert(d)
         }

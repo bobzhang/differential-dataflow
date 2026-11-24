@@ -161,7 +161,7 @@ pub fn[K, V, T, R] UpdatesTyped::iter(
   let mut v = 0
   let mut t = 0
   let mut d = 0
-  Iter::new(fn() {
+  Iter::Iter(fn() {
     if d == self.diffs.value_count() {
       return None
     }

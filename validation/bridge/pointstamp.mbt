@@ -103,7 +103,7 @@ pub fn evaluate_dynamic_iteration(seed : Int32) -> String {
         roots.remove(d)
         input.remove(d)
       } else {
-        roots.add(d)
+        roots.insert(d)
         input.insert(d)
       }
     }

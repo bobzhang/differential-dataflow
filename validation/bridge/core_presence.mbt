@@ -63,7 +63,7 @@ pub fn evaluate_core_presence(seed : Int32) -> String {
       let present : Set[(Int32, Int32)] = Set([])
       for (data, time) in observed {
         if time.outer <= x && time.inner <= y {
-          present.add(data)
+          present.insert(data)
         }
       }
       let values = present.to_array()
