@@ -204,7 +204,7 @@ fn[T : Lattice, S : Compare] Worker::make_scope(
     active: fn() { !progress.disposed && !family.cancelled },
     on_close: fn(close) { progress.close_hooks.push(close) },
     own_task: fn(task) {
-      family.tasks.add(task)
+      family.tasks.insert(task)
       if !progress.tasks.contains(task) {
         progress.tasks.push(task)
       }

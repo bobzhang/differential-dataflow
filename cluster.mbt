@@ -389,7 +389,7 @@ fn ClusterWorker::apply_round(
       guard id >= 0 && id < self.worker.next_dataflow_index() else {
         raise ClusterError("unknown cancelled dataflow")
       }
-      cancelled.add(id)
+      cancelled.insert(id)
     }
     for index, completed in completed {
       let completed : Bool = wire_read(completed)

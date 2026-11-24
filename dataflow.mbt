@@ -121,6 +121,6 @@ pub fn ClusterWorker::drop_dataflow(self : ClusterWorker, id : Int32) -> Unit {
     abort("request cancellation only on an idle active cluster")
   }
   if self.worker.dataflows.contains(id) {
-    self.state.cancellations.add(id)
+    self.state.cancellations.insert(id)
   }
 }

@@ -43,7 +43,7 @@ pub fn evaluate_examples(seed : Int32) -> String {
           active.remove(edge)
           input.remove(edge)
         } else {
-          active.add(edge)
+          active.insert(edge)
           input.insert(edge)
         }
       }

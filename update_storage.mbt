@@ -58,7 +58,7 @@ fn[D, T, R] UpdateStorage::iter(
 ) -> Iter[(D, T, R)] {
   let reader = self.reader()
   let mut index = 0
-  Iter::new(fn() {
+  Iter::Iter(fn() {
     if index == reader.size {
       None
     } else {
