@@ -1,6 +1,6 @@
 name = "bobzhang/differential"
 
-version = "0.1.1"
+version = "0.1.2"
 
 repository = "https://github.com/bobzhang/differential-dataflow"
 
